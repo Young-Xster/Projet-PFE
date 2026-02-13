@@ -58,10 +58,10 @@ CREATE TABLE role_permissions (
 );
 
 CREATE TABLE user_roles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
-    company_id UUID REFERENCES companies(id) ON DELETE CASCADE
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(id),
+    role_id UUID REFERENCES roles(id),
+    company_id UUID REFERENCES companies(id)  
 );
 
 CREATE TABLE company_settings (

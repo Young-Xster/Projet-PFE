@@ -21,9 +21,6 @@ public class Permission {
     private UUID id;
 
     @Column(nullable = false, unique = true, length = 255)
-    private String name;
-
-    @Column(nullable = false, unique = true, length = 255)
     private String code;
 
     @Column(nullable = false, length = 50)
