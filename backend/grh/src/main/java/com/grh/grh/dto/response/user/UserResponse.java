@@ -1,4 +1,4 @@
-package com.grh.grh.dto.request.user;
+package com.grh.grh.dto.response.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,9 +11,13 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateUserRequest {
+public class UserResponse {
+    private UUID id;
+    private String keycloakId;
     private String username;
     private String email;
     private UUID companyId;
-    private String roleName; 
+    private Boolean isActive;
+    private Boolean isSuperAdmin;
+    private String message;
 }

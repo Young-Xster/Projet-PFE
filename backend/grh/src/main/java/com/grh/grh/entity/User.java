@@ -52,6 +52,6 @@ public class User {
     @Column(name = "last_login")
     private OffsetDateTime lastLogin;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private Employee employee;
 }

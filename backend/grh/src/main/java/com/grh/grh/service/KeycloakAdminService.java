@@ -5,7 +5,6 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UsersResource;
-import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.ws.rs.core.Response;
+
 import java.util.*;
 
 @Service
@@ -40,8 +40,8 @@ public class KeycloakAdminService {
     public void init() {
         this.keycloak = KeycloakBuilder.builder()
                 .serverUrl(serverUrl)
-                .realm(realm)
-                .clientId("GRH")
+                .realm("master")  // Admin authentication happens in master realm
+                .clientId("admin-cli")  // Use admin-cli client for admin operations
                 .username(adminUsername)
                 .password(adminPassword)
                 .build();
@@ -55,14 +55,17 @@ public class KeycloakAdminService {
         return getRealm().users();
     }
 
+    
 
-    public String createUser (String username , String email , String tempPassword , UUID companyId){
+
+    public String createUser (String username , String email  , UUID companyId){
+
         UserRepresentation user = new UserRepresentation();
         user.setUsername(username);
         user.setEmail(email);
         user.setEnabled(true);
         // because the password is sent via email there for email is verified
-        user.setEmailVerified(true);
+        user.setEmailVerified(false);
         user.singleAttribute("companyId", companyId.toString());
 
         // set company as custom attribute
@@ -70,26 +73,52 @@ public class KeycloakAdminService {
         attributes.put("companyId" , Collections.singletonList(companyId.toString()));
         user.setAttributes(attributes);
 
-        CredentialRepresentation credential = new CredentialRepresentation();
-        credential.setType(CredentialRepresentation.PASSWORD);
-        credential.setValue(tempPassword);
-        // Forces password change on first login
-        credential.setTemporary(true); 
-        user.setCredentials(Collections.singletonList(credential));
 
-        user.setRequiredActions(Arrays.asList("UPDATE_PASSWORD"));
+
+
+        user.setRequiredActions(Arrays.asList("UPDATE_PASSWORD", "VERIFY_EMAIL"));
 
         Response response = getUsersResource().create(user);
 
         if(response.getStatus() != 201){
-            throw new RuntimeException("Failed to create user in Keycloak: " + response.getStatusInfo());
+            String errorMessage = response.readEntity(String.class);
+            log.error("Failed to create Keycloak user: {}", errorMessage);
+            throw new RuntimeException("Failed to create Keycloak user: " + errorMessage);
         }
 
         String locationHeader = response.getHeaderString("Location");
         String userId = locationHeader.substring(locationHeader.lastIndexOf('/')+1);
 
-        log.info("created keycloak user:{} with id: {}",username, userId);
+        try {
+            sendPasswordSetupEmail(userId, email);
+            log.info("Sent password setup email to {}", email);
+        } catch (Exception e) {
+            log.error("Failed to send password setup email to {}: {}", email, e.getMessage());
+            
+        }
+
+        log.info("Created Keycloak user: {} with ID: {}. Password setup email sent.", username, userId);
         return userId;
+    }
+
+    private void sendPasswordSetupEmail(String userId, String email) {
+        try {
+            getUsersResource().get(userId).executeActionsEmail(Arrays.asList("VERIFY_EMAIL", "UPDATE_PASSWORD"));
+            log.info("sent password setup email to {}" , email);
+        }catch (Exception e){
+            log.warn("Could not send password setup email to {}: {}", email, e.getMessage());
+        }
+    }
+
+    public void resendPasswordSetupEmail(String keycloakUserId) {
+        UserRepresentation user = getUsersResource().get(keycloakUserId).toRepresentation();
+        
+        if (user == null) {
+            throw new RuntimeException("User not found: " + keycloakUserId);
+        }
+        
+        sendPasswordSetupEmail(keycloakUserId, user.getEmail());
+        log.info("Resent password setup email to {}", user.getEmail());
     }
 
     public void createRole(String roleName, String description, Map<String, List<String>> permissions) {
