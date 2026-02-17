@@ -22,8 +22,6 @@ public class Company extends BaseEntity {
     @Column(nullable = false, unique = true, length = 50)
     private String code;
 
-    @Column(name = "access_password_hash", length = 255)
-    private String accessPasswordHash;
 
     @Column(name = "industry_type", length = 100)
     private String industryType;

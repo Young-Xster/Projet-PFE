@@ -2,32 +2,44 @@ package com.grh.grh.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.UUID;
 
 @Entity
-@Table(name = "users", indexes = {
-    @Index(name = "idx_users_email", columnList = "email"),
-    @Index(name = "idx_users_username", columnList = "username")
-})
-@Data
-@Builder
+@Table(name = "users")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true, exclude = {"userRoles", "employee"})
-@ToString(exclude = {"userRoles", "employee"})
-public class User extends BaseEntity {
+@Builder
+public class User {
 
-    @Column(nullable = false, unique = true, length = 255)
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
+
+    @Column(nullable = false, unique = true, length = 100)
     private String username;
 
     @Column(nullable = false, unique = true, length = 255)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
-    private String passwordHash;
+    @Column(name = "keycloak_id", unique = true, length = 255)
+    private String keycloakId; 
+
+    @Column(name = "company_id")
+    private UUID companyId; 
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default
@@ -40,11 +52,6 @@ public class User extends BaseEntity {
     @Column(name = "last_login")
     private OffsetDateTime lastLogin;
 
-    // Relationships
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private Set<UserRole> userRoles = new HashSet<>();
-
-    @OneToOne(mappedBy = "user")
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Employee employee;
 }

@@ -1,0 +1,9 @@
+[17:11:57 2026-02-07] FETCHING Version 2.42.8
+[17:11:57 2026-02-07] CREATING /home/young-xster/.spicetify
+[17:11:57 2026-02-07] DOWNLOADING https://github.com/spicetify/cli/releases/download/v2.42.8/spicetify-2.42.8-linux-amd64.tar.gz
+[17:11:59 2026-02-07] EXTRACTING /home/young-xster/.spicetify/spicetify.tar.gz
+[17:11:59 2026-02-07] SETTING EXECUTABLE PERMISSIONS TO /home/young-xster/.spicetify/spicetify
+[17:11:59 2026-02-07] REMOVING /home/young-xster/.spicetify/spicetify.tar.gz
+[17:11:59 2026-02-07] APPENDING /home/young-xster/.spicetify to PATH in /home/young-xster/.bashrc
+[17:11:59 2026-02-07] spicetify v2.42.8 was installed successfully to /home/young-xster/.spicetify
+[17:11:59 2026-02-07] Run 'spicetify --help' to get started

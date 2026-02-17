@@ -65,6 +65,7 @@ public class SecurityConfig {
         return converter;
     }
 
+    @SuppressWarnings("unchecked")
     private Collection<GrantedAuthority> extractAuthorities(Jwt jwt) {
         Collection<GrantedAuthority> authorities = new ArrayList<>();
         
