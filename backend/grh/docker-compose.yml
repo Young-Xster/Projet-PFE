@@ -3,10 +3,12 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: grh-postgres
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: GRHDb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: kameless1925
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
@@ -26,13 +28,15 @@ services:
     image: quay.io/keycloak/keycloak:26.5.3
     container_name: grh-keycloak
     command: start-dev
+    env_file:
+      - .env
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: postgres
-      KC_DB_PASSWORD: kameless1925
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
       KC_HTTP_PORT: 8080
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
@@ -62,16 +66,26 @@ services:
       context: .
       dockerfile: dockerfile
     container_name: grh-backend
+    env_file:
+      - .env
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DATABASE_URL: jdbc:postgresql://postgres:5432/GRHDb
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: kameless1925
-      JWT_SECRET: zx1EsZszdTNaMTD9R19ig+veDflBGyXTNwlO0Q4RRLrl/eYW6MzIIYnRRb2OnEr31GsiKFtX5p7z8K3XSp+qCA==
-      JWT_EXPIRATION: 86400000
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      KEYCLOAK_URL: http://localhost:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      SERVER_PORT: ${SERVER_PORT}
       JPA_SHOW_SQL: false
       JPA_FORMAT_SQL: false
       FLYWAY_ENABLED: true
+    extra_hosts:
+      - "localhost:host-gateway"
     ports:
       - "8081:8081"
     depends_on:

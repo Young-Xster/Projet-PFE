@@ -45,9 +45,6 @@ public class SecurityConfig {
                 // Super admin endpoints
                 .requestMatchers("/api/v1/super-admin/**").hasRole("SUPER_ADMIN")
                 
-                // Company admin endpoints
-                .requestMatchers("/api/v1/companies/**").hasAnyRole("SUPER_ADMIN", "COMPANY_ADMIN")
-                
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

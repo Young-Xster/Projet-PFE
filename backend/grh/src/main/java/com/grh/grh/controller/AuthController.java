@@ -7,6 +7,8 @@ import com.grh.grh.entity.User;
 import com.grh.grh.repository.CompanyRepository;
 import com.grh.grh.service.KeycloakUserService;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,11 +39,14 @@ public class AuthController {
         if (!user.getIsSuperAdmin() && user.getCompanyId() != null) {
             Company company = companyRepository.findById(user.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Company not found"));
+
+            List<String> permissions = keycloakUserService.extractPermissions(authentication);
             
             response.setCompanyContext(UserContextResponse.CompanyContext.builder()
                 .companyId(company.getId())
                 .companyName(company.getName())
                 .companyCode(company.getCode())
+                .permissions(permissions)
                 .build());
         }
 

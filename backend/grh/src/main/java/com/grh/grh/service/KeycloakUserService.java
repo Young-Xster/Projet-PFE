@@ -1,3 +1,4 @@
+// filepath: backend/grh/src/main/java/com/grh/grh/service/KeycloakUserService.java
 package com.grh.grh.service;
 
 import com.grh.grh.entity.User;
@@ -18,6 +19,7 @@ import java.util.*;
 public class KeycloakUserService {
 
     private final UserRepository userRepository;
+    private final KeycloakAdminService keycloakAdminService;
 
     @Transactional
     public User syncUserFromKeycloak(Authentication authentication) {
@@ -29,10 +31,7 @@ public class KeycloakUserService {
         String username = jwt.getClaim("preferred_username");
         String email = jwt.getClaim("email");
         
-        // Extract companyId from custom attributes
         UUID companyId = extractCompanyId(jwt);
-        
-        // Check if user has SUPER_ADMIN role
         boolean isSuperAdmin = hasRole(jwt, "SUPER_ADMIN");
 
         Optional<User> existingUser = userRepository.findByKeycloakId(keycloakId);
@@ -44,45 +43,58 @@ public class KeycloakUserService {
             user.setIsSuperAdmin(isSuperAdmin);
             return userRepository.save(user);
         } else {
-            // Create new user in DB
             User newUser = User.builder()
-                    .keycloakId(keycloakId)
-                    .username(username)
-                    .email(email)
-                    .companyId(companyId)
-                    .isActive(true)
-                    .isSuperAdmin(isSuperAdmin)
-                    .lastLogin(OffsetDateTime.now())
-                    .build();
-
+                .keycloakId(keycloakId)
+                .username(username)
+                .email(email)
+                .companyId(companyId)
+                .isActive(true)
+                .isSuperAdmin(isSuperAdmin)
+                .lastLogin(OffsetDateTime.now())
+                .build();
+            
             return userRepository.save(newUser);
         }
     }
 
     public UUID getCurrentUserId(Authentication authentication) {
-        if (!(authentication.getPrincipal() instanceof Jwt)) {
+        if (!(authentication.getPrincipal() instanceof Jwt jwt)) {
             throw new IllegalStateException("Invalid authentication type");
         }
         
-        Jwt jwt = (Jwt) authentication.getPrincipal();
         String keycloakId = jwt.getSubject();
         return userRepository.findByKeycloakId(keycloakId)
                 .map(User::getId)
                 .orElseThrow(() -> new IllegalStateException("User not found"));
     }
 
-    public Map<String, List<String>> extractPermissions(Authentication authentication) {
-        if (!(authentication.getPrincipal() instanceof Jwt)) {
+    /**
+     * Extract permissions from JWT by fetching role details from Keycloak
+     * This is called AFTER authentication to get full permission list
+     */
+    public List<String> extractPermissions(Authentication authentication) {
+        if (!(authentication.getPrincipal() instanceof Jwt jwt)) {
             throw new IllegalStateException("Invalid authentication type");
         }
 
-        Map<String, List<String>> permissions = new HashMap<>();
-        
-        // For each role, get its permissions from role attributes
-        // (In real implementation, you'd fetch role details from Keycloak or cache)
-        // For now, returning empty map - will be populated from role attributes
-        
-        return permissions;
+        List<String> allPermissions = new ArrayList<>();
+        Collection<String> roles = extractRoles(jwt);
+
+        // For each role, fetch its permissions from Keycloak
+        for (String roleName : roles) {
+            try {
+                var roleRepresentation = keycloakAdminService.getRoleWithPermissions(roleName);
+                Map<String, List<String>> attributes = roleRepresentation.getAttributes();
+                
+                if (attributes != null && attributes.containsKey("permissions")) {
+                    allPermissions.addAll(attributes.get("permissions"));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch permissions for role: {}", roleName, e);
+            }
+        }
+
+        return allPermissions;
     }
 
     public UUID getCurrentUserCompanyId(Authentication authentication) {
@@ -102,6 +114,14 @@ public class KeycloakUserService {
         }
         
         return hasRole(jwt, "SUPER_ADMIN");
+    }
+
+    /**
+     * Check if user has a specific permission (e.g., "employees:create")
+     */
+    public boolean hasPermission(Authentication authentication, String permission) {
+        List<String> permissions = extractPermissions(authentication);
+        return permissions.contains(permission);
     }
 
     private UUID extractCompanyId(Jwt jwt) {

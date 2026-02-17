@@ -98,14 +98,20 @@ public class KeycloakAdminService {
         role.setDescription(description);
         
         // Store permissions as role attributes (grouped by module)
-        Map<String, List<String>> attributes = new HashMap<>();
+         Map<String, List<String>> attributes = new HashMap<>();
+        List<String> flatPermissions = new ArrayList<>();
+        //format permissions as module:action exp employee:create
         permissions.forEach((module, actions) -> {
-            attributes.put("permissions." + module, actions);
+            actions.forEach(action -> {
+                flatPermissions.add(module + ":" + action);
+            });
         });
+        
+        attributes.put("permissions", flatPermissions);
         role.setAttributes(attributes);
 
         getRealm().roles().create(role);
-        log.info("Created Keycloak role: {} with permissions: {}", roleName, permissions);
+        log.info("Created Keycloak role: {} with permissions: {}", roleName, flatPermissions);
     }
 
     public void assignRoleToUser(String keycloakUserId, String roleName) {
@@ -130,5 +136,25 @@ public class KeycloakAdminService {
         user.setAttributes(attributes);
         getUsersResource().get(keycloakUserId).update(user);
         log.info("Updated user {} company to {}", keycloakUserId, companyId);
+    }
+
+    public RoleRepresentation getRoleWithPermissions(String roleName) {
+        return getRealm().roles().get(roleName).toRepresentation();
+    }
+
+    public void updateRolePermissions(String roleName, Map<String, List<String>> permissions) {
+        RoleRepresentation role = getRealm().roles().get(roleName).toRepresentation();
+        
+        List<String> flatPermissions = new ArrayList<>();
+        permissions.forEach((module, actions) -> {
+            actions.forEach(action -> flatPermissions.add(module + ":" + action));
+        });
+        
+        Map<String, List<String>> attributes = role.getAttributes() != null ? role.getAttributes() : new HashMap<>();
+        attributes.put("permissions", flatPermissions);
+        role.setAttributes(attributes);
+        
+        getRealm().roles().get(roleName).update(role);
+        log.info("Updated role {} permissions: {}", roleName, flatPermissions);
     }
 }
