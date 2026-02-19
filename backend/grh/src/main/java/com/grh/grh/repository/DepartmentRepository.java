@@ -14,22 +14,13 @@ import java.util.UUID;
 public interface DepartmentRepository extends JpaRepository<Department, UUID> {
     
     Optional<Department> findByCode(String code);
-
-    Optional<Department> findByName(String name);
-
-    boolean existsByCode(String code);
-
-    boolean existsByName(String name);
-
+    
     List<Department> findByCompanyId(UUID companyId);
     
-    @Query("SELECT d FROM Department d WHERE d.parentDepartment.id = :parentId")
-    List<Department> findSubdepartments(@Param("parentId") UUID parentId);
+    List<Department> findByParentDepartmentId(UUID parentDepartmentId);
     
-    @Query("SELECT d FROM Department d WHERE d.company.id = :companyId AND d.parentDepartment IS NULL")
-    List<Department> findRootDepartments(@Param("companyId") UUID companyId);
+    boolean existsByCode(String code);
     
-    @Query("SELECT d FROM Department d LEFT JOIN FETCH d.employees WHERE d.id = :id")
-    Optional<Department> findByIdWithEmployees(@Param("id") UUID id);
-
+    @Query("SELECT d FROM Department d LEFT JOIN FETCH d.manager WHERE d.id = :id")
+    Optional<Department> findByIdWithManager(@Param("id") UUID id);
 }
