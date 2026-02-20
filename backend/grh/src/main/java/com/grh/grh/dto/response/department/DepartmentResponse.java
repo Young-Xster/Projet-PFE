@@ -25,4 +25,5 @@ public class DepartmentResponse {
     private String managerName;
     private Integer employeeCount;
     private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 }

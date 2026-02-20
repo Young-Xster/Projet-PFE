@@ -13,13 +13,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateDepartmentRequest {
-    
+
     @Size(max = 255)
     private String name;
-    
+
     private String description;
-    
-    private UUID parentDepartmentId;
-    
+
     private UUID managerId;
+
+    private UUID parentDepartmentId;
 }

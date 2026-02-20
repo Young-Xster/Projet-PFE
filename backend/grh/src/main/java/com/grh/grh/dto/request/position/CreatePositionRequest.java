@@ -15,20 +15,23 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreatePositionRequest {
-    
+
     @NotNull(message = "Company ID is required")
     private UUID companyId;
-    
-    @NotBlank(message = "Position code is required")
-    @Size(max = 50)
-    private String code;
-    
-    @NotBlank(message = "Position name is required")
+
+    @NotBlank(message = "Title is required")
     @Size(max = 255)
-    private String name;
-    
-    private String description;
-    
-    @NotNull(message = "Department ID is required")
+    private String title;
+
+    @NotBlank(message = "Code is required")
+    @Size(max = 255)
+    private String code;
+
     private UUID departmentId;
+
+    private String description;
+
+    private String requiredSkills;
+
+    private Integer experienceYearsRequired;
 }
