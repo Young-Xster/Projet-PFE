@@ -28,7 +28,6 @@ public class CreateLeaveTypeRequest {
     
     private String description;
     
-    @NotNull(message = "Default days is required")
     @DecimalMin(value = "0.0", message = "Default days must be positive")
     private BigDecimal defaultDays;
     

@@ -52,7 +52,9 @@ public class SecurityConfig {
                     "/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
-                    "/actuator/health"
+                    "/actuator/health",
+                    "/api/v1/leave-requests/public/**",
+                    "/api/v1/leave-types/public/**"
                 ).permitAll()
                 
                 // Super admin endpoints
@@ -63,8 +65,7 @@ public class SecurityConfig {
             )
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-            )
-            .anonymous(anonymous -> anonymous.disable());
+            );
 
         return http.build();
     }
