@@ -1,20 +1,22 @@
 package com.grh.grh.dto.request.attendance;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.time.LocalTime;
+import java.time.OffsetDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateAttendanceRequest {
-    
-    private LocalTime checkInTime;
-    private LocalTime checkOutTime;
+
+    private OffsetDateTime clockInTime;
+
+    private OffsetDateTime clockOutTime;
+
     private String status;
-    private String remarks;
+
+    private String notes;
+
+    private Integer delayMinutes;
 }

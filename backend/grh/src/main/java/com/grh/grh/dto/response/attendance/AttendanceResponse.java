@@ -1,12 +1,8 @@
 package com.grh.grh.dto.response.attendance;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -15,13 +11,30 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AttendanceResponse {
+
     private UUID id;
+    private LocalDate date;
+    private OffsetDateTime clockInTime;
+    private OffsetDateTime clockOutTime;
+    private String status;
+    private String notes;
+    private String source;
+    private Integer delayMinutes;
+    private Integer workDurationMinutes;
+
+    private UUID companyId;
+    private String companyName;
+
     private UUID employeeId;
     private String employeeName;
-    private LocalDate date;
-    private LocalTime checkInTime;
-    private LocalTime checkOutTime;
-    private String status;
-    private String remarks;
+    private String employeeDepartment;
+
+    private UUID subcontractorId;
+    private String subcontractorName;
+
+    private UUID approvedById;
+    private String approvedByName;
+
     private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 }
