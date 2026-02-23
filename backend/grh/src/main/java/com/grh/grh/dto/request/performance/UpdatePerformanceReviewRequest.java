@@ -7,7 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
@@ -15,20 +14,19 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdatePerformanceReviewRequest {
-    
-    private LocalDate reviewDate;
-    
-    @Min(value = 0)
-    @Max(value = 100)
-    private BigDecimal overallScore;
-    
+
+    private LocalDate reviewPeriodStart;
+    private LocalDate reviewPeriodEnd;
+
+    @Min(value = 1)
+    @Max(value = 5)
+    private Integer overallRating;
+
     private String strengths;
-    
     private String areasForImprovement;
-    
     private String goals;
-    
-    private String comments;
-    
+
+    // Set to "reviewed" when HR has finished filling the review
+    // Set to "acknowledged" via the dedicated /acknowledge endpoint instead
     private String status;
 }

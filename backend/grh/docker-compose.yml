@@ -70,7 +70,7 @@ services:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
       DATABASE_USERNAME: ${DATABASE_USERNAME}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -90,17 +90,10 @@ services:
       JPA_SHOW_SQL: false
       JPA_FORMAT_SQL: false
       FLYWAY_ENABLED: true
-    extra_hosts:
-      - "localhost:host-gateway"
-    ports:
-      - "8081:8081"
+    network_mode: host
     depends_on:
       postgres:
         condition: service_healthy
-      keycloak:
-        condition: service_healthy
-    networks:
-      - grh-network
     restart: unless-stopped
     healthcheck:
       test:
