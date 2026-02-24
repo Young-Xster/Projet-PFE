@@ -2,11 +2,12 @@ package com.grh.grh.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "candidates")
@@ -14,72 +15,102 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true, exclude = {"company", "recruitmentRequest", "skills", "interviewStages"})
-@ToString(exclude = {"company", "recruitmentRequest", "skills", "interviewStages"})
-public class Candidate extends BaseEntity {
+public class Candidate {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id", nullable = false)
+    @JoinColumn(name = "company_id")
     private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recruitment_request_id", nullable = false)
+    @JoinColumn(name = "job_listing_id")
+    private JobListing jobListing;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recruitment_request_id")
     private RecruitmentRequest recruitmentRequest;
 
-    @Column(name = "first_name", nullable = false, length = 255)
+    // ─── Personal info ────────────────────────────────────────────────────
+    @Column(name = "first_name")
     private String firstName;
 
-    @Column(name = "last_name", nullable = false, length = 255)
+    @Column(name = "last_name")
     private String lastName;
 
-    @Column(nullable = false, unique = true, length = 255)
     private String email;
 
-    @Column(name = "phone_number", nullable = false, length = 20)
-    private String phoneNumber;
+    private String phone;
 
-    @Column(name = "resume_path", length = 255)
-    private String resumePath;
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
 
-    @Column(name = "cover_letter_path", length = 255)
-    private String coverLetterPath;
+    @Column(columnDefinition = "TEXT")
+    private String address;
 
-    @Column(name = "linked_in_profile", length = 255)
-    private String linkedInProfile;
+    private String city;
 
-    @Column(name = "portfolio_url", length = 255)
-    private String portfolioUrl;
+    // ─── Background ───────────────────────────────────────────────────────
+    @Column(name = "education_level")
+    private String educationLevel;
+    // Values: no_formal_education, primary, secondary, vocational, university, master_plus
 
     @Column(name = "experience_years")
     private Integer experienceYears;
 
-    @Column(name = "current_position", length = 255)
-    private String currentPosition;
+    @Column(name = "previous_employer")
+    private String previousEmployer;
 
-    @Column(name = "expected_salary", precision = 12, scale = 2)
-    private BigDecimal expectedSalary;
+    @Column(name = "skills", columnDefinition = "TEXT")
+    private String skills; // free text, comma-separated
 
-    @Column(name = "application_date")
+    @Column(name = "languages_spoken")
+    private String languagesSpoken; // comma-separated
+
+    @Column(name = "availability_date")
+    private LocalDate availabilityDate;
+
+    // ─── File uploads ──────────────────────────────────────────────────────
+    @Column(name = "cv_file_path")
+    private String cvFilePath;
+
+    @Column(name = "recommendation_letter_path")
+    private String recommendationLetterPath;
+
+    @Column(name = "certificates_paths", columnDefinition = "TEXT")
+    private String certificatesPaths; // comma-separated file paths
+
+    // ─── Stage tracking ────────────────────────────────────────────────────
+    @Column(name = "current_stage")
     @Builder.Default
-    private OffsetDateTime applicationDate = OffsetDateTime.now();
+    private Integer currentStage = 1;
 
-    @Column(length = 50)
     @Builder.Default
-    private String source = "other";
+    private String status = "stage_1";
+    // Values: stage_1, stage_2, accepted, rejected
 
-    @Column(name = "ai_match_score", precision = 5, scale = 2)
-    private BigDecimal aiMatchScore;
+    @Column(name = "rejected_at_stage")
+    private Integer rejectedAtStage; // 1 or 2, null if not rejected
 
-    @Column(length = 50)
+    @Column(name = "hr_notes", columnDefinition = "TEXT")
+    private String hrNotes;
+
+    // ─── AI (stub for later) ───────────────────────────────────────────────
+    @Column(name = "ai_match_score")
+    private Integer aiMatchScore;
+
+    // ─── Timestamps ────────────────────────────────────────────────────────
+    @Column(name = "applied_at")
     @Builder.Default
-    private String status = "new";
+    private OffsetDateTime appliedAt = OffsetDateTime.now();
 
-    // Relationships
-    @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private Set<CandidateSkill> skills = new HashSet<>();
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private OffsetDateTime createdAt;
 
-    @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL)
-    @Builder.Default
-    private Set<InterviewStage> interviewStages = new HashSet<>();
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private OffsetDateTime updatedAt;
 }
