@@ -54,7 +54,9 @@ public class SecurityConfig {
                     "/swagger-ui.html",
                     "/actuator/health",
                     "/api/v1/leave-requests/public/**",
-                    "/api/v1/leave-types/public/**"
+                    "/api/v1/leave-types/public/**",
+                    "/api/v1/job-listings/public/**",
+                    "/api/v1/candidates/public/**"
                 ).permitAll()
                 
                 // Super admin endpoints

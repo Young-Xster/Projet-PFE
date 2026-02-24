@@ -31,13 +31,13 @@ public class DepartmentService {
 
     @Transactional
     public DepartmentResponse createDepartment(CreateDepartmentRequest request, Authentication authentication) {
-        validateCompanyAccess(request.getCompanyId(), authentication);
+        UUID companyId = resolveCompanyId(authentication, request.getCompanyId());
 
         if (departmentRepository.existsByCode(request.getCode())) {
             throw new IllegalArgumentException("Department code already exists: " + request.getCode());
         }
 
-        Company company = companyRepository.findById(request.getCompanyId())
+        Company company = companyRepository.findById(companyId)
             .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
         Department.DepartmentBuilder builder = Department.builder()
@@ -138,6 +138,15 @@ public class DepartmentService {
 
         departmentRepository.delete(department);
         log.info("Deleted department: {}", department.getName());
+    }
+
+    private UUID resolveCompanyId(Authentication authentication, UUID requestCompanyId) {
+        UUID companyId = keycloakUserService.getCurrentUserCompanyId(authentication);
+        if (companyId != null) return companyId;
+        if (keycloakUserService.isSuperAdmin(authentication) && requestCompanyId != null) {
+            return requestCompanyId;
+        }
+        throw new IllegalStateException("User is not associated with any company");
     }
 
     private void validateCompanyAccess(UUID companyId, Authentication authentication) {

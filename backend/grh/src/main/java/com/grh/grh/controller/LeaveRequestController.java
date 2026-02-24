@@ -2,9 +2,7 @@ package com.grh.grh.controller;
 
 import com.grh.grh.dto.common.ApiResponse;
 import com.grh.grh.dto.request.leave.ApproveLeaveRequest;
-import com.grh.grh.dto.request.leave.CreateLeaveRequestRequest;
 import com.grh.grh.dto.request.leave.PublicLeaveRequest;
-import com.grh.grh.dto.request.leave.UpdateLeaveRequestRequest;
 import com.grh.grh.dto.response.leave.LeaveBalanceResponse;
 import com.grh.grh.dto.response.leave.LeaveRequestDetailResponse;
 import com.grh.grh.dto.response.leave.LeaveRequestResponse;

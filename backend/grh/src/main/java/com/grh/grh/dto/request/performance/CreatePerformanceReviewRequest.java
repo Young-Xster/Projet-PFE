@@ -17,14 +17,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CreatePerformanceReviewRequest {
 
+    private UUID companyId; // optional: only for super admins
+
     @NotNull(message = "Employee ID is required")
     private UUID employeeId;
-
-    @NotNull(message = "Company ID is required")
-    private UUID companyId;
-
-    @NotNull(message = "Reviewer (User) ID is required")
-    private UUID reviewerId; // HR User ID — not an Employee ID
 
     @NotNull(message = "Review period start is required")
     private LocalDate reviewPeriodStart;

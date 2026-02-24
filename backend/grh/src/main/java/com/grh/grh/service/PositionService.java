@@ -30,13 +30,13 @@ public class PositionService {
 
     @Transactional
     public PositionResponse createPosition(CreatePositionRequest request, Authentication authentication) {
-        validateCompanyAccess(request.getCompanyId(), authentication);
+        UUID companyId = resolveCompanyId(authentication, request.getCompanyId());
 
         if (positionRepository.existsByCode(request.getCode())) {
             throw new IllegalArgumentException("Position code already exists: " + request.getCode());
         }
 
-        Company company = companyRepository.findById(request.getCompanyId())
+        Company company = companyRepository.findById(companyId)
             .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
         Position.PositionBuilder builder = Position.builder()
@@ -112,6 +112,15 @@ public class PositionService {
         validateCompanyAccess(position.getCompany().getId(), authentication);
         positionRepository.delete(position);
         log.info("Deleted position: {}", position.getTitle());
+    }
+
+    private UUID resolveCompanyId(Authentication authentication, UUID requestCompanyId) {
+        UUID companyId = keycloakUserService.getCurrentUserCompanyId(authentication);
+        if (companyId != null) return companyId;
+        if (keycloakUserService.isSuperAdmin(authentication) && requestCompanyId != null) {
+            return requestCompanyId;
+        }
+        throw new IllegalStateException("User is not associated with any company");
     }
 
     private void validateCompanyAccess(UUID companyId, Authentication authentication) {

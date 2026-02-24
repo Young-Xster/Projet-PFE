@@ -14,9 +14,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateLeaveTypeRequest {
-    
-    @NotNull(message = "Company ID is required")
-    private UUID companyId;
+
+    private UUID companyId; // optional: only for super admins
     
     @NotBlank(message = "Code is required")
     @Size(max = 50)

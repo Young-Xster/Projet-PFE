@@ -32,9 +32,9 @@ public class AttendanceService {
 
     @Transactional
     public AttendanceResponse createAttendance(CreateAttendanceRequest request, Authentication authentication) {
-        validateCompanyAccess(request.getCompanyId(), authentication);
+        UUID companyId = resolveCompanyId(authentication, request.getCompanyId());
 
-        Company company = companyRepository.findById(request.getCompanyId())
+        Company company = companyRepository.findById(companyId)
             .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
         // no duplicate record for same employee + date
@@ -158,6 +158,15 @@ public class AttendanceService {
         if (clockIn == null || clockOut == null) return null;
         int minutes = (int) java.time.Duration.between(clockIn, clockOut).toMinutes();
         return minutes > 0 ? minutes : null;
+    }
+
+    private UUID resolveCompanyId(Authentication authentication, UUID requestCompanyId) {
+        UUID companyId = keycloakUserService.getCurrentUserCompanyId(authentication);
+        if (companyId != null) return companyId;
+        if (keycloakUserService.isSuperAdmin(authentication) && requestCompanyId != null) {
+            return requestCompanyId;
+        }
+        throw new IllegalStateException("User is not associated with any company");
     }
 
     private void validateCompanyAccess(UUID companyId, Authentication authentication) {

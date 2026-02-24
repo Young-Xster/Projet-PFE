@@ -34,7 +34,7 @@ public class PerformanceReviewService {
         CreatePerformanceReviewRequest request,
         Authentication authentication
     ) {
-        validateCompanyAccess(request.getCompanyId(), authentication);
+        UUID companyId = resolveCompanyId(authentication, request.getCompanyId());
 
         if (request.getReviewPeriodEnd().isBefore(request.getReviewPeriodStart())) {
             throw new IllegalArgumentException("Review period end cannot be before start");
@@ -48,14 +48,15 @@ public class PerformanceReviewService {
             throw new IllegalStateException("Employee already has a review overlapping this period");
         }
 
-        Company company = companyRepository.findById(request.getCompanyId())
+        Company company = companyRepository.findById(companyId)
             .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
         Employee employee = employeeRepository.findById(request.getEmployeeId())
             .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
 
-        // reviewer is a User (HR), not an Employee
-        User reviewer = userRepository.findById(request.getReviewerId())
+        // reviewer is the authenticated HR user
+        UUID reviewerUserId = keycloakUserService.getCurrentUserId(authentication);
+        User reviewer = userRepository.findById(reviewerUserId)
             .orElseThrow(() -> new IllegalArgumentException("Reviewer user not found"));
 
         PerformanceReview review = PerformanceReview.builder()
@@ -198,6 +199,15 @@ public class PerformanceReviewService {
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
+
+    private UUID resolveCompanyId(Authentication authentication, UUID requestCompanyId) {
+        UUID companyId = keycloakUserService.getCurrentUserCompanyId(authentication);
+        if (companyId != null) return companyId;
+        if (keycloakUserService.isSuperAdmin(authentication) && requestCompanyId != null) {
+            return requestCompanyId;
+        }
+        throw new IllegalStateException("User is not associated with any company");
+    }
 
     private void validateCompanyAccess(UUID companyId, Authentication authentication) {
         if (keycloakUserService.isSuperAdmin(authentication)) return;

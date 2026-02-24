@@ -65,7 +65,7 @@ public class JobListing {
     @Builder.Default
     private String status = "open";
 
-    @OneToMany(mappedBy = "jobListing" , fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "jobListing", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Candidate> candidates = new ArrayList<>();
 

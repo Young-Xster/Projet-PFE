@@ -27,7 +27,7 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponse createEmployee(CreateEmployeeRequest request , Authentication authentication){
-        validateCompanyAccess(request.getCompanyId(), authentication);
+        UUID companyId = resolveCompanyId(authentication, request.getCompanyId());
         
         if(employeeRepository.existsByEmail(request.getEmail())){
             throw new IllegalArgumentException("Email already exists: " + request.getEmail());
@@ -37,7 +37,7 @@ public class EmployeeService {
             throw new IllegalArgumentException("National ID already exists: " + request.getNationalId());
         }
 
-        Company company = companyRepository.findById(request.getCompanyId()).orElseThrow(() -> new IllegalArgumentException("Company not found"));
+        Company company = companyRepository.findById(companyId).orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
         Employee.EmployeeBuilder employeeBuilder = Employee.builder()
             .company(company)
@@ -222,6 +222,15 @@ public class EmployeeService {
         employeeRepository.save(employee);
         
         log.info("Deleted employee: {} {} (ID: {})", employee.getFirstName(), employee.getLastName(), employee.getEmployeeId());
+    }
+
+    private UUID resolveCompanyId(Authentication authentication, UUID requestCompanyId) {
+        UUID companyId = keycloakUserService.getCurrentUserCompanyId(authentication);
+        if (companyId != null) return companyId;
+        if (keycloakUserService.isSuperAdmin(authentication) && requestCompanyId != null) {
+            return requestCompanyId;
+        }
+        throw new IllegalStateException("User is not associated with any company");
     }
 
     private void validateCompanyAccess(UUID companyId , Authentication authentication){

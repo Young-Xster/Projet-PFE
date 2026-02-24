@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -99,7 +100,7 @@ public class Candidate {
 
     // ─── AI (stub for later) ───────────────────────────────────────────────
     @Column(name = "ai_match_score")
-    private Integer aiMatchScore;
+    private BigDecimal aiMatchScore;
 
     // ─── Timestamps ────────────────────────────────────────────────────────
     @Column(name = "applied_at")

@@ -97,6 +97,76 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, body);
     }
 
+    @Async
+    public void sendApplicationReceivedEmail(
+        String toEmail, String candidateName, String jobTitle, String companyName
+    ) {
+        String subject = companyName + " - Application Received";
+        String body = """
+            <html><body>
+            <h2>Application Received</h2>
+            <p>Dear %s,</p>
+            <p>Thank you for your interest in the <b>%s</b> position at <b>%s</b>.</p>
+            <p>We have successfully received your application and our HR team will review it carefully.</p>
+            <p>We will contact you regarding the next steps in the recruitment process.</p>
+            <br>
+            <p>Best regards,</p>
+            <p><b>%s — Human Resources</b></p>
+            </body></html>
+            """.formatted(candidateName, jobTitle, companyName, companyName);
+
+        sendHtmlEmail(toEmail, subject, body);
+    }
+
+    @Async
+    public void sendCandidateAcceptedEmail(
+        String toEmail, String candidateName, String jobTitle, String companyName
+    ) {
+        String subject = companyName + " - Congratulations! Your Application Has Been Accepted";
+        String body = """
+            <html><body>
+            <h2>Application Accepted</h2>
+            <p>Dear %s,</p>
+            <p>We are pleased to inform you that your application for the <b>%s</b> position
+            at <b>%s</b> has been <b>accepted</b>.</p>
+            <p>A member of our HR team will contact you shortly to discuss the next steps,
+            including your start date and onboarding process.</p>
+            <p>We look forward to welcoming you to our team!</p>
+            <br>
+            <p>Warm regards,</p>
+            <p><b>%s — Human Resources</b></p>
+            </body></html>
+            """.formatted(candidateName, jobTitle, companyName, companyName);
+
+        sendHtmlEmail(toEmail, subject, body);
+    }
+
+    @Async
+    public void sendCandidateRejectedEmail(
+        String toEmail, String candidateName, String jobTitle, String companyName
+    ) {
+        String subject = companyName + " - Update on Your Application";
+        String body = """
+            <html><body>
+            <h2>Application Update</h2>
+            <p>Dear %s,</p>
+            <p>Thank you for your interest in the <b>%s</b> position at <b>%s</b>
+            and for the time you invested in the application process.</p>
+            <p>After careful consideration, we regret to inform you that we have decided
+            to move forward with other candidates whose profiles more closely match
+            our current requirements.</p>
+            <p>We truly appreciate your interest in joining our team and encourage you
+            to apply for future openings that match your qualifications.</p>
+            <p>We wish you all the best in your career journey.</p>
+            <br>
+            <p>Kind regards,</p>
+            <p><b>%s — Human Resources</b></p>
+            </body></html>
+            """.formatted(candidateName, jobTitle, companyName, companyName);
+
+        sendHtmlEmail(toEmail, subject, body);
+    }
+
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

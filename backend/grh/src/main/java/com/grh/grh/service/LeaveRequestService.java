@@ -2,7 +2,6 @@ package com.grh.grh.service;
 
 import com.grh.grh.dto.request.leave.ApproveLeaveRequest;
 import com.grh.grh.dto.request.leave.PublicLeaveRequest;
-import com.grh.grh.dto.request.leave.UpdateLeaveRequestRequest;
 import com.grh.grh.dto.response.leave.LeaveBalanceResponse;
 import com.grh.grh.dto.response.leave.LeaveRequestDetailResponse;
 import com.grh.grh.dto.response.leave.LeaveRequestResponse;
@@ -29,7 +28,6 @@ public class LeaveRequestService {
     private final LeaveBalanceRepository leaveBalanceRepository;
     private final LeaveTypeRepository leaveTypeRepository;
     private final EmployeeRepository employeeRepository;
-    private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final KeycloakUserService keycloakUserService;
     private final EmailService emailService;

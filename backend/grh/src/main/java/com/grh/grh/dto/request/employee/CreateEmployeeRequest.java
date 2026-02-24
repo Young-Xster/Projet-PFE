@@ -15,10 +15,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateEmployeeRequest {
-    
-    @NotNull(message = "company Id is required")
-    private UUID companyId;
 
+    private UUID companyId; // optional: only for super admins
+    
     @NotBlank(message = "first name is required")
     @Size(max = 50, message = "first name must be at most 50 characters")
     private String firstName;

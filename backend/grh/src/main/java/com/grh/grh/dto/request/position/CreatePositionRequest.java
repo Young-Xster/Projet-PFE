@@ -1,7 +1,6 @@
 package com.grh.grh.dto.request.position;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,8 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CreatePositionRequest {
 
-    @NotNull(message = "Company ID is required")
-    private UUID companyId;
+    private UUID companyId; // optional: only for super admins
 
     @NotBlank(message = "Title is required")
     @Size(max = 255)

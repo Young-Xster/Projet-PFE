@@ -13,8 +13,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CreateAttendanceRequest {
 
-    @NotNull(message = "Company ID is required")
-    private UUID companyId;
+    private UUID companyId; // optional: only for super admins
 
     private UUID employeeId;
 
