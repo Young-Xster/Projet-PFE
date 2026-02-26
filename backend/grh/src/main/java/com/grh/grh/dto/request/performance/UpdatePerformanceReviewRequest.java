@@ -18,8 +18,8 @@ public class UpdatePerformanceReviewRequest {
     private LocalDate reviewPeriodStart;
     private LocalDate reviewPeriodEnd;
 
-    @Min(value = 1)
-    @Max(value = 5)
+    @Min(value = 1, message = "Rating must be between 1 and 5")
+    @Max(value = 5, message = "Rating must be between 1 and 5")
     private Integer overallRating;
 
     private String strengths;
