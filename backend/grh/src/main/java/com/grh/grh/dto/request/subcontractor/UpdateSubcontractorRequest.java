@@ -1,36 +1,26 @@
 package com.grh.grh.dto.request.subcontractor;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
+import lombok.*;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateSubcontractorRequest {
-    
-    @Size(max = 255)
-    private String subcontractorName;
-    
-    @Size(max = 255)
-    private String contactPerson;
-    
-    @Email
-    private String email;
-    
-    @Size(max = 20)
-    private String phone;
-    
+
+    private String firstName;
+    private String lastName;
+    private String companyName;
+    private String contactFirstName;
+    private String contactLastName;
+
+    @Email(message = "Invalid email format")
+    private String contactEmail;
+
+    private String contactPhone;
     private String address;
-    
-    private LocalDate contractStartDate;
-    private LocalDate contractEndDate;
-    
-    private String status;
+    private String city;
+    private String specialization;
+    private String status; // ACTIVE or INACTIVE
 }

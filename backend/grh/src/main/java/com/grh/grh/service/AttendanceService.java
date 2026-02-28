@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +26,7 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final EmployeeRepository employeeRepository;
     private final CompanyRepository companyRepository;
+    private final CompanySettingRepository companySettingRepository;
     private final UserRepository userRepository;
     private final SubcontractorRepository subcontractorRepository;
     private final KeycloakUserService keycloakUserService;
@@ -62,6 +64,15 @@ public class AttendanceService {
             // Calculate work duration if both times provided
             if (request.getClockInTime() != null && request.getClockOutTime() != null) {
                 builder.workDurationMinutes(calculateWorkDuration(request.getClockInTime(), request.getClockOutTime()));
+            }
+
+            // Auto-calculate delay from CompanySetting
+            if (request.getClockInTime() != null) {
+                Integer delay = calculateDelay(companyId, request.getClockInTime());
+                if (delay != null && delay > 0) {
+                    builder.delayMinutes(delay);
+                    builder.status("late");
+                }
             }
         }
 
@@ -160,6 +171,26 @@ public class AttendanceService {
         return minutes > 0 ? minutes : null;
     }
 
+    /**
+     * Calculates delay in minutes based on company's workHoursStart and gracePeriodMinutes.
+     * Returns null if no company settings found or clock-in is on time.
+     */
+    private Integer calculateDelay(UUID companyId, OffsetDateTime clockInTime) {
+        return companySettingRepository.findByCompanyId(companyId)
+            .map(settings -> {
+                LocalTime workStart = settings.getWorkHoursStart();
+                int gracePeriod = settings.getGracePeriodMinutes() != null ? settings.getGracePeriodMinutes() : 0;
+                LocalTime effectiveStart = workStart.plusMinutes(gracePeriod);
+                LocalTime clockInLocal = clockInTime.toLocalTime();
+
+                if (clockInLocal.isAfter(effectiveStart)) {
+                    return (int) java.time.Duration.between(effectiveStart, clockInLocal).toMinutes();
+                }
+                return null;
+            })
+            .orElse(null);
+    }
+
     private UUID resolveCompanyId(Authentication authentication, UUID requestCompanyId) {
         UUID companyId = keycloakUserService.getCurrentUserCompanyId(authentication);
         if (companyId != null) return companyId;
@@ -195,24 +226,31 @@ public class AttendanceService {
             builder.companyId(record.getCompany().getId())
                    .companyName(record.getCompany().getName());
         }
-
         if (record.getEmployee() != null) {
             builder.employeeId(record.getEmployee().getEmployeeId())
                    .employeeName(record.getEmployee().getFirstName() + " " + record.getEmployee().getLastName())
-                   .employeeDepartment(record.getEmployee().getDepartment() != null ?
-                       record.getEmployee().getDepartment().getName() : null);
+                   .employeeDepartment(record.getEmployee().getDepartment() != null
+                       ? record.getEmployee().getDepartment().getName() : null);
         }
-
         if (record.getSubcontractor() != null) {
             builder.subcontractorId(record.getSubcontractor().getId())
-                   .subcontractorName(record.getSubcontractor().getCompanyName());
+                   .subcontractorName(resolveSubcontractorDisplayName(record.getSubcontractor()));
         }
-
         if (record.getApprovedBy() != null) {
             builder.approvedById(record.getApprovedBy().getId())
                    .approvedByName(record.getApprovedBy().getUsername());
         }
-
         return builder.build();
     }
+
+    private String resolveSubcontractorDisplayName(Subcontractor subcontractor) {
+        if (subcontractor == null) return null;
+        if ("COMPANY".equalsIgnoreCase(subcontractor.getType()) && subcontractor.getCompanyName() != null) {
+            return subcontractor.getCompanyName();
+        }
+        String first = subcontractor.getContactFirstName() != null ? subcontractor.getContactFirstName() : "";
+        String last = subcontractor.getContactLastName() != null ? subcontractor.getContactLastName() : "";
+        return (first + " " + last).trim();
+    }
+
 }

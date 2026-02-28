@@ -98,6 +98,10 @@ public class Candidate {
     @Column(name = "hr_notes", columnDefinition = "TEXT")
     private String hrNotes;
 
+    // ─── Hiring link ───────────────────────────────────────────────────────
+    @Column(name = "hired_employee_id")
+    private UUID hiredEmployeeId;
+
     // ─── AI (stub for later) ───────────────────────────────────────────────
     @Column(name = "ai_match_score")
     private BigDecimal aiMatchScore;

@@ -10,14 +10,12 @@ import java.util.UUID;
 
 @Repository
 public interface SubcontractorRepository extends JpaRepository<Subcontractor, UUID> {
-    
-    Optional<Subcontractor> findBySubcontractorCode(String subcontractorCode);
-
-    Optional<Subcontractor> findByEmail(String email);
 
     List<Subcontractor> findByCompanyId(UUID companyId);
 
-    List<Subcontractor> findByStatus(String status);
+    List<Subcontractor> findByCompanyIdAndStatus(UUID companyId, String status);
 
-    boolean existsBySubcontractorCode(String subcontractorCode);
+    boolean existsByContactEmailAndCompanyId(String contactEmail, UUID companyId);
+
+    Optional<Subcontractor> findByContactEmailAndCompanyId(String contactEmail, UUID companyId);
 }

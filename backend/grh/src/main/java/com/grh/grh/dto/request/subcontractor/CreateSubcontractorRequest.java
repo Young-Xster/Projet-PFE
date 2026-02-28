@@ -1,12 +1,10 @@
 package com.grh.grh.dto.request.subcontractor;
 
-import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
@@ -14,36 +12,26 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateSubcontractorRequest {
-    
-    @NotNull(message = "Company ID is required")
-    private UUID companyId;
-    
-    @NotBlank(message = "Subcontractor code is required")
-    @Size(max = 50)
-    private String subcontractorCode;
-    
-    @NotBlank(message = "Subcontractor name is required")
-    @Size(max = 255)
-    private String subcontractorName;
-    
-    @NotBlank(message = "Contact person is required")
-    @Size(max = 255)
-    private String contactPerson;
-    
+
+    private UUID companyId; //auto-resolved from token
+
+    @NotNull(message = "Type is required")
+    private String type; // INDIVIDUAL or COMPANY
+
+    // Individual
+    private String firstName;
+    private String lastName;
+
+    // Company
+    private String companyName;
+    private String contactFirstName;
+    private String contactLastName;
+
     @Email(message = "Invalid email format")
-    private String email;
-    
-    @Size(max = 20)
-    private String phone;
-    
+    private String contactEmail;
+
+    private String contactPhone;
     private String address;
-    
-    @NotNull(message = "Contract start date is required")
-    private LocalDate contractStartDate;
-    
-    @NotNull(message = "Contract end date is required")
-    private LocalDate contractEndDate;
-    
-    @NotBlank(message = "Status is required")
-    private String status; // active, inactive, suspended
+    private String city;
+    private String specialization;
 }

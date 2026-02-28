@@ -50,6 +50,9 @@ public class CandidateResponse {
     private Integer rejectedAtStage;
     private String hrNotes;
 
+    // Hiring
+    private UUID hiredEmployeeId;
+
     // AI (stub)
     private BigDecimal aiMatchScore;
 

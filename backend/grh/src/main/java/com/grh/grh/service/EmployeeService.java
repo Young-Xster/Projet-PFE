@@ -1,6 +1,7 @@
 package com.grh.grh.service;
 
 import com.grh.grh.dto.request.employee.CreateEmployeeRequest;
+import com.grh.grh.dto.request.employee.OffboardEmployeeRequest;
 import com.grh.grh.dto.request.employee.UpdateEmployeeRequest;
 import com.grh.grh.dto.response.employee.EmployeeResponse;
 import com.grh.grh.entity.*;
@@ -23,6 +24,8 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final CompanyRepository companyRepository;
     private final DepartmentRepository departmentRepository;
+    private final LeaveTypeRepository leaveTypeRepository;
+    private final LeaveBalanceRepository leaveBalanceRepository;
     private final KeycloakUserService keycloakUserService;
 
     @Transactional
@@ -76,6 +79,9 @@ public class EmployeeService {
 
         Employee employee = employeeBuilder.build();
         employee = employeeRepository.save(employee);
+
+        // Initialize leave balances based on company's leave types
+        initializeLeaveBalances(employee, company);
         
         log.info("Created employee: {} {} (ID: {})", employee.getFirstName(), employee.getLastName(), employee.getEmployeeId());
         
@@ -211,6 +217,34 @@ public class EmployeeService {
             .collect(Collectors.toList());
     }
 
+    // ─── Offboarding ─────────────────────────────────────────────────────
+
+    @Transactional
+    public EmployeeResponse offboardEmployee(UUID employeeId, OffboardEmployeeRequest request, Authentication authentication) {
+        Employee employee = employeeRepository.findById(employeeId)
+            .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
+
+        validateCompanyAccess(employee.getCompany().getId(), authentication);
+
+        if ("terminated".equals(employee.getStatus())) {
+            throw new IllegalStateException("Employee is already terminated");
+        }
+
+        employee.setStatus("terminated");
+        employee.setTerminationDate(request.getTerminationDate());
+        employee.setTerminationReason(request.getTerminationReason());
+        if (request.getExitInterviewNotes() != null) {
+            employee.setExitInterviewNotes(request.getExitInterviewNotes());
+        }
+
+        employee = employeeRepository.save(employee);
+        log.info("Offboarded employee: {} {} (ID: {}) - Reason: {}",
+            employee.getFirstName(), employee.getLastName(),
+            employee.getEmployeeId(), request.getTerminationReason());
+
+        return mapToResponse(employee);
+    }
+
     @Transactional
     public void deleteEmployee(UUID employeeId , Authentication authentication){
         Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new IllegalArgumentException("Employee not found"));
@@ -244,6 +278,29 @@ public class EmployeeService {
         }
     }
 
+    /**
+     * Initializes leave balances for a newly created employee
+     * based on the company's leave types and their maxDaysPerYear.
+     */
+    private void initializeLeaveBalances(Employee employee, Company company) {
+        int currentYear = java.time.LocalDate.now().getYear();
+        List<LeaveType> leaveTypes = leaveTypeRepository.findByCompanyId(company.getId());
+        for (LeaveType lt : leaveTypes) {
+            if (lt.getMaxDaysPerYear() != null && lt.getMaxDaysPerYear() > 0) {
+                LeaveBalance balance = LeaveBalance.builder()
+                    .company(company)
+                    .employee(employee)
+                    .leaveType(lt)
+                    .year(currentYear)
+                    .totalDays(lt.getMaxDaysPerYear())
+                    .usedDays(0)
+                    .remainingDays(lt.getMaxDaysPerYear())
+                    .build();
+                leaveBalanceRepository.save(balance);
+            }
+        }
+    }
+
     private EmployeeResponse mapToResponse(Employee employee) {
         EmployeeResponse.EmployeeResponseBuilder builder = EmployeeResponse.builder()
             .employeeId(employee.getEmployeeId())
@@ -255,6 +312,9 @@ public class EmployeeService {
             .employmentType(employee.getEmploymentType())
             .status(employee.getStatus())
             .hireDate(employee.getHireDate())
+            .terminationDate(employee.getTerminationDate())
+            .terminationReason(employee.getTerminationReason())
+            .exitInterviewNotes(employee.getExitInterviewNotes())
             .salary(employee.getSalary())
             .photoPath(employee.getPhotoPath())
             .createdAt(employee.getCreatedAt())

@@ -71,6 +71,12 @@ public class Employee {
     @Column(name = "termination_date")
     private LocalDate terminationDate;
 
+    @Column(name = "termination_reason")
+    private String terminationReason;
+
+    @Column(name = "exit_interview_notes", columnDefinition = "TEXT")
+    private String exitInterviewNotes;
+
     @Column(name = "employment_type", nullable = false, length = 50)
     private String employmentType;
 

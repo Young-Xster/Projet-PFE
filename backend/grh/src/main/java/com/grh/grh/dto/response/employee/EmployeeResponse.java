@@ -24,6 +24,9 @@ public class EmployeeResponse {
     private String employmentType;
     private String status;
     private LocalDate hireDate;
+    private LocalDate terminationDate;
+    private String terminationReason;
+    private String exitInterviewNotes;
     private BigDecimal salary;
     private String photoPath;
 

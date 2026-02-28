@@ -2,6 +2,7 @@ package com.grh.grh.controller;
 
 import com.grh.grh.dto.common.ApiResponse;
 import com.grh.grh.dto.request.employee.CreateEmployeeRequest;
+import com.grh.grh.dto.request.employee.OffboardEmployeeRequest;
 import com.grh.grh.dto.request.employee.UpdateEmployeeRequest;
 import com.grh.grh.dto.response.employee.EmployeeResponse;
 import com.grh.grh.service.EmployeeService;
@@ -92,5 +93,17 @@ public class EmployeeController {
     ) {
         employeeService.deleteEmployee(employeeId, authentication);
         return ApiResponse.success("Employee deleted successfully", null);
+    }
+
+    // ─── Offboarding ─────────────────────────────────────────────────────
+    @PostMapping("/{employeeId}/offboard")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'employees:update')")
+    public ApiResponse<EmployeeResponse> offboardEmployee(
+        @PathVariable UUID employeeId,
+        @Valid @RequestBody OffboardEmployeeRequest request,
+        Authentication authentication
+    ) {
+        EmployeeResponse response = employeeService.offboardEmployee(employeeId, request, authentication);
+        return ApiResponse.success("Employee offboarded successfully", response);
     }
 }

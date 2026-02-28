@@ -3,11 +3,10 @@ package com.grh.grh.service;
 
 import com.grh.grh.dto.request.recruitment.CandidateApplicationRequest;
 import com.grh.grh.dto.request.recruitment.CandidateNotesRequest;
+import com.grh.grh.dto.request.recruitment.HireCandidateRequest;
 import com.grh.grh.dto.response.recruitment.CandidateResponse;
-import com.grh.grh.entity.Candidate;
-import com.grh.grh.entity.JobListing;
-import com.grh.grh.repository.CandidateRepository;
-import com.grh.grh.repository.JobListingRepository;
+import com.grh.grh.entity.*;
+import com.grh.grh.repository.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +27,11 @@ import java.util.stream.Collectors;
 public class CandidateService {
     private final CandidateRepository candidateRepository;
     private final JobListingRepository jobListingRepository;
+    private final EmployeeRepository employeeRepository;
+    private final CompanyRepository companyRepository;
+    private final DepartmentRepository departmentRepository;
+    private final LeaveTypeRepository leaveTypeRepository;
+    private final LeaveBalanceRepository leaveBalanceRepository;
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
     private final KeycloakUserService keycloakUserService;
@@ -268,6 +272,102 @@ public class CandidateService {
         return mapToResponse(candidate);
     }
 
+    // ─── Hire candidate → create Employee ──────────────────────────────────
+
+    @Transactional
+    public CandidateResponse hireCandidate(UUID candidateId, HireCandidateRequest request, Authentication authentication) {
+        Candidate candidate = candidateRepository.findById(candidateId)
+            .orElseThrow(() -> new IllegalArgumentException("Candidate not found"));
+
+        validateCompanyAccess(candidate.getCompany().getId(), authentication);
+
+        if (!"accepted".equals(candidate.getStatus())) {
+            throw new IllegalStateException("Only accepted candidates can be hired. Current status: " + candidate.getStatus());
+        }
+
+        if (candidate.getHiredEmployeeId() != null) {
+            throw new IllegalStateException("Candidate has already been hired");
+        }
+
+        // Check email uniqueness
+        if (employeeRepository.existsByEmail(candidate.getEmail())) {
+            throw new IllegalArgumentException("An employee with email " + candidate.getEmail() + " already exists");
+        }
+
+        Company company = candidate.getCompany();
+
+        Employee.EmployeeBuilder employeeBuilder = Employee.builder()
+            .company(company)
+            .firstName(candidate.getFirstName())
+            .lastName(candidate.getLastName())
+            .email(candidate.getEmail())
+            .phoneNumber(candidate.getPhone() != null ? candidate.getPhone() : "N/A")
+            .dateOfBirth(candidate.getDateOfBirth())
+            .address(candidate.getAddress() != null ? candidate.getAddress() : "N/A")
+            .city(candidate.getCity() != null ? candidate.getCity() : "N/A")
+            .hireDate(request.getHireDate())
+            .jobTitle(request.getJobTitle())
+            .employmentType(request.getEmploymentType())
+            .salary(request.getSalary())
+            .status("active")
+            // Fields from request (not on candidate)
+            .gender(request.getGender() != null ? request.getGender() : "male")
+            .postalCode(request.getPostalCode() != null ? request.getPostalCode() : "N/A")
+            .country(request.getCountry() != null ? request.getCountry() : "N/A")
+            .nationalId(request.getNationalId() != null ? request.getNationalId() : "PENDING-" + UUID.randomUUID().toString().substring(0, 8));
+
+        if (request.getDepartmentId() != null) {
+            Department department = departmentRepository.findById(request.getDepartmentId())
+                .orElseThrow(() -> new IllegalArgumentException("Department not found"));
+            employeeBuilder.department(department);
+        } else if (candidate.getJobListing() != null && candidate.getJobListing().getDepartment() != null) {
+            employeeBuilder.department(candidate.getJobListing().getDepartment());
+        }
+
+        if (request.getManagerId() != null) {
+            Employee manager = employeeRepository.findById(request.getManagerId())
+                .orElseThrow(() -> new IllegalArgumentException("Manager not found"));
+            employeeBuilder.manager(manager);
+        }
+
+        Employee employee = employeeRepository.save(employeeBuilder.build());
+
+        // Link candidate to employee
+        candidate.setStatus("hired");
+        candidate.setHiredEmployeeId(employee.getEmployeeId());
+        candidate = candidateRepository.save(candidate);
+
+        // Initialize leave balances for the new employee
+        initializeLeaveBalances(employee, company);
+
+        log.info("Hired candidate {} {} → Employee ID: {}",
+            candidate.getFirstName(), candidate.getLastName(), employee.getEmployeeId());
+
+        return mapToResponse(candidate);
+    }
+
+    /**
+     * Initializes leave balances for a newly created employee based on
+     * the company's leave types and their maxDaysPerYear.
+     */
+    private void initializeLeaveBalances(Employee employee, Company company) {
+        int currentYear = java.time.LocalDate.now().getYear();
+        List<LeaveType> leaveTypes = leaveTypeRepository.findByCompanyId(company.getId());
+        for (LeaveType lt : leaveTypes) {
+            if (lt.getMaxDaysPerYear() != null && lt.getMaxDaysPerYear() > 0) {
+                LeaveBalance balance = LeaveBalance.builder()
+                    .company(company)
+                    .employee(employee)
+                    .leaveType(lt)
+                    .year(currentYear)
+                    .totalDays(lt.getMaxDaysPerYear())
+                    .usedDays(0)
+                    .remainingDays(lt.getMaxDaysPerYear())
+                    .build();
+                leaveBalanceRepository.save(balance);
+            }
+        }
+    }
 
 
     //helper methods
@@ -319,6 +419,7 @@ public class CandidateService {
             .status(candidate.getStatus())
             .rejectedAtStage(candidate.getRejectedAtStage())
             .hrNotes(candidate.getHrNotes())
+            .hiredEmployeeId(candidate.getHiredEmployeeId())
             .aiMatchScore(candidate.getAiMatchScore())
             .appliedAt(candidate.getAppliedAt())
             .createdAt(candidate.getCreatedAt())

@@ -3,6 +3,7 @@ package com.grh.grh.controller;
 import com.grh.grh.dto.common.ApiResponse;
 import com.grh.grh.dto.request.recruitment.CandidateApplicationRequest;
 import com.grh.grh.dto.request.recruitment.CandidateNotesRequest;
+import com.grh.grh.dto.request.recruitment.HireCandidateRequest;
 import com.grh.grh.dto.response.recruitment.CandidateResponse;
 import com.grh.grh.service.CandidateService;
 import jakarta.validation.Valid;
@@ -117,6 +118,18 @@ public class CandidateController {
     ) {
         return ApiResponse.success("Notes added",
             candidateService.addNotes(candidateId, request, authentication));
+    }
+
+    // ─── Hire candidate → create Employee ──────────────────────────────────
+    @PostMapping("/{candidateId}/hire")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:update')")
+    public ApiResponse<CandidateResponse> hireCandidate(
+        @PathVariable UUID candidateId,
+        @Valid @RequestBody HireCandidateRequest request,
+        Authentication authentication
+    ) {
+        return ApiResponse.success("Candidate hired and employee created",
+            candidateService.hireCandidate(candidateId, request, authentication));
     }
 
     

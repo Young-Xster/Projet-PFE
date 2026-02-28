@@ -2,11 +2,13 @@ package com.grh.grh.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "subcontractors")
@@ -14,53 +16,69 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true, exclude = {"company", "attendanceRecords"})
-@ToString(exclude = {"company", "attendanceRecords"})
-public class Subcontractor extends BaseEntity {
+@ToString(exclude = {"contracts", "reviews"})
+@EqualsAndHashCode(exclude = {"contracts", "reviews"})
+public class Subcontractor {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
-    @Column(name = "subcontractor_code", nullable = false, unique = true, length = 255)
-    private String subcontractorCode;
+    @Column(nullable = false)
+    private String type; // INDIVIDUAL, COMPANY
 
-    @Column(name = "company_name", nullable = false, length = 255)
+    // ─── Individual fields ────────────────────────────────────────────────
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    // ─── Company fields ───────────────────────────────────────────────────
+    @Column(name = "company_name")
     private String companyName;
 
-    @Column(name = "contact_first_name", nullable = false, length = 255)
+    @Column(name = "contact_first_name")
     private String contactFirstName;
 
-    @Column(name = "contact_last_name", nullable = false, length = 255)
+    @Column(name = "contact_last_name")
     private String contactLastName;
 
-    @Column(nullable = false, unique = true, length = 255)
-    private String email;
+    // ─── Common fields ─────────────────────────────────────────────────────
+    @Column(name = "contact_email")
+    private String contactEmail;
 
-    @Column(name = "phone_number", nullable = false, length = 20)
-    private String phoneNumber;
+    @Column(name = "contact_phone")
+    private String contactPhone;
 
-    @Column(nullable = false, length = 255)
+    @Column(columnDefinition = "TEXT")
     private String address;
 
-    @Column(name = "contract_start_date", nullable = false)
-    private LocalDate contractStartDate;
+    private String city;
 
-    @Column(name = "contract_end_date", nullable = false)
-    private LocalDate contractEndDate;
+    private String specialization;
 
-    @Column(name = "contract_type", nullable = false, length = 50)
-    private String contractType;
-
-    @Column(name = "hourly_rate", nullable = false, precision = 12, scale = 2)
-    private BigDecimal hourlyRate;
-
-    @Column(length = 50)
     @Builder.Default
-    private String status = "active";
+    private String status = "ACTIVE"; // ACTIVE, INACTIVE
 
-    // Relationships
-    @OneToMany(mappedBy = "subcontractor", cascade = CascadeType.ALL)
+    // ─── Relationships ─────────────────────────────────────────────────────
+    @OneToMany(mappedBy = "subcontractor", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private Set<AttendanceRecord> attendanceRecords = new HashSet<>();
+    private List<SubcontractorContract> contracts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "subcontractor", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<SubcontractorReview> reviews = new ArrayList<>();
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private OffsetDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private OffsetDateTime updatedAt;
 }
