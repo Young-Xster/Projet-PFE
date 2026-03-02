@@ -30,6 +30,7 @@ public class AttendanceService {
     private final UserRepository userRepository;
     private final SubcontractorRepository subcontractorRepository;
     private final KeycloakUserService keycloakUserService;
+    private final WorkScheduleService workScheduleService;
 
 
     @Transactional
@@ -66,9 +67,9 @@ public class AttendanceService {
                 builder.workDurationMinutes(calculateWorkDuration(request.getClockInTime(), request.getClockOutTime()));
             }
 
-            // Auto-calculate delay from CompanySetting
+            // Auto-calculate delay using employee's schedule, falling back to CompanySetting
             if (request.getClockInTime() != null) {
-                Integer delay = calculateDelay(companyId, request.getClockInTime());
+                Integer delay = calculateDelay(companyId, request.getEmployeeId(), request.getDate(), request.getClockInTime());
                 if (delay != null && delay > 0) {
                     builder.delayMinutes(delay);
                     builder.status("late");
@@ -175,20 +176,50 @@ public class AttendanceService {
      * Calculates delay in minutes based on company's workHoursStart and gracePeriodMinutes.
      * Returns null if no company settings found or clock-in is on time.
      */
-    private Integer calculateDelay(UUID companyId, OffsetDateTime clockInTime) {
-        return companySettingRepository.findByCompanyId(companyId)
-            .map(settings -> {
-                LocalTime workStart = settings.getWorkHoursStart();
-                int gracePeriod = settings.getGracePeriodMinutes() != null ? settings.getGracePeriodMinutes() : 0;
-                LocalTime effectiveStart = workStart.plusMinutes(gracePeriod);
-                LocalTime clockInLocal = clockInTime.toLocalTime();
+    private Integer calculateDelay(UUID companyId, UUID employeeId, LocalDate date, OffsetDateTime clockInTime) {
+        if (clockInTime == null) return null;
 
-                if (clockInLocal.isAfter(effectiveStart)) {
-                    return (int) java.time.Duration.between(effectiveStart, clockInLocal).toMinutes();
+        java.time.LocalTime expectedStart = null;
+        int gracePeriod = 0;
+
+        // 1. Try employee's assigned schedule
+        if (employeeId != null) {
+            ScheduleDetail detail = workScheduleService.getExpectedScheduleForDate(employeeId, date);
+            if (detail != null) {
+                if (!Boolean.TRUE.equals(detail.getIsWorkingDay())) {
+                    return null; // not a working day per schedule
                 }
-                return null;
-            })
-            .orElse(null);
+                expectedStart = detail.getWorkStartTime();
+            }
+        }
+        CompanySetting settings = companySettingRepository.findByCompanyId(companyId).orElse(null);
+        if (expectedStart == null && settings != null && settings.getWorkHoursStart() != null) {
+            expectedStart = settings.getWorkHoursStart();
+        }
+        if (settings != null && settings.getGracePeriodMinutes() != null) {
+            gracePeriod = settings.getGracePeriodMinutes();
+        }
+
+        if (expectedStart == null) return null;
+
+        // Determine company timezone (default Africa/Algiers if not set)
+        String tzName = (settings != null && settings.getTimezone() != null && !settings.getTimezone().isBlank())
+            ? settings.getTimezone() : "Africa/Algiers";
+        java.time.ZoneId zoneId;
+        try {
+            zoneId = java.time.ZoneId.of(tzName);
+        } catch (Exception e) {
+            zoneId = java.time.ZoneOffset.UTC;
+        }
+
+        // Compare clock-in time in company's local timezone
+        java.time.LocalTime clockInLocal = clockInTime.atZoneSameInstant(zoneId).toLocalTime();
+        java.time.LocalTime deadline = expectedStart.plusMinutes(gracePeriod);
+        if (clockInLocal.isAfter(deadline)) {
+            return (int) java.time.Duration.between(expectedStart, clockInLocal).toMinutes();
+        }
+
+        return 0;
     }
 
     private UUID resolveCompanyId(Authentication authentication, UUID requestCompanyId) {

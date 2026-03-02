@@ -18,7 +18,7 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
     
     List<EmployeeSchedule> findByScheduleId(UUID scheduleId);
     
-    @Query("SELECT es FROM EmployeeSchedule es WHERE es.employee.employeeId = :employeeId AND es.effectiveFrom <= :date AND (es.effectiveTo IS NULL OR es.effectiveTo >= :date)")
+    @Query("SELECT es FROM EmployeeSchedule es JOIN FETCH es.schedule s JOIN FETCH s.scheduleDetails WHERE es.employee.employeeId = :employeeId AND es.effectiveFrom <= :date AND (es.effectiveTo IS NULL OR es.effectiveTo >= :date)")
     Optional<EmployeeSchedule> findActiveScheduleForEmployee(
         @Param("employeeId") UUID employeeId,
         @Param("date") LocalDate date
