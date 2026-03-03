@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -28,6 +29,14 @@ public class CompanyController {
         return ApiResponse.success("Companies retrieved", companies);
     }
 
+    @GetMapping("/{companyId}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ApiResponse<CompanyResponse> getCompanyById(@PathVariable UUID companyId) {
+        Company company = companyRepository.findById(companyId)
+            .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+        return ApiResponse.success("Company retrieved", toResponse(company));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ApiResponse<CompanyResponse> createCompany(@RequestBody CreateCompanyRequest request) {
@@ -40,9 +49,40 @@ public class CompanyController {
             .email(request.getEmail())
             .isActive(true)
             .build();
-        
+
         company = companyRepository.save(company);
         return ApiResponse.success("Company created", toResponse(company));
+    }
+
+    @PutMapping("/{companyId}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ApiResponse<CompanyResponse> updateCompany(
+            @PathVariable UUID companyId,
+            @RequestBody CreateCompanyRequest request) {
+        Company company = companyRepository.findById(companyId)
+            .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+
+        if (request.getName() != null) company.setName(request.getName());
+        if (request.getCode() != null) company.setCode(request.getCode());
+        if (request.getIndustryType() != null) company.setIndustryType(request.getIndustryType());
+        if (request.getAdress() != null) company.setAddress(request.getAdress());
+        if (request.getPhoneNumber() != null) company.setPhone(request.getPhoneNumber());
+        if (request.getEmail() != null) company.setEmail(request.getEmail());
+
+        company = companyRepository.save(company);
+        return ApiResponse.success("Company updated", toResponse(company));
+    }
+
+    @DeleteMapping("/{companyId}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ApiResponse<Void> deleteCompany(@PathVariable UUID companyId) {
+        Company company = companyRepository.findById(companyId)
+            .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+
+        // Soft delete — just deactivate
+        company.setIsActive(false);
+        companyRepository.save(company);
+        return ApiResponse.success("Company deactivated", null);
     }
 
     private CompanyResponse toResponse(Company company) {
