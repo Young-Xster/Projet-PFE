@@ -82,6 +82,15 @@ public class FileStorageService {
         return Paths.get(uploadDir, relativePath);
     }
 
+    public byte[] loadFile(String relativePath) {
+        try {
+            Path filePath = Paths.get(uploadDir, relativePath);
+            return Files.readAllBytes(filePath);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read file: " + relativePath, e);
+        }
+    }
+
     private String getFileExtension(String filename) {
         if (filename == null || !filename.contains(".")) return "";
         return filename.substring(filename.lastIndexOf('.') + 1);
@@ -92,4 +101,6 @@ public class FileStorageService {
         // Remove path separators and special chars, keep only safe characters
         return filename.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
+
+
 }
