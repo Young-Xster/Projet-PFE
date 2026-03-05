@@ -1,0 +1,3 @@
+flask
+pypdf
+g4f
