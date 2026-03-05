@@ -4,7 +4,6 @@ import com.grh.grh.dto.common.ApiResponse;
 import com.grh.grh.dto.response.ai.AiMatchResult;
 import com.grh.grh.service.AiMatchingService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
