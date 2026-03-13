@@ -1,3 +1,23 @@
 /* You can add global styles to this file, and also import other style files */
 
-@import "tailwindcss";
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.app-dark, .app-dark *));
+
+@layer base {
+  html,
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  .app-dark body {
+    @apply bg-gray-900 text-gray-100;
+  }
+}
+
+.app-dark .p-breadcrumb .p-breadcrumb-item-link {
+  color: #d1d5db;
+}
+.app-dark .p-breadcrumb .p-breadcrumb-item-link:hover {
+  color: #ffffff;
+}
