@@ -1,14 +1,22 @@
 import { Routes } from '@angular/router';
 import { EmployeeLayout } from './layout/EmployeeLayout';
-import { EmployeeTableComponent } from './components/employeeTable';
-import { AddEmployeeComponent } from './components/addEmployee';
-import { EmployeeDetailComponent } from './components/employeeDetail';
+import { LoginComponent } from './pages/login/login.component';
+import { authGuard } from './core/auth/auth.guard';
+import { EmployeeTablePage } from './pages/employees/employee-table.page';
+import { AddEmployeePage } from './pages/employees/add-employee.page';
+import { EmployeeDetailPage } from './pages/employees/employee-detail.page';
 import { PlaceholderPageComponent } from './components/placeholderPage';
 
 export const routes: Routes = [
   {
+    path: 'login',
+    component: LoginComponent,
+    data: { pageTitle: 'Login', breadcrumb: 'Login' },
+  },
+  {
     path: '',
     component: EmployeeLayout,
+    canActivate: [authGuard],
     children: [
       {
         path: 'dashboard',
@@ -23,15 +31,15 @@ export const routes: Routes = [
         path: 'employees',
         data: { pageTitle: 'All Employees', breadcrumb: 'Employees' },
         children: [
-          { path: '', component: EmployeeTableComponent },
+          { path: '', component: EmployeeTablePage },
           {
             path: 'add',
-            component: AddEmployeeComponent,
+            component: AddEmployeePage,
             data: { pageTitle: 'Create Employee', breadcrumb: 'Create Employee' },
           },
           {
             path: ':id',
-            component: EmployeeDetailComponent,
+            component: EmployeeDetailPage,
             data: { pageTitle: 'Employee Details', breadcrumb: 'Employee Details' },
           },
         ],

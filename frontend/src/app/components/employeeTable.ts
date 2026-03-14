@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { EmployeeService } from '../../service/employee.service';
-import { Employee } from '../../domain/employee';
-import { BreadcrumbService } from '../../service/breadcrumb.service';
+import { of } from 'rxjs';
+import { catchError, finalize, timeout } from 'rxjs/operators';
+import { EmployeeService } from '../services/employee/employee.service';
+import { Employee } from '../models/employee.model';
+import { BreadcrumbService } from '../services/breadcrumb/breadcrumb.service';
 import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
 
 @Component({
@@ -269,8 +271,8 @@ import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
                 class="min-w-[32px] h-8 flex items-center justify-center border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm transition-all duration-150"
                 [ngClass]="
                   page === currentPage
-                    ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700 cursor-default'
-                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
+                    ? 'bg-purple-600 text-black border-purple-600 dark:bg-gray-800 dark:border-purple-400 dark:text-white ring-1 ring-purple-400/40 cursor-default'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 cursor-pointer'
                 "
                 (click)="goToPage(page)"
               >
@@ -322,22 +324,32 @@ export class EmployeeTableComponent implements OnInit {
     private employeeService: EmployeeService,
     private router: Router,
     private breadcrumbService: BreadcrumbService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
     this.breadcrumbService.setItems([{ label: 'All Employees', routerLink: '/employees' }]);
 
-    this.employeeService.getEmployeesByCompany().subscribe({
-      next: (data) => {
+    this.loading = true;
+    this.employeeService
+      .getEmployeesByCompany()
+      .pipe(
+        timeout(12000),
+        catchError((error) => {
+          console.error('Failed to load employees:', error);
+          return of([] as Employee[]);
+        }),
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe((data) => {
         this.employees = data;
         this.filteredEmployees = [...data];
-        this.loading = false;
         this.updatePagination();
-      },
-      error: () => {
-        this.loading = false;
-      },
-    });
+        this.cdr.detectChanges();
+      });
   }
 
   filterEmployees(): void {

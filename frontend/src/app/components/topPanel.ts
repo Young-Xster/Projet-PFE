@@ -1,5 +1,28 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
+
+type ApiResponse<T> = {
+  success: boolean;
+  message: string;
+  data: T;
+};
+
+type UserContextResponse = {
+  id: string;
+  username: string;
+  email: string;
+  isActive: boolean;
+  isSuperAdmin: boolean;
+  lastLogin: string;
+  companyContext?: {
+    companyId: string;
+    companyName: string;
+    companyCode: string;
+    permissions: string[];
+  };
+};
 
 @Component({
   selector: 'app-top-panel',
@@ -33,7 +56,6 @@ import { CommonModule } from '@angular/common';
 
       <!-- Right side: notification + user -->
       <div class="flex items-center gap-4">
-        <!-- Notification bell -->
         <button
           class="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
@@ -53,7 +75,6 @@ import { CommonModule } from '@angular/common';
           <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
         </button>
 
-        <!-- Divider -->
         <div class="w-px h-8 bg-gray-200 dark:bg-gray-600"></div>
 
         <!-- User avatar + info -->
@@ -61,13 +82,13 @@ import { CommonModule } from '@angular/common';
           <div
             class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm shadow-md"
           >
-            RA
+            {{ initials }}
           </div>
           <div>
             <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight">
-              Robert Allen
+              {{ displayName }}
             </p>
-            <p class="text-xs text-gray-500 dark:text-gray-300">HR Manager</p>
+            <p class="text-xs text-gray-500 dark:text-gray-300">{{ subLabel }}</p>
           </div>
           <svg
             class="w-4 h-4 text-gray-400 dark:text-gray-300"
@@ -87,4 +108,41 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
 })
-export class TopPanelComponent {}
+export class TopPanelComponent implements OnInit {
+
+  private readonly baseUrl = environment.apiUrl;
+  private readonly authMeUrl = `${this.baseUrl}/auth/me`;
+
+  displayName = 'User';
+  subLabel = 'HR Manager';
+  initials = 'U';
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit(): void {
+    if (typeof window === 'undefined') return;
+
+    this.http.get<ApiResponse<UserContextResponse>>(this.authMeUrl).subscribe({
+      next: (res) => {
+        const u = res?.data;
+        if (!u) return;
+
+        this.displayName = u.username || 'User';
+        this.initials = this.makeInitials(this.displayName);
+        this.subLabel = u.isSuperAdmin
+          ? 'Super Admin'
+          : u.companyContext?.companyName || 'HR Manager';
+      },
+      error: (err) => {
+        console.error('Failed to fetch user context:', err);
+      }
+    });
+  }
+
+  private makeInitials(value: string): string {
+    const parts = (value || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'U';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+}

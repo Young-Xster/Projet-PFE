@@ -1,6 +1,20 @@
-export interface CompanyInfo { id: string; name: string; code: string; }
-export interface DepartmentInfo { id: string; name: string; code: string; }
-export interface ManagerInfo { id: string; fullName: string; email: string; }
+export interface CompanyInfo {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface DepartmentInfo {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface ManagerInfo {
+  id: string;
+  fullName: string;
+  email: string;
+}
 
 export interface Employee {
   employeeId: string;

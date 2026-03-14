@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { ThemeService } from '@/service/theme.service';
+import { ThemeService } from '../services/theme/theme.service';
 
 @Component({
   selector: 'side-bar-navigation',

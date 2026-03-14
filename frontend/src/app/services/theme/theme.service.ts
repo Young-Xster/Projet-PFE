@@ -1,16 +1,16 @@
-import {DOCUMENT , isPlatformBrowser} from '@angular/common';
-import {Inject , Injectable , PLATFORM_ID , signal } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { Inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 
 export type ThemeMode = 'light' | 'dark';
 
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class ThemeService {
   readonly mode = signal<ThemeMode>('light');
 
   constructor(
     @Inject(DOCUMENT) private document: Document,
-    @Inject(PLATFORM_ID) private platformId: Object,
-  ){}
+    @Inject(PLATFORM_ID) private platformId: object,
+  ) {}
 
   init(): void {
     if (!isPlatformBrowser(this.platformId)) return;
