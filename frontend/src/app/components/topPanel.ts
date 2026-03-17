@@ -109,7 +109,6 @@ type UserContextResponse = {
   `,
 })
 export class TopPanelComponent implements OnInit {
-
   private readonly baseUrl = environment.apiUrl;
   private readonly authMeUrl = `${this.baseUrl}/auth/me`;
 
@@ -135,7 +134,7 @@ export class TopPanelComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to fetch user context:', err);
-      }
+      },
     });
   }
 

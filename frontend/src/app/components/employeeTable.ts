@@ -1,11 +1,13 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { of } from 'rxjs';
 import { catchError, finalize, timeout } from 'rxjs/operators';
 import { EmployeeService } from '../services/employee/employee.service';
-import { Employee } from '../models/employee.model';
+import { Employee, CompanyInfo } from '../models/employee.model';
 import { BreadcrumbService } from '../services/breadcrumb/breadcrumb.service';
 import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
 
@@ -44,7 +46,19 @@ import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
               class="w-full py-2.5 pr-4 pl-10 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-100 bg-gray-50 dark:bg-gray-700 transition-all duration-150 focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-700"
             />
           </div>
-          <div class="flex gap-2.5">
+          <div class="flex gap-2.5 items-center">
+            @if (isSuperAdmin) {
+              <select
+                [(ngModel)]="selectedCompanyId"
+                (change)="onCompanyChange()"
+                class="py-2.5 px-3 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-100 bg-white dark:bg-gray-800 transition-all duration-150 focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15"
+              >
+                <option value="" disabled>Select Company to View</option>
+                @for (company of companies; track company.id) {
+                  <option [value]="company.id">{{ company.name }}</option>
+                }
+              </select>
+            }
             <button
               class="flex items-center gap-2 py-2.5 px-5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 hover:-translate-y-[1px] hover:shadow-lg hover:shadow-purple-600/35 transition-all duration-150"
               (click)="navigateToAdd()"
@@ -59,19 +73,21 @@ import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
               </svg>
               Add New Employee
             </button>
-            <button
-              class="flex items-center gap-2 py-2.5 px-5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500 transition-all duration-150"
+            <select
+              [(ngModel)]="statusFilter"
+              (change)="filterEmployees()"
+              class="py-2.5 px-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 transition-all duration-150 appearance-none pr-8"
+              style="background-image: url(&quot;data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e&quot;); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 1em;"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                />
-              </svg>
-              Filter
-            </button>
+              <option value="active">Active Only</option>
+              <option value="terminated">Terminated Only</option>
+              <option value="on_leave">On Leave</option>
+              <option value="all">All Statuses</option>
+              <option value="all">By ID</option>
+              <option value="all">By Job Title</option>
+              <option value="all">By Name</option>
+              <option value="all">By Type</option>
+            </select>
           </div>
         </div>
 
@@ -188,6 +204,7 @@ import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
                       </button>
                       <!-- Edit -->
                       <button
+                        (click)="editEmployee(emp)"
                         class="p-1.5 rounded-md text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-800 dark:hover:text-gray-100 transition-all duration-150"
                         title="Edit"
                       >
@@ -202,6 +219,7 @@ import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
                       </button>
                       <!-- Delete -->
                       <button
+                        (click)="deleteEmployee(emp)"
                         class="p-1.5 rounded-md text-gray-500 hover:bg-red-100 hover:text-red-600 transition-all duration-150"
                         title="Delete"
                       >
@@ -300,11 +318,15 @@ import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
   `,
 })
 export class EmployeeTableComponent implements OnInit {
+  isSuperAdmin = false;
+  companies: CompanyInfo[] = [];
+  selectedCompanyId = '';
   employees: Employee[] = [];
   filteredEmployees: Employee[] = [];
   paginatedEmployees: Employee[] = [];
   loading = true;
   searchTerm = '';
+  statusFilter = 'active';
 
   // Pagination
   currentPage = 1;
@@ -321,6 +343,7 @@ export class EmployeeTableComponent implements OnInit {
   }
 
   constructor(
+    private http: HttpClient,
     private employeeService: EmployeeService,
     private router: Router,
     private breadcrumbService: BreadcrumbService,
@@ -330,15 +353,46 @@ export class EmployeeTableComponent implements OnInit {
   ngOnInit() {
     this.breadcrumbService.setItems([{ label: 'All Employees', routerLink: '/employees' }]);
 
+    this.http.get<any>(environment.apiUrl + '/auth/me').subscribe({
+      next: (res) => {
+        if (res?.data?.isSuperAdmin) {
+          this.isSuperAdmin = true;
+          this.http.get<any>(environment.apiUrl + '/companies').subscribe({
+            next: (companiesRes) => {
+              this.companies = companiesRes?.data || [];
+              this.selectedCompanyId =
+                this.employeeService['getCompanyId']() ||
+                (this.companies.length ? this.companies[0].id : '');
+              if (this.selectedCompanyId) {
+                this.employeeService.setCompanyId(this.selectedCompanyId);
+              }
+              this.loadEmployees();
+            },
+          });
+        } else {
+          this.loadEmployees();
+        }
+      },
+      error: () => this.loadEmployees(),
+    });
+  }
+
+  onCompanyChange(): void {
+    if (this.selectedCompanyId) {
+      this.employeeService.setCompanyId(this.selectedCompanyId);
+      this.loadEmployees();
+    }
+  }
+
+  loadEmployees(): void {
+    if (!this.selectedCompanyId && this.isSuperAdmin) return;
     this.loading = true;
+
+    // Call the endpoint that retrieves ALL statuses
     this.employeeService
-      .getEmployeesByCompany()
+      .getAllEmployeesIncludingTerminated(this.selectedCompanyId)
       .pipe(
-        timeout(12000),
-        catchError((error) => {
-          console.error('Failed to load employees:', error);
-          return of([] as Employee[]);
-        }),
+        timeout(15000),
         finalize(() => {
           this.loading = false;
           this.cdr.detectChanges();
@@ -346,26 +400,32 @@ export class EmployeeTableComponent implements OnInit {
       )
       .subscribe((data) => {
         this.employees = data;
-        this.filteredEmployees = [...data];
-        this.updatePagination();
-        this.cdr.detectChanges();
+        // Trigger filter immediately to apply default 'active' state
+        this.filterEmployees();
       });
   }
 
   filterEmployees(): void {
     const term = this.searchTerm.toLowerCase().trim();
-    if (!term) {
-      this.filteredEmployees = [...this.employees];
-    } else {
-      this.filteredEmployees = this.employees.filter(
-        (emp) =>
-          emp.firstName.toLowerCase().includes(term) ||
-          emp.lastName.toLowerCase().includes(term) ||
-          emp.email.toLowerCase().includes(term) ||
-          emp.jobTitle.toLowerCase().includes(term) ||
-          (emp.department?.name ?? '').toLowerCase().includes(term),
-      );
-    }
+
+    this.filteredEmployees = this.employees.filter((emp) => {
+      // 1. Status Check
+      const matchesStatus =
+        this.statusFilter === 'all' ||
+        (emp.status?.toLowerCase() || 'active') === this.statusFilter;
+
+      // 2. Search Term Check
+      const matchesSearch =
+        !term ||
+        emp.firstName.toLowerCase().includes(term) ||
+        emp.lastName.toLowerCase().includes(term) ||
+        emp.email.toLowerCase().includes(term) ||
+        emp.jobTitle.toLowerCase().includes(term) ||
+        (emp.department?.name ?? '').toLowerCase().includes(term);
+
+      return matchesStatus && matchesSearch;
+    });
+
     this.currentPage = 1;
     this.updatePagination();
   }
@@ -418,5 +478,23 @@ export class EmployeeTableComponent implements OnInit {
     ];
     const hash = (emp.firstName.charCodeAt(0) + emp.lastName.charCodeAt(0)) % colors.length;
     return colors[hash];
+  }
+
+  editEmployee(emp: Employee): void {
+    this.router.navigate(['/employees', emp.employeeId, 'edit']);
+  }
+  deleteEmployee(emp: Employee): void {
+    if (confirm(`Are you sure you want to delete ${emp.firstName} ${emp.lastName}?`)) {
+      this.employeeService.deleteEmployee(emp.employeeId).subscribe({
+        next: () => {
+          alert('Employee deleted successfully');
+          this.loadEmployees();
+        },
+        error: (err) => {
+          console.error('Failed to delete employee:', err);
+          alert('Failed to delete employee. Please try again.');
+        },
+      });
+    }
   }
 }

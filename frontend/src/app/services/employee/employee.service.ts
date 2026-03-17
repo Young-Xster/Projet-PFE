@@ -24,7 +24,7 @@ export class EmployeeService {
     return localStorage.getItem(this.companyStorageKey);
   }
 
-  private setCompanyId(companyId: string): void {
+  setCompanyId(companyId: string): void {
     localStorage.setItem(this.companyStorageKey, companyId);
   }
 
@@ -35,6 +35,9 @@ export class EmployeeService {
 
   private resolveCompanyId(companyId?: string): Observable<string> {
     if (companyId) {
+      if (this.getCompanyId() !== companyId) {
+        this.setCompanyId(companyId);
+      }
       return of(companyId);
     }
 
@@ -92,6 +95,14 @@ export class EmployeeService {
     );
   }
 
+  getAllEmployeesIncludingTerminated(companyId?: string): Observable<Employee[]> {
+    return this.resolveCompanyId(companyId).pipe(
+      switchMap((cid) => this.http.get<ApiResponse<Employee[]>>(`${this.apiUrl}/company/${cid}/include-terminated`, {
+        headers: this.getHeaders(),
+      }).pipe(map(res => res.data))),
+    );
+  }
+
   getEmployeeById(employeeId: string): Observable<Employee> {
     return this.http
       .get<ApiResponse<Employee>>(`${this.apiUrl}/${employeeId}`, {
@@ -101,8 +112,23 @@ export class EmployeeService {
   }
 
   createEmployee(request: CreateEmployeeRequest): Observable<Employee> {
+    return this.resolveCompanyId(request.companyId).pipe(
+      switchMap((companyId) => {
+        const payload = { ...request, companyId };
+        return this.http
+          .post<ApiResponse<Employee>>(this.apiUrl, payload, {
+            headers: this.getHeaders(),
+          })
+          .pipe(map((res) => res.data));
+      }),
+    );
+  }
+
+
+
+  updateEmployee(employeeId: string, request: Partial<CreateEmployeeRequest>): Observable<Employee> {
     return this.http
-      .post<ApiResponse<Employee>>(this.apiUrl, request, {
+      .put<ApiResponse<Employee>>(`${this.apiUrl}/${employeeId}`, request, {
         headers: this.getHeaders(),
       })
       .pipe(map((res) => res.data));

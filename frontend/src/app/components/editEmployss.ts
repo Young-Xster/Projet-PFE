@@ -2,12 +2,13 @@ import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom, timeout } from 'rxjs';
 import { EmployeeService } from '../services/employee/employee.service';
 import {
   CreateEmployeeRequest,
+  UpdateEmployeeRequest,
   Employee,
   CompanyInfo,
   ApiResponse,
@@ -17,7 +18,7 @@ import { EmployeeDocumentType } from '../models/document.model';
 import { DocumentService } from '../services/document/document.service';
 
 @Component({
-  selector: 'app-add-employee',
+  selector: 'app-edit-employee',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
@@ -250,22 +251,6 @@ import { DocumentService } from '../services/document/document.service';
                 </select>
               </div>
             }
-            @if (isSuperAdmin) {
-              <div class="flex flex-col gap-1.5 col-span-2">
-                <label class="text-[0.85rem] font-semibold text-gray-700">Company *</label>
-                <select
-                  class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white"
-                  [(ngModel)]="employee.companyId"
-                  name="companyId"
-                  required
-                >
-                  <option value="" disabled>Select Company</option>
-                  @for (company of companies; track company.id) {
-                    <option [value]="company.id">{{ company.name }}</option>
-                  }
-                </select>
-              </div>
-            }
             <div class="flex flex-col gap-1.5">
               <label class="text-[0.85rem] font-semibold text-gray-700">Hire Date *</label>
               <input
@@ -466,7 +451,7 @@ import { DocumentService } from '../services/document/document.service';
               </svg>
               Saving...
             } @else {
-              Save Employee
+              Update Employee
             }
           </button>
         </div>
@@ -474,7 +459,8 @@ import { DocumentService } from '../services/document/document.service';
     </div>
   `,
 })
-export class AddEmployeeComponent implements OnInit {
+export class EditEmployeeComponent implements OnInit {
+  employeeId: string = '';
   isSuperAdmin = false;
   companies: CompanyInfo[] = [];
   errorMessage = '';
@@ -520,6 +506,7 @@ export class AddEmployeeComponent implements OnInit {
   constructor(
     private employeeService: EmployeeService,
     private router: Router,
+    private route: ActivatedRoute,
     private breadcrumbService: BreadcrumbService,
     private documentService: DocumentService,
     private cdr: ChangeDetectorRef,
@@ -530,16 +517,37 @@ export class AddEmployeeComponent implements OnInit {
   ngOnInit(): void {
     this.breadcrumbService.setItems([
       { label: 'All Employees', routerLink: '/employees' },
-      { label: 'Add New Employee' },
+      { label: 'Edit Employee' },
     ]);
+
+    this.employeeId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id') || '';
+
+    if (this.employeeId) {
+      this.employeeService.getEmployeeById(this.employeeId).subscribe({
+        next: (emp) => {
+          this.employee = {
+            ...emp,
+            companyId: emp.company?.id || '',
+            departmentId: emp.department?.id || '',
+            managerId: emp.manager?.id || ''
+          } as any;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.errorMessage = 'Failed to load employee details.';
+          this.cdr.detectChanges();
+        }
+      });
+    }
 
     this.http.get<any>(`${environment.apiUrl}/auth/me`).subscribe({
       next: (res) => {
         if (res?.data?.isSuperAdmin) {
-          this.isSuperAdmin = true;
+          this.isSuperAdmin = true; this.cdr.detectChanges();
           this.http.get<any>(`${environment.apiUrl}/companies`).subscribe({
             next: (companiesRes) => {
               this.companies = companiesRes?.data || [];
+              this.cdr.detectChanges();
             },
           });
         }
@@ -556,21 +564,21 @@ export class AddEmployeeComponent implements OnInit {
     this.documentNotice = '';
     this.errorMessage = '';
 
-    const payload = { ...this.employee };
+    const payload: Partial<CreateEmployeeRequest> = { ...this.employee };
     if (!payload.departmentId) delete payload.departmentId;
     if (!payload.managerId) delete payload.managerId;
 
     try {
-      const createdEmployee = await firstValueFrom(
-        this.employeeService.createEmployee(payload).pipe(timeout(30000)),
+      const updatedEmployee = await firstValueFrom(
+        this.employeeService.updateEmployee(this.employeeId, payload).pipe(timeout(30000)),
       );
 
-      await this.uploadPendingDocuments(createdEmployee);
+      await this.uploadPendingDocuments(updatedEmployee);
     } catch (error: any) {
       this.errorMessage =
         error?.error?.message ??
         error?.message ??
-        'Failed to create employee. Request timed out or server did not respond.';
+        'Failed to update employee. Request timed out or server did not respond.';
       this.submitting = false;
       this.cdr.detectChanges();
     }
@@ -627,7 +635,7 @@ export class AddEmployeeComponent implements OnInit {
     const employeeId = createdEmployee?.employeeId;
 
     if (!employeeId) {
-      this.errorMessage = 'Employee was created but no employee ID was returned.';
+      this.errorMessage = 'Employee was updated but no employee ID was returned.';
       this.submitting = false;
       this.cdr.detectChanges();
       this.ngZone.run(() => this.router.navigate(['/employees']));
@@ -659,7 +667,7 @@ export class AddEmployeeComponent implements OnInit {
       this.errorMessage =
         error?.error?.message ??
         error?.message ??
-        'Employee created but one or more document uploads failed.';
+        'Employee updated but one or more document uploads failed.';
       this.ngZone.run(() => this.router.navigate(['/employees', employeeId]));
     } finally {
       this.submitting = false;

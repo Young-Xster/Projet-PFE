@@ -1,3 +1,4 @@
+import { EditEmployeePage } from './pages/employees/edit-employee.page';
 import { Routes } from '@angular/router';
 import { EmployeeLayout } from './layout/EmployeeLayout';
 import { LoginComponent } from './pages/login/login.component';
@@ -32,7 +33,8 @@ export const routes: Routes = [
         data: { pageTitle: 'All Employees', breadcrumb: 'Employees' },
         children: [
           { path: '', component: EmployeeTablePage },
-          {
+          { path: ':id/edit', component: EditEmployeePage, data: { pageTitle: 'Edit Employee', breadcrumb: 'Edit Employee' } },
+          { 
             path: 'add',
             component: AddEmployeePage,
             data: { pageTitle: 'Create Employee', breadcrumb: 'Create Employee' },
