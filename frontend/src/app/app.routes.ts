@@ -7,6 +7,10 @@ import { EmployeeTablePage } from './pages/employees/employee-table.page';
 import { AddEmployeePage } from './pages/employees/add-employee.page';
 import { EmployeeDetailPage } from './pages/employees/employee-detail.page';
 import { PlaceholderPageComponent } from './components/placeholderPage';
+import { DepartmentTablePage } from './pages/departments/department-table.page';
+import { AddDepartmentPage } from './pages/departments/add-department.page';
+import { EditDepartmentPage } from './pages/departments/edit-department.page';
+import { DepartmentDetailPage } from './pages/departments/department-detail.page';
 
 export const routes: Routes = [
   {
@@ -33,8 +37,12 @@ export const routes: Routes = [
         data: { pageTitle: 'All Employees', breadcrumb: 'Employees' },
         children: [
           { path: '', component: EmployeeTablePage },
-          { path: ':id/edit', component: EditEmployeePage, data: { pageTitle: 'Edit Employee', breadcrumb: 'Edit Employee' } },
-          { 
+          {
+            path: ':id/edit',
+            component: EditEmployeePage,
+            data: { pageTitle: 'Edit Employee', breadcrumb: 'Edit Employee' },
+          },
+          {
             path: 'add',
             component: AddEmployeePage,
             data: { pageTitle: 'Create Employee', breadcrumb: 'Create Employee' },
@@ -48,12 +56,25 @@ export const routes: Routes = [
       },
       {
         path: 'departments',
-        component: PlaceholderPageComponent,
-        data: {
-          pageTitle: 'All Departments',
-          breadcrumb: 'Departments',
-          description: 'Departments content will appear here.',
-        },
+        data: { pageTitle: 'All Departments', breadcrumb: 'Departments' },
+        children: [
+          { path: '', component: DepartmentTablePage },
+          {
+            path: 'add',
+            component: AddDepartmentPage,
+            data: { pageTitle: 'Create Department', breadcrumb: 'Create Department' },
+          },
+          {
+            path: ':id/edit',
+            component: EditDepartmentPage,
+            data: { pageTitle: 'Edit Department', breadcrumb: 'Edit Department' },
+          },
+          {
+            path: ':id',
+            component: DepartmentDetailPage,
+            data: { pageTitle: 'Department Details', breadcrumb: 'Department Details' },
+          },
+        ],
       },
       {
         path: 'attendance',

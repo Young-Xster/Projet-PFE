@@ -15,6 +15,8 @@ import {
 import { BreadcrumbService } from '../services/breadcrumb/breadcrumb.service';
 import { EmployeeDocumentType } from '../models/document.model';
 import { DocumentService } from '../services/document/document.service';
+import { DepartmentService } from '../services/department.service';
+import { DepartmentResponse } from '../models/department.model';
 
 @Component({
   selector: 'app-add-employee',
@@ -38,9 +40,11 @@ import { DocumentService } from '../services/document/document.service';
           </div>
         }
         <!-- Personal Information -->
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 mb-5"
+        >
           <h2
-            class="flex items-center gap-2.5 text-lg font-bold text-gray-800 m-0 mb-5 pb-3 border-b border-gray-100"
+            class="flex items-center gap-2.5 text-lg font-bold text-gray-800 dark:text-white m-0 mb-5 pb-3 border-b border-gray-100 dark:border-gray-700"
           >
             <svg
               class="w-5 h-5 text-purple-600"
@@ -59,10 +63,12 @@ import { DocumentService } from '../services/document/document.service';
           </h2>
           <div class="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">First Name *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >First Name *</label
+              >
               <input
                 type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.firstName"
                 name="firstName"
                 required
@@ -70,10 +76,12 @@ import { DocumentService } from '../services/document/document.service';
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Last Name *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Last Name *</label
+              >
               <input
                 type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.lastName"
                 name="lastName"
                 required
@@ -81,10 +89,12 @@ import { DocumentService } from '../services/document/document.service';
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Email *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Email *</label
+              >
               <input
                 type="email"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.email"
                 name="email"
                 required
@@ -92,10 +102,12 @@ import { DocumentService } from '../services/document/document.service';
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Phone Number *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Phone Number *</label
+              >
               <input
                 type="tel"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.phoneNumber"
                 name="phoneNumber"
                 required
@@ -103,19 +115,23 @@ import { DocumentService } from '../services/document/document.service';
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Date of Birth *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Date of Birth *</label
+              >
               <input
                 type="date"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.dateOfBirth"
                 name="dateOfBirth"
                 required
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Gender *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Gender *</label
+              >
               <select
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800"
                 [(ngModel)]="employee.gender"
                 name="gender"
                 required
@@ -126,10 +142,12 @@ import { DocumentService } from '../services/document/document.service';
               </select>
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">National ID *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >National ID *</label
+              >
               <input
                 type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.nationalId"
                 name="nationalId"
                 required
@@ -140,9 +158,11 @@ import { DocumentService } from '../services/document/document.service';
         </div>
 
         <!-- Address Information -->
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 mb-5"
+        >
           <h2
-            class="flex items-center gap-2.5 text-lg font-bold text-gray-800 m-0 mb-5 pb-3 border-b border-gray-100"
+            class="flex items-center gap-2.5 text-lg font-bold text-gray-800 dark:text-white m-0 mb-5 pb-3 border-b border-gray-100 dark:border-gray-700"
           >
             <svg
               class="w-5 h-5 text-purple-600"
@@ -167,10 +187,12 @@ import { DocumentService } from '../services/document/document.service';
           </h2>
           <div class="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
             <div class="flex flex-col gap-1.5 col-span-full">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Address *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Address *</label
+              >
               <input
                 type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.address"
                 name="address"
                 required
@@ -178,10 +200,12 @@ import { DocumentService } from '../services/document/document.service';
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">City *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >City *</label
+              >
               <input
                 type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.city"
                 name="city"
                 required
@@ -189,10 +213,12 @@ import { DocumentService } from '../services/document/document.service';
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Postal Code *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Postal Code *</label
+              >
               <input
                 type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.postalCode"
                 name="postalCode"
                 required
@@ -200,10 +226,12 @@ import { DocumentService } from '../services/document/document.service';
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Country *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Country *</label
+              >
               <input
                 type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.country"
                 name="country"
                 required
@@ -214,9 +242,11 @@ import { DocumentService } from '../services/document/document.service';
         </div>
 
         <!-- Employment Details -->
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 mb-5"
+        >
           <h2
-            class="flex items-center gap-2.5 text-lg font-bold text-gray-800 m-0 mb-5 pb-3 border-b border-gray-100"
+            class="flex items-center gap-2.5 text-lg font-bold text-gray-800 dark:text-white m-0 mb-5 pb-3 border-b border-gray-100 dark:border-gray-700"
           >
             <svg
               class="w-5 h-5 text-purple-600"
@@ -236,27 +266,14 @@ import { DocumentService } from '../services/document/document.service';
           <div class="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
             @if (isSuperAdmin) {
               <div class="flex flex-col gap-1.5 col-span-2">
-                <label class="text-[0.85rem] font-semibold text-gray-700">Company *</label>
-                <select
-                  class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white"
-                  [(ngModel)]="employee.companyId"
-                  name="companyId"
-                  required
+                <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                  >Company *</label
                 >
-                  <option value="" disabled>Select Company</option>
-                  @for (company of companies; track company.id) {
-                    <option [value]="company.id">{{ company.name }}</option>
-                  }
-                </select>
-              </div>
-            }
-            @if (isSuperAdmin) {
-              <div class="flex flex-col gap-1.5 col-span-2">
-                <label class="text-[0.85rem] font-semibold text-gray-700">Company *</label>
                 <select
-                  class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white"
+                  class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800"
                   [(ngModel)]="employee.companyId"
                   name="companyId"
+                  (change)="onCompanyChange()"
                   required
                 >
                   <option value="" disabled>Select Company</option>
@@ -267,19 +284,23 @@ import { DocumentService } from '../services/document/document.service';
               </div>
             }
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Hire Date *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Hire Date *</label
+              >
               <input
                 type="date"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.hireDate"
                 name="hireDate"
                 required
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Employment Type *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Employment Type *</label
+              >
               <select
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800"
                 [(ngModel)]="employee.employmentType"
                 name="employmentType"
                 required
@@ -292,10 +313,12 @@ import { DocumentService } from '../services/document/document.service';
               </select>
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Job Title *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Job Title *</label
+              >
               <input
                 type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.jobTitle"
                 name="jobTitle"
                 required
@@ -303,30 +326,42 @@ import { DocumentService } from '../services/document/document.service';
               />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Department</label>
-              <input
-                type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Department</label
+              >
+              <select
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800"
                 [(ngModel)]="employee.departmentId"
                 name="departmentId"
-                placeholder="Department ID (optional)"
-              />
+              >
+                <option value="" disabled>Select Department</option>
+                @for (dept of departments; track dept.id) {
+                  <option [value]="dept.id">{{ dept.name }}</option>
+                }
+              </select>
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Manager</label>
-              <input
-                type="text"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Manager</label
+              >
+              <select
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800"
                 [(ngModel)]="employee.managerId"
                 name="managerId"
-                placeholder="Manager ID (optional)"
-              />
+              >
+                <option value="" disabled>Select Manager</option>
+                @for (mgr of managers; track mgr.employeeId) {
+                  <option [value]="mgr.employeeId">{{ mgr.firstName }} {{ mgr.lastName }}</option>
+                }
+              </select>
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Salary *</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Salary *</label
+              >
               <input
                 type="number"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white placeholder-gray-400"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800 placeholder-gray-400"
                 [(ngModel)]="employee.salary"
                 name="salary"
                 required
@@ -339,9 +374,11 @@ import { DocumentService } from '../services/document/document.service';
         </div>
 
         <!-- Optional Documents -->
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 mb-5"
+        >
           <h2
-            class="flex items-center gap-2.5 text-lg font-bold text-gray-800 m-0 mb-5 pb-3 border-b border-gray-100"
+            class="flex items-center gap-2.5 text-lg font-bold text-gray-800 dark:text-white m-0 mb-5 pb-3 border-b border-gray-100 dark:border-gray-700"
           >
             <svg
               class="w-5 h-5 text-purple-600"
@@ -369,11 +406,13 @@ import { DocumentService } from '../services/document/document.service';
 
           <div class="grid grid-cols-2 gap-4 max-sm:grid-cols-1 mb-4">
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Document Type</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Document Type</label
+              >
               <select
                 [(ngModel)]="pendingDocumentType"
                 [ngModelOptions]="{ standalone: true }"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50"
               >
                 <option value="" disabled>Select type</option>
                 @for (type of documentTypeOptions; track type.value) {
@@ -382,13 +421,15 @@ import { DocumentService } from '../services/document/document.service';
               </select>
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-[0.85rem] font-semibold text-gray-700">Document Name</label>
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Document Name</label
+              >
               <input
                 type="text"
                 [(ngModel)]="pendingDocumentName"
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="e.g. National ID front"
-                class="px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 bg-gray-50"
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50"
               />
             </div>
           </div>
@@ -413,10 +454,12 @@ import { DocumentService } from '../services/document/document.service';
             <div class="space-y-2">
               @for (doc of pendingDocuments; track $index) {
                 <div
-                  class="flex items-center justify-between gap-3 border border-gray-200 rounded-lg p-3 bg-gray-50"
+                  class="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900/50"
                 >
                   <div>
-                    <p class="text-sm font-semibold text-gray-800">{{ doc.documentName }}</p>
+                    <p class="text-sm font-semibold text-gray-800 dark:text-white">
+                      {{ doc.documentName }}
+                    </p>
                     <p class="text-xs text-gray-500">
                       {{ doc.documentType }} • {{ doc.file.name }}
                     </p>
@@ -438,7 +481,7 @@ import { DocumentService } from '../services/document/document.service';
         <div class="flex justify-end gap-3 pt-2">
           <button
             type="button"
-            class="px-6 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all"
+            class="px-6 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:bg-gray-900/50 hover:border-gray-300 transition-all"
             (click)="cancel()"
           >
             Cancel
@@ -477,6 +520,8 @@ import { DocumentService } from '../services/document/document.service';
 export class AddEmployeeComponent implements OnInit {
   isSuperAdmin = false;
   companies: CompanyInfo[] = [];
+  departments: DepartmentResponse[] = [];
+  managers: Employee[] = [];
   errorMessage = '';
 
   employee: CreateEmployeeRequest = {
@@ -519,6 +564,7 @@ export class AddEmployeeComponent implements OnInit {
 
   constructor(
     private employeeService: EmployeeService,
+    private departmentService: DepartmentService,
     private router: Router,
     private breadcrumbService: BreadcrumbService,
     private documentService: DocumentService,
@@ -537,12 +583,44 @@ export class AddEmployeeComponent implements OnInit {
       next: (res) => {
         if (res?.data?.isSuperAdmin) {
           this.isSuperAdmin = true;
+          this.cdr.detectChanges();
           this.http.get<any>(`${environment.apiUrl}/companies`).subscribe({
             next: (companiesRes) => {
               this.companies = companiesRes?.data || [];
+              this.cdr.detectChanges();
             },
           });
+        } else {
+          if (res?.data?.companyId) {
+            this.employee.companyId = res.data.companyId;
+            this.fetchOptions(res.data.companyId);
+          }
         }
+      },
+    });
+  }
+
+  onCompanyChange(): void {
+    if (this.employee.companyId) {
+      this.fetchOptions(this.employee.companyId);
+    } else {
+      this.managers = [];
+      this.departments = [];
+    }
+  }
+
+  fetchOptions(companyId: string): void {
+    this.employeeService.getEmployeesByCompany(companyId).subscribe({
+      next: (emps) => {
+        this.managers = emps || [];
+        this.cdr.detectChanges();
+      },
+    });
+
+    this.departmentService.getDepartmentsByCompany(companyId).subscribe({
+      next: (resp) => {
+        this.departments = resp?.data || [];
+        this.cdr.detectChanges();
       },
     });
   }

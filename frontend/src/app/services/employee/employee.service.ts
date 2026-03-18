@@ -95,11 +95,21 @@ export class EmployeeService {
     );
   }
 
+  getEmployeesByDepartment(departmentId: string): Observable<ApiResponse<Employee[]>> {
+    return this.http.get<ApiResponse<Employee[]>>(`${this.apiUrl}/department/${departmentId}`, {
+      headers: this.getHeaders(),
+    });
+  }
+
   getAllEmployeesIncludingTerminated(companyId?: string): Observable<Employee[]> {
     return this.resolveCompanyId(companyId).pipe(
-      switchMap((cid) => this.http.get<ApiResponse<Employee[]>>(`${this.apiUrl}/company/${cid}/include-terminated`, {
-        headers: this.getHeaders(),
-      }).pipe(map(res => res.data))),
+      switchMap((cid) =>
+        this.http
+          .get<ApiResponse<Employee[]>>(`${this.apiUrl}/company/${cid}/include-terminated`, {
+            headers: this.getHeaders(),
+          })
+          .pipe(map((res) => res.data)),
+      ),
     );
   }
 
@@ -124,14 +134,23 @@ export class EmployeeService {
     );
   }
 
-
-
-  updateEmployee(employeeId: string, request: Partial<CreateEmployeeRequest>): Observable<Employee> {
+  updateEmployee(
+    employeeId: string,
+    request: Partial<CreateEmployeeRequest>,
+  ): Observable<Employee> {
     return this.http
       .put<ApiResponse<Employee>>(`${this.apiUrl}/${employeeId}`, request, {
         headers: this.getHeaders(),
       })
       .pipe(map((res) => res.data));
+  }
+
+  removeDepartmentFromEmployee(employeeId: string): Observable<ApiResponse<Employee>> {
+    return this.http.patch<ApiResponse<Employee>>(
+      `${this.apiUrl}/${employeeId}/remove-department`,
+      {},
+      { headers: this.getHeaders() },
+    );
   }
 
   deleteEmployee(employeeId: string): Observable<void> {
