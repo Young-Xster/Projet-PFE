@@ -181,6 +181,8 @@ public class DepartmentService {
                    .managerName(department.getManager().getFirstName() + " " + department.getManager().getLastName());
         }
 
+        builder.employeeCount(department.getEmployees() != null ? department.getEmployees().size() : 0);
+
         return builder.build();
     }
 }

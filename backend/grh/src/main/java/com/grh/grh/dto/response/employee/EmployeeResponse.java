@@ -20,6 +20,14 @@ public class EmployeeResponse {
     private String lastName;
     private String email;
     private String phoneNumber;
+
+    private LocalDate dateOfBirth;
+    private String gender;
+    private String address;
+    private String city;
+    private String postalCode;
+    private String country;
+    private String nationalId;
     private String jobTitle;
     private String employmentType;
     private String status;

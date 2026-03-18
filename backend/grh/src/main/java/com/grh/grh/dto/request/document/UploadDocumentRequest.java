@@ -18,8 +18,7 @@ public class UploadDocumentRequest {
     
     @NotNull(message = "Employee ID is required")
     private UUID employeeId;
-    
-    @NotNull(message = "Company ID is required")
+
     private UUID companyId;
     
     @NotBlank(message = "Document type is required")

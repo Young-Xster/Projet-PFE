@@ -77,6 +77,11 @@ public class KeycloakUserService {
             throw new IllegalStateException("Invalid authentication type");
         }
 
+        List<String> tokenPermissions = extractPermissionsFromJwt(jwt);
+        if (!tokenPermissions.isEmpty()) {
+            return tokenPermissions;
+        }
+
         List<String> allPermissions = new ArrayList<>();
         Collection<String> roles = extractRoles(jwt);
 
@@ -147,5 +152,19 @@ public class KeycloakUserService {
 
     private boolean hasRole(Jwt jwt, String role) {
         return extractRoles(jwt).contains(role);
+    }
+
+    private List<String> extractPermissionsFromJwt(Jwt jwt) {
+        Object claim = jwt.getClaim("permissions");
+        if (claim instanceof Collection<?> collection) {
+            List<String> permissions = new ArrayList<>();
+            for (Object value : collection) {
+                if (value != null) {
+                    permissions.add(value.toString());
+                }
+            }
+            return permissions;
+        }
+        return Collections.emptyList();
     }
 }

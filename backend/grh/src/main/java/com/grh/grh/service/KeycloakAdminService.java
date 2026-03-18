@@ -5,6 +5,8 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UsersResource;
+import org.jboss.resteasy.client.jaxrs.ResteasyClient;
+import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +16,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.ws.rs.core.Response;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -38,13 +41,21 @@ public class KeycloakAdminService {
 
     @PostConstruct
     public void init() {
+        ResteasyClient resteasyClient = (ResteasyClient) ResteasyClientBuilder.newBuilder()
+            .connectTimeout(3, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .build();
+
         this.keycloak = KeycloakBuilder.builder()
                 .serverUrl(serverUrl)
                 .realm("master")  // Admin authentication happens in master realm
                 .clientId("admin-cli")  // Use admin-cli client for admin operations
                 .username(adminUsername)
                 .password(adminPassword)
+            .resteasyClient(resteasyClient)
                 .build();
+
+        log.info("Initialized Keycloak admin client with connect/read timeouts at {}", serverUrl);
     }
 
     private RealmResource getRealm(){

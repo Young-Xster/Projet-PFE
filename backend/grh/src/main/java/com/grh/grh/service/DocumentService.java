@@ -23,7 +23,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -31,6 +35,16 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class DocumentService {
+
+    private static final Set<String> IDENTITY_DOCUMENT_TYPES = new HashSet<>(Arrays.asList("national_id", "passport"));
+    private static final Set<String> ALLOWED_DOCUMENT_TYPES = new HashSet<>(Arrays.asList(
+        "national_id",
+        "passport",
+        "employment_contract",
+        "work_permit",
+        "certificate",
+        "other"
+    ));
 
     private final EmployeeDocumentRepository documentRepository;
     private final EmployeeRepository employeeRepository;
@@ -51,6 +65,17 @@ public class DocumentService {
         Employee employee = employeeRepository.findById(request.getEmployeeId())
             .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
 
+        if (employee.getCompany() == null || !employee.getCompany().getId().equals(companyId)) {
+            throw new SecurityException("Employee does not belong to the current company context");
+        }
+
+        String normalizedDocumentType = normalizeDocumentType(request.getDocumentType());
+        validateDocumentType(normalizedDocumentType);
+
+        if (isIdentityDocumentType(normalizedDocumentType)) {
+            autoReplaceOtherIdentityDocuments(employee.getEmployeeId(), normalizedDocumentType);
+        }
+
         String relativePath = fileStorageService.storeFile(file, "documents/" + companyId);
 
         User uploader = null;
@@ -62,7 +87,7 @@ public class DocumentService {
         EmployeeDocument document = EmployeeDocument.builder()
             .employee(employee)
             .company(company)
-            .documentType(request.getDocumentType())
+            .documentType(normalizedDocumentType)
             .documentName(request.getDocumentName())
             .documentPath(relativePath)
             .documentSize(file.getSize())
@@ -143,6 +168,33 @@ public class DocumentService {
             return requestCompanyId;
         }
         throw new IllegalStateException("User is not associated with any company");
+    }
+
+    private String normalizeDocumentType(String documentType) {
+        return documentType == null ? "" : documentType.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private void validateDocumentType(String documentType) {
+        if (!ALLOWED_DOCUMENT_TYPES.contains(documentType)) {
+            throw new IllegalArgumentException("Invalid document type. Allowed: " + ALLOWED_DOCUMENT_TYPES);
+        }
+    }
+
+    private boolean isIdentityDocumentType(String documentType) {
+        return IDENTITY_DOCUMENT_TYPES.contains(documentType);
+    }
+
+    private void autoReplaceOtherIdentityDocuments(UUID employeeId, String incomingType) {
+        List<EmployeeDocument> identityDocs = documentRepository
+            .findByEmployeeEmployeeIdAndDocumentTypeIn(employeeId, IDENTITY_DOCUMENT_TYPES);
+
+        for (EmployeeDocument existingDoc : identityDocs) {
+            String existingType = normalizeDocumentType(existingDoc.getDocumentType());
+            if (!existingType.equals(incomingType)) {
+                fileStorageService.deleteFile(existingDoc.getDocumentPath());
+                documentRepository.delete(existingDoc);
+            }
+        }
     }
 
     private void validateCompanyAccess(UUID companyId, Authentication authentication) {

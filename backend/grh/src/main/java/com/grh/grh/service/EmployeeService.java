@@ -217,6 +217,22 @@ public class EmployeeService {
             .collect(Collectors.toList());
     }
 
+    @Transactional
+    public EmployeeResponse removeEmployeeFromDepartment(UUID employeeId, Authentication authentication) {
+        Employee employee = employeeRepository.findById(employeeId)
+            .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
+
+        validateCompanyAccess(employee.getCompany().getId(), authentication);
+
+        employee.setDepartment(null);
+        employee = employeeRepository.save(employee);
+        
+        log.info("Removed department for employee: {} {} (ID: {})",
+            employee.getFirstName(), employee.getLastName(), employee.getEmployeeId());
+
+        return mapToResponse(employee);
+    }
+
     // ─── Offboarding ─────────────────────────────────────────────────────
 
     @Transactional
@@ -308,6 +324,13 @@ public class EmployeeService {
             .lastName(employee.getLastName())
             .email(employee.getEmail())
             .phoneNumber(employee.getPhoneNumber())
+            .dateOfBirth(employee.getDateOfBirth())
+            .gender(employee.getGender())
+            .address(employee.getAddress())
+            .city(employee.getCity())
+            .postalCode(employee.getPostalCode())
+            .country(employee.getCountry())
+            .nationalId(employee.getNationalId())
             .jobTitle(employee.getJobTitle())
             .employmentType(employee.getEmploymentType())
             .status(employee.getStatus())

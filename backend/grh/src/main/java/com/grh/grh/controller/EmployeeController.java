@@ -95,6 +95,16 @@ public class EmployeeController {
         return ApiResponse.success("Employee deleted successfully", null);
     }
 
+    @PatchMapping("/{employeeId}/remove-department")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'employees:update')")
+    public ApiResponse<EmployeeResponse> removeEmployeeFromDepartment(
+        @PathVariable UUID employeeId,
+        Authentication authentication
+    ) {
+        EmployeeResponse response = employeeService.removeEmployeeFromDepartment(employeeId, authentication);
+        return ApiResponse.success("Employee removed from department successfully", response);
+    }
+
     // ─── Offboarding ─────────────────────────────────────────────────────
     @PostMapping("/{employeeId}/offboard")
     @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'employees:update')")
