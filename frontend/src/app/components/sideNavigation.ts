@@ -103,6 +103,7 @@ import { ThemeService } from '../services/theme/theme.service';
         <a
           routerLink="/jobs"
           routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          [routerLinkActiveOptions]="{ exact: false }"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,23 +114,7 @@ import { ThemeService } from '../services/theme/theme.service';
               d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
             />
           </svg>
-          <span>Emplois</span>
-        </a>
-
-        <a
-          routerLink="/candidates"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
-          class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
-        >
-          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-            />
-          </svg>
-          <span>Candidats</span>
+          <span>Emplois / Candidats</span>
         </a>
 
         <a

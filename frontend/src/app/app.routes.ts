@@ -13,6 +13,10 @@ import { EditDepartmentPage } from './pages/departments/edit-department.page';
 import { DepartmentDetailPage } from './pages/departments/department-detail.page';
 import { AttendanceTablePage } from './pages/attendance/attendance-table.page';
 
+import { JobListingTablePage } from './pages/recruitment/jobs/job-listing-table.page';
+import { CandidateTrackerPage } from './pages/recruitment/candidates/candidate-tracker.page';
+import { CreateJobPage } from './pages/recruitment/jobs/create-job.page';
+
 export const routes: Routes = [
   {
     path: 'login',
@@ -93,12 +97,20 @@ export const routes: Routes = [
       },
       {
         path: 'jobs',
-        component: PlaceholderPageComponent,
-        data: {
-          pageTitle: 'Jobs',
-          breadcrumb: 'Jobs',
-          description: 'Jobs content will appear here.',
-        },
+        data: { pageTitle: 'Jobs', breadcrumb: 'Jobs' },
+        children: [
+          { path: '', component: JobListingTablePage },
+          {
+            path: 'new',
+            component: CreateJobPage,
+            data: { pageTitle: 'Create Job Listing', breadcrumb: 'New Job' }
+          },
+          {
+            path: ':id/candidates',
+            component: CandidateTrackerPage,
+            data: { pageTitle: 'Candidate Tracker', breadcrumb: 'Candidates' }
+          }
+        ]
       },
       {
         path: 'candidates',
