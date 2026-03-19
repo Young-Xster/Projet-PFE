@@ -19,4 +19,8 @@ public class UpdateAttendanceRequest {
     private String notes;
 
     private Integer delayMinutes;
+
+    private Integer earlyDepartureMinutes;
+
+    private Integer overtimeMinutes;
 }

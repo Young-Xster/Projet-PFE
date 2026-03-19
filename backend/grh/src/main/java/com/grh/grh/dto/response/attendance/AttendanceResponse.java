@@ -21,6 +21,8 @@ public class AttendanceResponse {
     private String source;
     private Integer delayMinutes;
     private Integer workDurationMinutes;
+    private Integer earlyDepartureMinutes;
+    private Integer overtimeMinutes;
 
     private UUID companyId;
     private String companyName;

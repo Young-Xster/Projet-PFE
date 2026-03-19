@@ -69,4 +69,10 @@ public class AttendanceRecord extends BaseEntity {
 
     @Column(name = "approved_at")
     private OffsetDateTime approvedAt;
+
+    @Column(name = "early_departure_minutes")
+    private Integer earlyDepartureMinutes;
+
+    @Column(name = "overtime_minutes")
+    private Integer overtimeMinutes;
 }

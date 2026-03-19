@@ -28,7 +28,9 @@ import { ThemeService } from '../services/theme/theme.service';
             <path d="M8 12h8M12 8v8" />
           </svg>
         </div>
-        <span class="text-xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">HRMS</span>
+        <span class="text-xl font-bold text-gray-800 dark:text-gray-100 tracking-tight"
+          >SIP GRH</span
+        >
       </div>
 
       <!-- Navigation -->

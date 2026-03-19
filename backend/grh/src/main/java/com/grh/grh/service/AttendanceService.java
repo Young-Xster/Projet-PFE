@@ -89,7 +89,12 @@ public class AttendanceService {
             builder.approvedBy(approver);
         }
 
-        AttendanceRecord record = attendanceRepository.save(builder.build());
+        AttendanceRecord record = builder.build();
+        
+        // Calculate early departure / overtime based on the final record
+        calculateDepartureStats(record);
+        
+        record = attendanceRepository.save(record);
         log.info("Created attendance record for date: {} source: manual", request.getDate());
         return mapToResponse(record);
     }
@@ -111,6 +116,14 @@ public class AttendanceService {
         if (record.getClockInTime() != null && record.getClockOutTime() != null) {
             record.setWorkDurationMinutes(calculateWorkDuration(record.getClockInTime(), record.getClockOutTime()));
         }
+
+        // Calculate early departure / overtime based on the updated finish time
+        if (record.getClockOutTime() != null) {
+            calculateDepartureStats(record);
+        }
+
+        if (request.getEarlyDepartureMinutes() != null) record.setEarlyDepartureMinutes(request.getEarlyDepartureMinutes());
+        if (request.getOvertimeMinutes() != null) record.setOvertimeMinutes(request.getOvertimeMinutes());
 
         record = attendanceRepository.save(record);
         log.info("Updated attendance record: {}", recordId);
@@ -166,6 +179,53 @@ public class AttendanceService {
 
     
     //helpers
+    private void calculateDepartureStats(AttendanceRecord record) {
+        if (record.getEmployee() == null || record.getClockOutTime() == null) return;
+        
+        java.util.UUID companyId = record.getCompany().getId();
+        java.util.UUID employeeId = record.getEmployee().getEmployeeId();
+        java.time.LocalDate date = record.getDate();
+        
+        java.time.LocalTime expectedEnd = null;
+        ScheduleDetail detail = workScheduleService.getExpectedScheduleForDate(employeeId, date);
+        
+        if (detail != null && Boolean.TRUE.equals(detail.getIsWorkingDay())) {
+            expectedEnd = detail.getWorkEndTime();
+        } else {
+            CompanySetting settings = companySettingRepository.findByCompanyId(companyId).orElse(null);
+            if (settings != null && settings.getWorkHoursEnd() != null) {
+                expectedEnd = settings.getWorkHoursEnd();
+            }
+        }
+        
+        if (expectedEnd == null) return;
+        
+        CompanySetting settings = companySettingRepository.findByCompanyId(companyId).orElse(null);
+        String tzName = (settings != null && settings.getTimezone() != null && !settings.getTimezone().isBlank())
+            ? settings.getTimezone() : "Africa/Algiers";
+        
+        java.time.ZoneId zoneId;
+        try {
+            zoneId = java.time.ZoneId.of(tzName);
+        } catch (Exception e) {
+            zoneId = java.time.ZoneOffset.UTC;
+        }
+        
+        java.time.LocalTime clockOutLocal = record.getClockOutTime().atZoneSameInstant(zoneId).toLocalTime();
+        
+        long diffMinutes = java.time.Duration.between(expectedEnd, clockOutLocal).toMinutes();
+        if (diffMinutes < 0) {
+            record.setEarlyDepartureMinutes((int) -diffMinutes);
+            record.setOvertimeMinutes(0);
+        } else if (diffMinutes > 0) {
+            record.setOvertimeMinutes((int) diffMinutes);
+            record.setEarlyDepartureMinutes(0);
+        } else {
+            record.setOvertimeMinutes(0);
+            record.setEarlyDepartureMinutes(0);
+        }
+    }
+
     private Integer calculateWorkDuration(OffsetDateTime clockIn, OffsetDateTime clockOut) {
         if (clockIn == null || clockOut == null) return null;
         int minutes = (int) java.time.Duration.between(clockIn, clockOut).toMinutes();
@@ -249,6 +309,8 @@ public class AttendanceService {
             .notes(record.getNotes())
             .source(record.getSource())
             .delayMinutes(record.getDelayMinutes())
+            .earlyDepartureMinutes(record.getEarlyDepartureMinutes())
+            .overtimeMinutes(record.getOvertimeMinutes())
             .workDurationMinutes(record.getWorkDurationMinutes())
             .createdAt(record.getCreatedAt())
             .updatedAt(record.getUpdatedAt());

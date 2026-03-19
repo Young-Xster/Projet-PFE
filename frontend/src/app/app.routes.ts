@@ -11,6 +11,7 @@ import { DepartmentTablePage } from './pages/departments/department-table.page';
 import { AddDepartmentPage } from './pages/departments/add-department.page';
 import { EditDepartmentPage } from './pages/departments/edit-department.page';
 import { DepartmentDetailPage } from './pages/departments/department-detail.page';
+import { AttendanceTablePage } from './pages/attendance/attendance-table.page';
 
 export const routes: Routes = [
   {
@@ -78,12 +79,8 @@ export const routes: Routes = [
       },
       {
         path: 'attendance',
-        component: PlaceholderPageComponent,
-        data: {
-          pageTitle: 'Attendance',
-          breadcrumb: 'Attendance',
-          description: 'Attendance content will appear here.',
-        },
+        component: AttendanceTablePage,
+        data: { pageTitle: 'Daily Attendance', breadcrumb: 'Attendance' },
       },
       {
         path: 'payroll',

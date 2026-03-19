@@ -83,10 +83,6 @@ import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
               <option value="terminated">Terminated Only</option>
               <option value="on_leave">On Leave</option>
               <option value="all">All Statuses</option>
-              <option value="all">By ID</option>
-              <option value="all">By Job Title</option>
-              <option value="all">By Name</option>
-              <option value="all">By Type</option>
             </select>
           </div>
         </div>

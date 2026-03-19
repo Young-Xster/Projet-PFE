@@ -31,4 +31,8 @@ public class CreateAttendanceRequest {
     private String notes;
 
     private UUID approvedById;
+
+    private Integer earlyDepartureMinutes;
+
+    private Integer overtimeMinutes;
 }

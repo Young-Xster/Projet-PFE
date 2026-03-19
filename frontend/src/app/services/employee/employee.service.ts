@@ -83,6 +83,10 @@ export class EmployeeService {
       );
   }
 
+  getAllEmployeesByCompany(companyId?: string): Observable<Employee[]> {
+    return this.getEmployeesByCompany(companyId);
+  }
+
   getEmployeesByCompany(companyId?: string): Observable<Employee[]> {
     return this.resolveCompanyId(companyId).pipe(
       switchMap((cid) =>
