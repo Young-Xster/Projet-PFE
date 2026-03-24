@@ -36,3 +36,6 @@ build/
 ### Test Scripts ###
 test_*.sh
 *_test.sh
+
+### Runtime Uploads ###
+uploads/
