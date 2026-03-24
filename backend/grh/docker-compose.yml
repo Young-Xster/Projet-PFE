@@ -91,6 +91,8 @@ services:
       JPA_FORMAT_SQL: false
       FLYWAY_ENABLED: true
     network_mode: host
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy

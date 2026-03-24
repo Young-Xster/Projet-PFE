@@ -103,14 +103,14 @@ export const routes: Routes = [
           {
             path: 'new',
             component: CreateJobPage,
-            data: { pageTitle: 'Create Job Listing', breadcrumb: 'New Job' }
+            data: { pageTitle: 'Create Job Listing', breadcrumb: 'New Job' },
           },
           {
             path: ':id/candidates',
             component: CandidateTrackerPage,
-            data: { pageTitle: 'Candidate Tracker', breadcrumb: 'Candidates' }
-          }
-        ]
+            data: { pageTitle: 'Candidate Tracker', breadcrumb: 'Candidates' },
+          },
+        ],
       },
       {
         path: 'candidates',
@@ -146,6 +146,7 @@ export const routes: Routes = [
           pageTitle: 'Settings',
           breadcrumb: 'Settings',
           description: 'Settings content will appear here.',
+          showLogoutButton: true,
         },
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },

@@ -7,6 +7,7 @@ import com.grh.grh.entity.Company;
 import com.grh.grh.entity.Employee;
 import com.grh.grh.entity.EmployeeDocument;
 import com.grh.grh.entity.User;
+import jakarta.persistence.EntityNotFoundException;
 import com.grh.grh.repository.CompanyRepository;
 import com.grh.grh.repository.EmployeeDocumentRepository;
 import com.grh.grh.repository.EmployeeRepository;
@@ -20,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -146,14 +146,14 @@ public class DocumentService {
     @Transactional(readOnly = true)
     public Resource downloadDocument(UUID documentId, Authentication authentication) {
         EmployeeDocument document = documentRepository.findById(documentId)
-            .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+            .orElseThrow(() -> new EntityNotFoundException("Document not found"));
         validateCompanyAccess(document.getCompany().getId(), authentication);
 
         try {
             Path filePath = fileStorageService.getFilePath(document.getDocumentPath());
             Resource resource = new UrlResource(filePath.toUri());
             if (!resource.exists()) {
-                throw new RuntimeException("File not found: " + document.getDocumentPath());
+                throw new EntityNotFoundException("Document file not found on server");
             }
             return resource;
         } catch (IOException e) {

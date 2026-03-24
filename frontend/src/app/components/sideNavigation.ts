@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { ThemeService } from '../services/theme/theme.service';
+import { AuthService } from '../core/auth/auth.service';
 
 @Component({
   selector: 'side-bar-navigation',
@@ -155,6 +156,22 @@ import { ThemeService } from '../services/theme/theme.service';
           </svg>
           <span>Paramètres</span>
         </a>
+
+        <button
+          type="button"
+          (click)="logout()"
+          class="w-full flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
+        >
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"
+            />
+          </svg>
+          <span>Logout</span>
+        </button>
       </nav>
 
       <!-- Theme Toggle -->
@@ -213,5 +230,12 @@ import { ThemeService } from '../services/theme/theme.service';
   `,
 })
 export class SideBarNavigation {
-  constructor(public theme: ThemeService) {}
+  constructor(
+    public theme: ThemeService,
+    private authService: AuthService,
+  ) {}
+
+  logout() {
+    this.authService.logout();
+  }
 }

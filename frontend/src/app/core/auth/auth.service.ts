@@ -1,28 +1,63 @@
 import { Injectable } from '@angular/core';
 import { keycloak } from './keycloak';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly companyIdStorageKey = 'company_id';
   private readonly postLoginRedirectStorageKey = 'post_login_redirect';
+  private readonly forceReauthStorageKey = 'force_reauth_after_logout';
 
   private getSafeRedirectUri(): string {
-    return `${window.location.origin}/`;
+    return window.location.origin;
+  }
+
+  private buildLoginOptions(): { redirectUri: string; prompt?: 'login' } {
+    const options: { redirectUri: string; prompt?: 'login' } = {
+      redirectUri: this.getSafeRedirectUri(),
+    };
+
+    if (sessionStorage.getItem(this.forceReauthStorageKey) === '1') {
+      sessionStorage.removeItem(this.forceReauthStorageKey);
+      options.prompt = 'login';
+    }
+
+    return options;
   }
 
   login() {
-    return keycloak.login({ redirectUri: this.getSafeRedirectUri() });
+    return keycloak.login(this.buildLoginOptions());
   }
 
   loginWithRedirect(path: string) {
     sessionStorage.setItem(this.postLoginRedirectStorageKey, path || '/dashboard');
-    return keycloak.login({ redirectUri: this.getSafeRedirectUri() });
+    return keycloak.login(this.buildLoginOptions());
   }
 
-  logout() {
+  async logout(): Promise<void> {
     localStorage.removeItem(this.companyIdStorageKey);
+    localStorage.removeItem('jwt_token');
     sessionStorage.removeItem(this.postLoginRedirectStorageKey);
-    return keycloak.logout({ redirectUri: this.getSafeRedirectUri() });
+    sessionStorage.setItem(this.forceReauthStorageKey, '1');
+
+    const redirectUri = this.getSafeRedirectUri();
+
+    try {
+      await keycloak.logout({ redirectUri });
+      return;
+    } catch {}
+
+    try {
+      await keycloak.logout();
+      return;
+    } catch {}
+
+    const logoutUrl =
+      `${environment.keycloak.url}/realms/${environment.keycloak.realm}` +
+      `/protocol/openid-connect/logout?client_id=${encodeURIComponent(environment.keycloak.clientId)}` +
+      `&post_logout_redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+    window.location.assign(logoutUrl);
   }
 
   consumePostLoginRedirect(): string | null {
