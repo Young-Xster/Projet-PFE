@@ -81,6 +81,24 @@ export class AuthService {
     return keycloak.tokenParsed?.['preferred_username'] as string | undefined;
   }
 
+  hasRole(roleName: string): boolean {
+    const parsed = keycloak.tokenParsed as Record<string, unknown> | undefined;
+    const realmAccess = parsed?.['realm_access'] as Record<string, unknown> | undefined;
+    const roles = realmAccess?.['roles'];
+
+    if (!Array.isArray(roles)) {
+      return false;
+    }
+
+    return roles.some(
+      (role) => typeof role === 'string' && role.toUpperCase() === roleName.trim().toUpperCase(),
+    );
+  }
+
+  isSuperAdmin(): boolean {
+    return this.hasRole('SUPER_ADMIN');
+  }
+
   getCompanyId(): string | null {
     const stored = localStorage.getItem(this.companyIdStorageKey);
     if (stored) {

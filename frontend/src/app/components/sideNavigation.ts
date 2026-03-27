@@ -134,6 +134,56 @@ import { AuthService } from '../core/auth/auth.service';
           <span>Congés</span>
         </a>
 
+        @if (isSuperAdmin) {
+          <a
+            routerLink="/admin/companies"
+            routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+            class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
+          >
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 21h18M5 21V7l7-4 7 4v14M9 9h6m-6 4h6m-6 4h6"
+              />
+            </svg>
+            <span>Company Admin</span>
+          </a>
+
+          <a
+            routerLink="/admin/users-roles"
+            routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+            class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
+          >
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17 20h5V4H2v16h5m10 0v-5a3 3 0 00-3-3H10a3 3 0 00-3 3v5m10 0H7m8-11a2 2 0 11-4 0 2 2 0 014 0z"
+              />
+            </svg>
+            <span>User & Roles</span>
+          </a>
+
+          <a
+            routerLink="/admin/activity-logs"
+            routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+            class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
+          >
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>Activity Log</span>
+          </a>
+        }
+
         <!-- Settings at bottom -->
         <a
           routerLink="/settings"
@@ -230,10 +280,14 @@ import { AuthService } from '../core/auth/auth.service';
   `,
 })
 export class SideBarNavigation {
+  readonly isSuperAdmin: boolean;
+
   constructor(
     public theme: ThemeService,
     private authService: AuthService,
-  ) {}
+  ) {
+    this.isSuperAdmin = this.authService.isSuperAdmin();
+  }
 
   logout() {
     this.authService.logout();

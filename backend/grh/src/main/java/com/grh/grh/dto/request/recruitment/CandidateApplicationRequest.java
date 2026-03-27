@@ -27,6 +27,8 @@ public class CandidateApplicationRequest {
     @Email(message = "Invalid email format")
     private String email;
 
+    private String turnstileToken;
+
     private String phone;
     private LocalDate dateOfBirth;
     private String address;

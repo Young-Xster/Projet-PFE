@@ -12,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,10 +29,28 @@ public class CandidateController {
         @Valid @ModelAttribute CandidateApplicationRequest request,
         @RequestPart(value = "cv", required = false) MultipartFile cvFile,
         @RequestPart(value = "recommendationLetter", required = false) MultipartFile recommendationLetter,
-        @RequestPart(value = "certificates", required = false) List<MultipartFile> certificates
+        @RequestPart(value = "certificates", required = false) List<MultipartFile> certificates,
+        HttpServletRequest httpRequest
     ) {
+        String ipAddress = extractClientIp(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+
         return ApiResponse.success("Application submitted successfully",
-            candidateService.applyPublic(request, cvFile, recommendationLetter, certificates));
+            candidateService.applyPublic(request, cvFile, recommendationLetter, certificates, ipAddress, userAgent));
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+
+        return request.getRemoteAddr();
     }
 
     //HR view candidates

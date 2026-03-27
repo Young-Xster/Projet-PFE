@@ -2,7 +2,7 @@ import { EditEmployeePage } from './pages/employees/edit-employee.page';
 import { Routes } from '@angular/router';
 import { EmployeeLayout } from './layout/EmployeeLayout';
 import { LoginComponent } from './pages/login/login.component';
-import { authGuard } from './core/auth/auth.guard';
+import { authGuard, superAdminGuard } from './core/auth/auth.guard';
 import { EmployeeTablePage } from './pages/employees/employee-table.page';
 import { AddEmployeePage } from './pages/employees/add-employee.page';
 import { EmployeeDetailPage } from './pages/employees/employee-detail.page';
@@ -16,6 +16,9 @@ import { AttendanceTablePage } from './pages/attendance/attendance-table.page';
 import { JobListingTablePage } from './pages/recruitment/jobs/job-listing-table.page';
 import { CandidateTrackerPage } from './pages/recruitment/candidates/candidate-tracker.page';
 import { CreateJobPage } from './pages/recruitment/jobs/create-job.page';
+import { CompanyAdminPage } from './pages/admin/company-admin.page';
+import { UserRolesAdminPage } from './pages/admin/user-roles-admin.page';
+import { ActivityLogAdminPage } from './pages/admin/activity-log-admin.page';
 
 export const routes: Routes = [
   {
@@ -147,6 +150,33 @@ export const routes: Routes = [
           breadcrumb: 'Settings',
           description: 'Settings content will appear here.',
           showLogoutButton: true,
+        },
+      },
+      {
+        path: 'admin/companies',
+        component: CompanyAdminPage,
+        canActivate: [superAdminGuard],
+        data: {
+          pageTitle: 'Company Admin',
+          breadcrumb: 'Company Admin',
+        },
+      },
+      {
+        path: 'admin/users-roles',
+        component: UserRolesAdminPage,
+        canActivate: [superAdminGuard],
+        data: {
+          pageTitle: 'User & Roles',
+          breadcrumb: 'User & Roles',
+        },
+      },
+      {
+        path: 'admin/activity-logs',
+        component: ActivityLogAdminPage,
+        canActivate: [superAdminGuard],
+        data: {
+          pageTitle: 'Activity Log',
+          breadcrumb: 'Activity Log',
         },
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },

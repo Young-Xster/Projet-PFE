@@ -10,14 +10,17 @@ import com.grh.grh.repository.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,6 +38,8 @@ public class CandidateService {
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
     private final KeycloakUserService keycloakUserService;
+    private final PublicApplicationAttemptRepository publicApplicationAttemptRepository;
+    private final TurnstileService turnstileService;
 
     // public 
 
@@ -43,78 +48,141 @@ public class CandidateService {
         CandidateApplicationRequest request , 
         MultipartFile cvFile ,
         MultipartFile recommendationLetter,
-        List<MultipartFile> certificates
+        List<MultipartFile> certificates,
+        String ipAddress,
+        String userAgent
     ){
+        turnstileService.verifyToken(request.getTurnstileToken(), ipAddress);
+
+        String normalizedEmail = normalizeEmail(request.getEmail());
+
         JobListing listing = jobListingRepository.findById(request.getJobListingId())
             .orElseThrow(() -> new IllegalArgumentException("Job listing not found"));
 
         if (!"open".equals(listing.getStatus())) {
+            logPublicAttempt(listing, normalizedEmail, ipAddress, userAgent, "REJECTED", "JOB_CLOSED");
             throw new IllegalStateException("This job listing is no longer accepting applications");
         }
 
         if (listing.getDeadline() != null && listing.getDeadline().isBefore(java.time.LocalDate.now())) {
+            logPublicAttempt(listing, normalizedEmail, ipAddress, userAgent, "REJECTED", "DEADLINE_PASSED");
             throw new IllegalStateException("The application deadline has passed");
         }
 
-        if (candidateRepository.existsByEmailAndJobListingId(request.getEmail(), request.getJobListingId())) {
+        if (candidateRepository.existsByNormalizedEmailAndJobListingId(normalizedEmail, request.getJobListingId())) {
+            logPublicAttempt(listing, normalizedEmail, ipAddress, userAgent, "REJECTED", "DUPLICATE_APPLICATION");
             throw new IllegalStateException("You have already applied for this position");
         }
+
+        List<String> storedPaths = new ArrayList<>();
 
         // Store files
         String cvPath = null;
         if (cvFile != null && !cvFile.isEmpty()) {
             cvPath = fileStorageService.storeFile(cvFile, "cv");
+            storedPaths.add(cvPath);
         }
 
         String recLetterPath = null;
         if (recommendationLetter != null && !recommendationLetter.isEmpty()) {
             recLetterPath = fileStorageService.storeFile(recommendationLetter, "recommendations");
+            storedPaths.add(recLetterPath);
         }
 
         String certPaths = null;
         if (certificates != null && !certificates.isEmpty()) {
-            certPaths = certificates.stream()
+            List<String> certificatePathList = certificates.stream()
                 .filter(f -> f != null && !f.isEmpty())
                 .map(f -> fileStorageService.storeFile(f, "certificates"))
-                .collect(Collectors.joining(","));
+                .toList();
+            storedPaths.addAll(certificatePathList);
+            certPaths = String.join(",", certificatePathList);
         }
 
-        Candidate candidate = Candidate.builder()
+        try {
+            Candidate candidate = Candidate.builder()
+                .jobListing(listing)
+                .company(listing.getCompany())
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail() != null ? request.getEmail().trim() : null)
+                .phone(request.getPhone())
+                .dateOfBirth(request.getDateOfBirth())
+                .address(request.getAddress())
+                .city(request.getCity())
+                .educationLevel(request.getEducationLevel())
+                .experienceYears(request.getExperienceYears())
+                .previousEmployer(request.getPreviousEmployer())
+                .skills(request.getSkills())
+                .languagesSpoken(request.getLanguagesSpoken())
+                .availabilityDate(request.getAvailabilityDate())
+                .cvFilePath(cvPath)
+                .recommendationLetterPath(recLetterPath)
+                .certificatesPaths(certPaths)
+                .currentStage(1)
+                .status("stage_1")
+                .appliedAt(OffsetDateTime.now())
+                .build();
+
+            candidate = candidateRepository.save(candidate);
+            emailService.sendApplicationReceivedEmail(
+                candidate.getEmail(),
+                request.getFirstName() + " " + request.getLastName(),
+                listing.getTitle(),
+                listing.getCompany().getName()
+            );
+
+            logPublicAttempt(listing, normalizedEmail, ipAddress, userAgent, "ACCEPTED", null);
+            log.info("New application from {} {} for job: {}",
+                request.getFirstName(), request.getLastName(), listing.getTitle());
+
+            return mapToResponse(candidate);
+        } catch (DataIntegrityViolationException ex) {
+            cleanupStoredFiles(storedPaths);
+            logPublicAttempt(listing, normalizedEmail, ipAddress, userAgent, "REJECTED", "DUPLICATE_RACE_CONDITION");
+            throw new IllegalStateException("You have already applied for this position");
+        } catch (RuntimeException ex) {
+            cleanupStoredFiles(storedPaths);
+            logPublicAttempt(listing, normalizedEmail, ipAddress, userAgent, "REJECTED", "APPLICATION_ERROR");
+            throw ex;
+        }
+    }
+
+    private void logPublicAttempt(
+        JobListing listing,
+        String normalizedEmail,
+        String ipAddress,
+        String userAgent,
+        String outcome,
+        String reason
+    ) {
+        PublicApplicationAttempt attempt = PublicApplicationAttempt.builder()
             .jobListing(listing)
-            .company(listing.getCompany())
-            .firstName(request.getFirstName())
-            .lastName(request.getLastName())
-            .email(request.getEmail())
-            .phone(request.getPhone())
-            .dateOfBirth(request.getDateOfBirth())
-            .address(request.getAddress())
-            .city(request.getCity())
-            .educationLevel(request.getEducationLevel())
-            .experienceYears(request.getExperienceYears())
-            .previousEmployer(request.getPreviousEmployer())
-            .skills(request.getSkills())
-            .languagesSpoken(request.getLanguagesSpoken())
-            .availabilityDate(request.getAvailabilityDate())
-            .cvFilePath(cvPath)
-            .recommendationLetterPath(recLetterPath)
-            .certificatesPaths(certPaths)
-            .currentStage(1)
-            .status("stage_1")
-            .appliedAt(OffsetDateTime.now())
+            .normalizedEmail(normalizedEmail)
+            .ipAddress(ipAddress)
+            .userAgent(userAgent)
+            .outcome(outcome)
+            .reason(reason)
+            .createdAt(OffsetDateTime.now())
             .build();
+        publicApplicationAttemptRepository.save(attempt);
+    }
 
-        candidate = candidateRepository.save(candidate);
-     emailService.sendApplicationReceivedEmail(
-            request.getEmail(),
-            request.getFirstName() + " " + request.getLastName(),
-            listing.getTitle(),
-            listing.getCompany().getName()
-        );
+    private void cleanupStoredFiles(List<String> storedPaths) {
+        if (storedPaths == null || storedPaths.isEmpty()) {
+            return;
+        }
 
-        log.info("New application from {} {} for job: {}",
-            request.getFirstName(), request.getLastName(), listing.getTitle());
+        storedPaths.stream()
+            .filter(path -> path != null && !path.isBlank())
+            .forEach(fileStorageService::deleteFile);
+    }
 
-        return mapToResponse(candidate);
+    private String normalizeEmail(String email) {
+        if (email == null) {
+            return "";
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     //HR view candidates
