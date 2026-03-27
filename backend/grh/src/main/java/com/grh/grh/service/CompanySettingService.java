@@ -22,6 +22,7 @@ public class CompanySettingService {
     private final CompanySettingRepository settingRepository;
     private final CompanyRepository companyRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ActivityLogService activityLogService;
 
     @Transactional(readOnly = true)
     public CompanySettingResponse getSettings(UUID companyId, Authentication authentication) {
@@ -46,6 +47,13 @@ public class CompanySettingService {
         if (request.getTimezone() != null) setting.setTimezone(request.getTimezone());
 
         setting = settingRepository.save(setting);
+        activityLogService.logActivity(
+            companyId,
+            resolveCurrentUserId(authentication),
+            "COMPANY_SETTINGS_UPDATED",
+            "COMPANY_SETTING",
+            setting.getId()
+        );
         log.info("Updated company settings for company: {}", companyId);
         return mapToResponse(setting);
     }
@@ -66,6 +74,14 @@ public class CompanySettingService {
         UUID userCompanyId = keycloakUserService.getCurrentUserCompanyId(authentication);
         if (userCompanyId == null || !userCompanyId.equals(companyId)) {
             throw new SecurityException("Access denied");
+        }
+    }
+
+    private UUID resolveCurrentUserId(Authentication authentication) {
+        try {
+            return keycloakUserService.getCurrentUserId(authentication);
+        } catch (Exception ex) {
+            return null;
         }
     }
 

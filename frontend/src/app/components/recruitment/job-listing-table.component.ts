@@ -273,6 +273,11 @@ export class JobListingTableComponent implements OnInit {
           this.cdr.detectChanges();
         },
       });
+    } else {
+      this.jobs = [];
+      this.filterRows();
+      this.loading = false;
+      this.cdr.detectChanges();
     }
   }
 

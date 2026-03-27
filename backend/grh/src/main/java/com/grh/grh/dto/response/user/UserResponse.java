@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -19,5 +20,6 @@ public class UserResponse {
     private UUID companyId;
     private Boolean isActive;
     private Boolean isSuperAdmin;
+    private List<String> roleNames;
     private String message;
 }

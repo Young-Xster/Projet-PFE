@@ -17,6 +17,7 @@ import jakarta.ws.rs.core.Response;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -77,15 +78,15 @@ public class KeycloakAdminService {
         user.setEnabled(true);
         // because the password is sent via email there for email is verified
         user.setEmailVerified(false);
-        user.singleAttribute("companyId", companyId.toString());
 
-        // set company as custom attribute
-        Map<String , List<String>> attributes = new HashMap<>();
-        attributes.put("companyId" , Collections.singletonList(companyId.toString()));
-        user.setAttributes(attributes);
+        if (companyId != null) {
+            user.singleAttribute("companyId", companyId.toString());
 
-
-
+            // set company as custom attribute
+            Map<String, List<String>> attributes = new HashMap<>();
+            attributes.put("companyId", Collections.singletonList(companyId.toString()));
+            user.setAttributes(attributes);
+        }
 
         user.setRequiredActions(Arrays.asList("UPDATE_PASSWORD", "VERIFY_EMAIL"));
 
@@ -151,6 +152,12 @@ public class KeycloakAdminService {
         role.setAttributes(attributes);
 
         getRealm().roles().create(role);
+        
+        // Keycloak API ignores attributes on creation, so we must fetch and update
+        RoleRepresentation createdRole = getRealm().roles().get(roleName).toRepresentation();
+        createdRole.setAttributes(attributes);
+        getRealm().roles().get(roleName).update(createdRole);
+        
         log.info("Created Keycloak role: {} with permissions: {}", roleName, flatPermissions);
     }
 
@@ -160,8 +167,36 @@ public class KeycloakAdminService {
         log.info("Assigned role {} to user {}", roleName, keycloakUserId);
     }
 
+    public List<String> getUserRoleNames(String keycloakUserId) {
+        return getUsersResource().get(keycloakUserId).roles().realmLevel().listAll().stream()
+            .map(RoleRepresentation::getName)
+            .filter(Objects::nonNull)
+            .filter(this::isBusinessRoleName)
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .collect(Collectors.toList());
+    }
+
+    public void replaceUserBusinessRoles(String keycloakUserId, String roleName) {
+        List<RoleRepresentation> existingBusinessRoles = getUsersResource().get(keycloakUserId)
+            .roles()
+            .realmLevel()
+            .listAll()
+            .stream()
+            .filter(role -> role.getName() != null && isBusinessRoleName(role.getName()))
+            .collect(Collectors.toList());
+
+        if (!existingBusinessRoles.isEmpty()) {
+            getUsersResource().get(keycloakUserId).roles().realmLevel().remove(existingBusinessRoles);
+            log.info("Removed {} existing business roles from user {}", existingBusinessRoles.size(), keycloakUserId);
+        }
+
+        assignRoleToUser(keycloakUserId, roleName);
+    }
+
     public List<RoleRepresentation> getAllRoles() {
-        return getRealm().roles().list();
+        return getRealm().roles().list().stream()
+                .map(role -> getRealm().roles().get(role.getName()).toRepresentation())
+                .collect(Collectors.toList());
     }
 
     public void deleteRole(String roleName) {
@@ -169,10 +204,25 @@ public class KeycloakAdminService {
         log.info("Deleted Keycloak role: {}", roleName);
     }
 
+    public void deleteUser(String keycloakUserId) {
+        try {
+            getUsersResource().get(keycloakUserId).remove();
+            log.info("Deleted Keycloak user: {}", keycloakUserId);
+        } catch (Exception e) {
+            log.warn("Failed to delete Keycloak user {}. Error: {}", keycloakUserId, e.getMessage());
+        }
+    }
+
     public void updateUserCompany(String keycloakUserId, UUID companyId) {
         UserRepresentation user = getUsersResource().get(keycloakUserId).toRepresentation();
         Map<String, List<String>> attributes = user.getAttributes() != null ? user.getAttributes() : new HashMap<>();
-        attributes.put("companyId", Collections.singletonList(companyId.toString()));
+        
+        if (companyId != null) {
+            attributes.put("companyId", Collections.singletonList(companyId.toString()));
+        } else {
+            attributes.remove("companyId");
+        }
+        
         user.setAttributes(attributes);
         getUsersResource().get(keycloakUserId).update(user);
         log.info("Updated user {} company to {}", keycloakUserId, companyId);
@@ -196,5 +246,15 @@ public class KeycloakAdminService {
         
         getRealm().roles().get(roleName).update(role);
         log.info("Updated role {} permissions: {}", roleName, flatPermissions);
+    }
+
+    private boolean isBusinessRoleName(String roleName) {
+        if (roleName == null || roleName.isBlank()) {
+            return false;
+        }
+        String lower = roleName.toLowerCase(Locale.ROOT);
+        return !lower.startsWith("default-roles-")
+            && !"offline_access".equals(lower)
+            && !"uma_authorization".equals(lower);
     }
 }

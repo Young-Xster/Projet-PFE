@@ -28,6 +28,7 @@ public class DepartmentService {
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ActivityLogService activityLogService;
 
     @Transactional
     public DepartmentResponse createDepartment(CreateDepartmentRequest request, Authentication authentication) {
@@ -59,6 +60,13 @@ public class DepartmentService {
         }
 
         Department department = departmentRepository.save(builder.build());
+        activityLogService.logActivity(
+            company.getId(),
+            resolveCurrentUserId(authentication),
+            "DEPARTMENT_CREATED",
+            "DEPARTMENT",
+            department.getId()
+        );
         log.info("Created department: {} for company: {}", department.getName(), company.getName());
         return mapToResponse(department);
     }
@@ -90,6 +98,13 @@ public class DepartmentService {
         }
 
         department = departmentRepository.save(department);
+        activityLogService.logActivity(
+            department.getCompany().getId(),
+            resolveCurrentUserId(authentication),
+            "DEPARTMENT_UPDATED",
+            "DEPARTMENT",
+            department.getId()
+        );
         log.info("Updated department: {}", department.getName());
         return mapToResponse(department);
     }
@@ -136,7 +151,16 @@ public class DepartmentService {
             throw new IllegalStateException("Cannot delete department with active employees. Reassign them first.");
         }
 
+        UUID companyId = department.getCompany().getId();
+        UUID deletedDepartmentId = department.getId();
         departmentRepository.delete(department);
+        activityLogService.logActivity(
+            companyId,
+            resolveCurrentUserId(authentication),
+            "DEPARTMENT_DELETED",
+            "DEPARTMENT",
+            deletedDepartmentId
+        );
         log.info("Deleted department: {}", department.getName());
     }
 
@@ -154,6 +178,14 @@ public class DepartmentService {
         UUID userCompanyId = keycloakUserService.getCurrentUserCompanyId(authentication);
         if (userCompanyId == null || !userCompanyId.equals(companyId)) {
             throw new SecurityException("Access denied");
+        }
+    }
+
+    private UUID resolveCurrentUserId(Authentication authentication) {
+        try {
+            return keycloakUserService.getCurrentUserId(authentication);
+        } catch (Exception ex) {
+            return null;
         }
     }
 

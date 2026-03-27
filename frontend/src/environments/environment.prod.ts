@@ -1,8 +1,8 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:8081/api/v1',
+  apiUrl: 'http://localhost:8081/api/v1', // https://siprh.bicadev.com/api/v1
   keycloak: {
-    url: 'http://localhost:8080',
+    url: 'http://localhost:8080', //https://siprh.bicadev.com
     realm: 'work',
     clientId: 'GRH',
   },

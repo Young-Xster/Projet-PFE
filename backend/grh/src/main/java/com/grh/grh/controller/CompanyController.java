@@ -5,8 +5,11 @@ import com.grh.grh.dto.request.company.CreateCompanyRequest;
 import com.grh.grh.dto.response.company.CompanyResponse;
 import com.grh.grh.entity.Company;
 import com.grh.grh.repository.CompanyRepository;
+import com.grh.grh.service.ActivityLogService;
+import com.grh.grh.service.KeycloakUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +22,8 @@ import java.util.stream.Collectors;
 public class CompanyController {
 
     private final CompanyRepository companyRepository;
+    private final KeycloakUserService keycloakUserService;
+    private final ActivityLogService activityLogService;
 
     @GetMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -39,7 +44,7 @@ public class CompanyController {
 
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ApiResponse<CompanyResponse> createCompany(@RequestBody CreateCompanyRequest request) {
+    public ApiResponse<CompanyResponse> createCompany(@RequestBody CreateCompanyRequest request, Authentication authentication) {
         Company company = Company.builder()
             .name(request.getName())
             .code(request.getCode())
@@ -51,6 +56,13 @@ public class CompanyController {
             .build();
 
         company = companyRepository.save(company);
+        activityLogService.logActivity(
+            company.getId(),
+            resolveCurrentUserId(authentication),
+            "COMPANY_CREATED",
+            "COMPANY",
+            company.getId()
+        );
         return ApiResponse.success("Company created", toResponse(company));
     }
 
@@ -58,7 +70,8 @@ public class CompanyController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ApiResponse<CompanyResponse> updateCompany(
             @PathVariable UUID companyId,
-            @RequestBody CreateCompanyRequest request) {
+            @RequestBody CreateCompanyRequest request,
+            Authentication authentication) {
         Company company = companyRepository.findById(companyId)
             .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
@@ -70,19 +83,41 @@ public class CompanyController {
         if (request.getEmail() != null) company.setEmail(request.getEmail());
 
         company = companyRepository.save(company);
+        activityLogService.logActivity(
+            company.getId(),
+            resolveCurrentUserId(authentication),
+            "COMPANY_UPDATED",
+            "COMPANY",
+            company.getId()
+        );
         return ApiResponse.success("Company updated", toResponse(company));
     }
 
     @DeleteMapping("/{companyId}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ApiResponse<Void> deleteCompany(@PathVariable UUID companyId) {
+    public ApiResponse<Void> deleteCompany(@PathVariable UUID companyId, Authentication authentication) {
         Company company = companyRepository.findById(companyId)
             .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
         // Soft delete — just deactivate
         company.setIsActive(false);
         companyRepository.save(company);
+        activityLogService.logActivity(
+            company.getId(),
+            resolveCurrentUserId(authentication),
+            "COMPANY_DEACTIVATED",
+            "COMPANY",
+            company.getId()
+        );
         return ApiResponse.success("Company deactivated", null);
+    }
+
+    private UUID resolveCurrentUserId(Authentication authentication) {
+        try {
+            return keycloakUserService.getCurrentUserId(authentication);
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     private CompanyResponse toResponse(Company company) {
