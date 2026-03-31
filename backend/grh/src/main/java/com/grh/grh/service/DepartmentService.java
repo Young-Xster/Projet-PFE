@@ -213,7 +213,10 @@ public class DepartmentService {
                    .managerName(department.getManager().getFirstName() + " " + department.getManager().getLastName());
         }
 
-        builder.employeeCount(department.getEmployees() != null ? department.getEmployees().size() : 0);
+        builder.employeeCount(department.getEmployees() != null ?
+            (int) department.getEmployees().stream()
+                .filter(e -> !"terminated".equals(e.getStatus()))
+                .count() : 0);
 
         return builder.build();
     }

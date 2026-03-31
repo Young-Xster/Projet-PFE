@@ -29,8 +29,18 @@ public class ActivityLogService {
 
     @Transactional
     public void logActivity(UUID companyId, UUID userId, String action, String entityType, UUID entityId, Map<String, Object> changes, String ipAddress) {
+        if (companyId == null) {
+            log.warn("Skipping activity log {} for {} because companyId is null", action, entityType);
+            return;
+        }
+
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+                .orElse(null);
+
+        if (company == null) {
+            log.warn("Skipping activity log {} for {} because company {} was not found", action, entityType, companyId);
+            return;
+        }
 
         User user = null;
         if (userId != null) {
@@ -61,9 +71,22 @@ public class ActivityLogService {
     // read
 
     @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAll(Authentication auth) {
+        if (!keycloakUserService.isSuperAdmin(auth)) {
+            throw new SecurityException("Access denied");
+        }
+
+        return activityLogRepository.findAll().stream()
+                .sorted(Comparator.comparing(ActivityLog::getCreatedAt).reversed())
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> getByCompany(UUID companyId, Authentication auth) {
         validateCompanyAccess(companyId, auth);
         return activityLogRepository.findByCompanyId(companyId).stream()
+                .sorted(Comparator.comparing(ActivityLog::getCreatedAt).reversed())
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -76,6 +99,7 @@ public class ActivityLogService {
         OffsetDateTime end = endDate.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
         return activityLogRepository.findByCreatedAtBetween(start, end).stream()
                 .filter(al -> al.getCompany().getId().equals(companyId))
+            .sorted(Comparator.comparing(ActivityLog::getCreatedAt).reversed())
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -90,6 +114,7 @@ public class ActivityLogService {
             throw new SecurityException("Access denied");
         }
         return activityLogRepository.findByUserId(userId).stream()
+            .sorted(Comparator.comparing(ActivityLog::getCreatedAt).reversed())
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -100,7 +125,10 @@ public class ActivityLogService {
         if (!logs.isEmpty() && !keycloakUserService.isSuperAdmin(auth)) {
             validateCompanyAccess(logs.get(0).getCompany().getId(), auth);
         }
-        return logs.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return logs.stream()
+                .sorted(Comparator.comparing(ActivityLog::getCreatedAt).reversed())
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     //helper methods

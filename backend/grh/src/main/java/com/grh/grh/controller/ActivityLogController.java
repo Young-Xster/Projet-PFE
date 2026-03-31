@@ -19,6 +19,12 @@ import java.util.UUID;
 public class ActivityLogController {
     private final ActivityLogService activityLogService;
 
+        @GetMapping
+        @PreAuthorize("hasRole('SUPER_ADMIN')")
+        public ApiResponse<List<Map<String, Object>>> getAll(Authentication authentication) {
+                return ApiResponse.success("Activity logs retrieved", activityLogService.getAll(authentication));
+        }
+
 
     @GetMapping("/company/{companyId}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'activity_logs:read')")

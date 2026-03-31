@@ -75,7 +75,7 @@ import {
           <button
             type="submit"
             [disabled]="loading"
-            class="w-full px-4 py-2 rounded-lg bg-purple-600 text-white font-medium disabled:opacity-60"
+            class="w-full px-4 py-2 rounded-lg bg-purple-600 text-white font-medium disabled:opacity-60 hover:bg-purple-700 hover:-translate-y-[1px] hover:shadow-lg hover:shadow-purple-600/35 transition-all duration-150"
           >
             Create User + Send Setup Email
           </button>
@@ -143,7 +143,7 @@ import {
           <button
             type="submit"
             [disabled]="loading || selectedPermissions.length === 0"
-            class="w-full px-4 py-2 rounded-lg bg-purple-600 text-white font-medium disabled:opacity-60"
+            class="w-full px-4 py-2 rounded-lg bg-purple-600 text-white font-medium disabled:opacity-60 hover:bg-purple-700 hover:-translate-y-[1px] hover:shadow-lg hover:shadow-purple-600/35 transition-all duration-150"
           >
             Create Role
           </button>

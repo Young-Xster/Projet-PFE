@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 import { PublicRecruitmentService } from '../services/public-recruitment.service';
 import { JobListingResponse } from '../models/public-recruitment.model';
 
@@ -88,6 +89,7 @@ export class PublicJobsListComponent implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly recruitmentService: PublicRecruitmentService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -102,16 +104,24 @@ export class PublicJobsListComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
-    this.recruitmentService.getPublicJobListings({ companyId, departmentId }).subscribe({
-      next: (jobs) => {
-        this.jobs = jobs;
-        this.loading = false;
-      },
-      error: (error: { error?: { message?: string } }) => {
-        this.loading = false;
-        this.errorMessage = error.error?.message ?? 'Unable to load jobs for now.';
-      },
-    });
+    this.recruitmentService
+      .getPublicJobListings({ companyId, departmentId })
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (jobs) => {
+          this.jobs = jobs;
+          this.cdr.detectChanges();
+        },
+        error: (error: { error?: { message?: string } }) => {
+          this.errorMessage = error.error?.message ?? 'Unable to load jobs for now.';
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   formatSalary(job: JobListingResponse): string {

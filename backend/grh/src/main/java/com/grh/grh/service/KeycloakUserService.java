@@ -39,7 +39,9 @@ public class KeycloakUserService {
         if (existingUser.isPresent()) {
             User user = existingUser.get();
             user.setLastLogin(OffsetDateTime.now());
-            user.setCompanyId(companyId);
+            if (companyId != null) {
+                user.setCompanyId(companyId);
+            }
             user.setIsSuperAdmin(isSuperAdmin);
             return userRepository.save(user);
         } else {
@@ -108,9 +110,22 @@ public class KeycloakUserService {
         }
         
         String keycloakId = jwt.getSubject();
-        return userRepository.findByKeycloakId(keycloakId)
-                .map(User::getCompanyId)
-                .orElse(null);
+        Optional<User> existingUser = userRepository.findByKeycloakId(keycloakId);
+        if (existingUser.isPresent()) {
+            UUID companyId = existingUser.get().getCompanyId();
+            if (companyId != null) {
+                return companyId;
+            }
+        }
+
+        UUID extractedCompanyId = extractCompanyId(jwt);
+        if (extractedCompanyId != null && existingUser.isPresent()) {
+            User user = existingUser.get();
+            user.setCompanyId(extractedCompanyId);
+            userRepository.save(user);
+        }
+
+        return extractedCompanyId;
     }
 
     public boolean isSuperAdmin(Authentication authentication) {
@@ -138,6 +153,13 @@ public class KeycloakUserService {
                 return UUID.fromString(companyIdStr);
             }
         }
+
+        try {
+            return keycloakAdminService.getUserCompanyId(jwt.getSubject());
+        } catch (Exception ex) {
+            log.warn("Could not extract companyId from Keycloak for user {}: {}", jwt.getSubject(), ex.getMessage());
+        }
+
         return null;
     }
 

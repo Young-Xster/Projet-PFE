@@ -54,11 +54,22 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ApiResponse<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request, Authentication authentication) {
+        boolean isSuperAdminRole = request.getRoleName() != null
+            && "SUPER_ADMIN".equalsIgnoreCase(request.getRoleName().trim());
+
+        if (!isSuperAdminRole && request.getCompanyId() == null) {
+            throw new IllegalArgumentException("Company is required for non-super-admin users");
+        }
+
         String keycloakUserId = keycloakAdminService.createUser(
             request.getUsername(), 
             request.getEmail(), 
             request.getCompanyId()
         );
+
+        if (request.getCompanyId() != null) {
+            keycloakAdminService.updateUserCompany(keycloakUserId, request.getCompanyId());
+        }
         
         if(request.getRoleName() != null && !request.getRoleName().isBlank()){
             keycloakAdminService.assignRoleToUser(keycloakUserId, request.getRoleName());
@@ -70,7 +81,7 @@ public class UserController {
             .email(request.getEmail())
             .companyId(request.getCompanyId())
             .isActive(true)
-            .isSuperAdmin("SUPER_ADMIN".equalsIgnoreCase(request.getRoleName()))
+            .isSuperAdmin(isSuperAdminRole)
             .build();
         
         user = userRepository.save(user);

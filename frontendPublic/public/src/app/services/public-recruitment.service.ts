@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, map, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   ApiResponse,
@@ -16,6 +16,7 @@ import {
 export class PublicRecruitmentService {
   private readonly jobsUrl = `${environment.apiUrl}/job-listings/public`;
   private readonly applyUrl = `${environment.apiUrl}/candidates/public/apply`;
+  private readonly requestTimeoutMs = 15000;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -32,12 +33,14 @@ export class PublicRecruitmentService {
 
     return this.http
       .get<ApiResponse<JobListingResponse[]>>(this.jobsUrl, { params })
+      .pipe(timeout(this.requestTimeoutMs))
       .pipe(map((response) => response.data ?? []));
   }
 
   getPublicJobById(id: string): Observable<JobListingResponse> {
     return this.http
       .get<ApiResponse<JobListingResponse>>(`${this.jobsUrl}/${id}`)
+      .pipe(timeout(this.requestTimeoutMs))
       .pipe(map((response) => response.data));
   }
 
@@ -93,6 +96,7 @@ export class PublicRecruitmentService {
 
     return this.http
       .post<ApiResponse<CandidateResponse>>(this.applyUrl, formData)
+      .pipe(timeout(this.requestTimeoutMs))
       .pipe(map((response) => response.data));
   }
 }

@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { finalize, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { JobListingResponse } from '../models/public-recruitment.model';
 import { PublicRecruitmentService } from '../services/public-recruitment.service';
@@ -194,16 +195,20 @@ declare global {
         </div>
 
         <div class="mt-2 rounded-lg border border-gray-200 bg-white p-4">
-          @if (!turnstileSiteKey) {
+          @if (turnstileEnabled && !turnstileSiteKey) {
             <p class="text-sm text-red-600">
               Turnstile site key is not configured in frontend environment.
             </p>
-          } @else {
+          } @else if (turnstileEnabled) {
             <div
               class="cf-turnstile"
               [attr.data-sitekey]="turnstileSiteKey"
               data-callback="onPublicTurnstileSuccess"
             ></div>
+          } @else {
+            <p class="text-sm text-gray-600">
+              Captcha verification is disabled for this environment.
+            </p>
           }
         </div>
 
@@ -226,6 +231,7 @@ export class PublicApplyComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
   private readonly recruitmentService = inject(PublicRecruitmentService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   listingId = '';
   job: JobListingResponse | null = null;
@@ -233,6 +239,8 @@ export class PublicApplyComponent implements OnInit, OnDestroy {
   globalError = '';
   successMessage = '';
   captchaError = '';
+  private readonly requestTimeoutMs = 15000;
+  readonly turnstileEnabled = environment.turnstileEnabled;
   readonly turnstileSiteKey = environment.turnstileSiteKey;
 
   readonly form = this.fb.group({
@@ -261,14 +269,22 @@ export class PublicApplyComponent implements OnInit, OnDestroy {
     this.form.patchValue({ jobListingId: this.listingId });
 
     if (this.listingId) {
-      this.recruitmentService.getPublicJobById(this.listingId).subscribe({
-        next: (job) => {
-          this.job = job;
-        },
-        error: (error: { error?: { message?: string } }) => {
-          this.globalError = error.error?.message ?? 'Unable to load job details for application.';
-        },
-      });
+      this.recruitmentService
+        .getPublicJobById(this.listingId)
+        .pipe(timeout(this.requestTimeoutMs))
+        .subscribe({
+          next: (job) => {
+            this.job = job;
+            this.cdr.detectChanges();
+          },
+          error: (error: { error?: { message?: string }; name?: string }) => {
+            this.globalError =
+              error?.name === 'TimeoutError'
+                ? 'Request timed out while loading job details.'
+                : (error.error?.message ?? 'Unable to load job details for application.');
+            this.cdr.detectChanges();
+          },
+        });
     }
 
     window.onPublicTurnstileSuccess = (token: string) => {
@@ -276,8 +292,11 @@ export class PublicApplyComponent implements OnInit, OnDestroy {
       this.captchaError = '';
     };
 
-    if (this.turnstileSiteKey) {
+    if (this.turnstileEnabled && this.turnstileSiteKey) {
       this.loadTurnstileScript();
+    } else {
+      this.form.controls.turnstileToken.clearValidators();
+      this.form.controls.turnstileToken.updateValueAndValidity();
     }
   }
 
@@ -305,14 +324,14 @@ export class PublicApplyComponent implements OnInit, OnDestroy {
     this.globalError = '';
     this.successMessage = '';
 
-    if (!this.turnstileSiteKey) {
+    if (this.turnstileEnabled && !this.turnstileSiteKey) {
       this.captchaError = 'Captcha is not configured. Please contact support.';
       return;
     }
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      if (!this.form.value.turnstileToken) {
+      if (this.turnstileEnabled && !this.form.value.turnstileToken) {
         this.captchaError = 'Please complete captcha verification.';
       }
       return;
@@ -327,7 +346,7 @@ export class PublicApplyComponent implements OnInit, OnDestroy {
         firstName: formValue.firstName ?? '',
         lastName: formValue.lastName ?? '',
         email: formValue.email ?? '',
-        turnstileToken: formValue.turnstileToken ?? '',
+        turnstileToken: this.turnstileEnabled ? (formValue.turnstileToken ?? '') : '',
         phone: formValue.phone ?? undefined,
         dateOfBirth: formValue.dateOfBirth ?? undefined,
         address: formValue.address ?? undefined,
@@ -342,9 +361,15 @@ export class PublicApplyComponent implements OnInit, OnDestroy {
         recommendationLetter: formValue.recommendationLetter ?? null,
         certificates: formValue.certificates ?? [],
       })
+      .pipe(
+        timeout(this.requestTimeoutMs),
+        finalize(() => {
+          this.submitting = false;
+          this.cdr.detectChanges();
+        }),
+      )
       .subscribe({
         next: () => {
-          this.submitting = false;
           this.successMessage =
             'Application submitted successfully. Check your email for confirmation.';
           this.form.patchValue({
@@ -353,13 +378,21 @@ export class PublicApplyComponent implements OnInit, OnDestroy {
             recommendationLetter: null,
             certificates: [],
           });
-          window.turnstile?.reset();
+          if (this.turnstileEnabled) {
+            window.turnstile?.reset();
+          }
+          this.cdr.detectChanges();
         },
-        error: (error: { error?: { message?: string } }) => {
-          this.submitting = false;
-          this.globalError = error.error?.message ?? 'Unable to submit your application right now.';
+        error: (error: { error?: { message?: string }; name?: string }) => {
+          this.globalError =
+            error?.name === 'TimeoutError'
+              ? 'Request timed out while submitting your application. Please try again.'
+              : (error.error?.message ?? 'Unable to submit your application right now.');
           this.form.patchValue({ turnstileToken: '' });
-          window.turnstile?.reset();
+          if (this.turnstileEnabled) {
+            window.turnstile?.reset();
+          }
+          this.cdr.detectChanges();
         },
       });
   }

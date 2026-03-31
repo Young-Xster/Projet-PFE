@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:4201,http://localhost:8080}")
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:4201,http://localhost:8080,http://localhost:*}")
     private String allowedOrigins;
 
     @Bean
@@ -60,7 +60,8 @@ public class SecurityConfig {
                     "/api/v1/leave-requests/public/**",
                     "/api/v1/leave-types/public/**",
                     "/api/v1/job-listings/public/**",
-                    "/api/v1/candidates/public/**"
+                    "/api/v1/candidates/public/**",
+                    "/files/**"
                 ).permitAll()
                 
                 // Super admin endpoints
@@ -118,7 +119,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(
+        configuration.setAllowedOriginPatterns(
             Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())

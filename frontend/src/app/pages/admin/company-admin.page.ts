@@ -145,7 +145,7 @@ import {
           <button
             type="submit"
             [disabled]="loading"
-            class="w-full px-4 py-2 rounded-lg bg-purple-600 text-white font-medium disabled:opacity-60"
+            class="w-full px-4 py-2 rounded-lg bg-purple-600 text-white font-medium disabled:opacity-60 hover:bg-purple-700 hover:-translate-y-[1px] hover:shadow-lg hover:shadow-purple-600/35 transition-all duration-150"
           >
             Create
           </button>
@@ -273,9 +273,11 @@ export class CompanyAdminPage implements OnInit {
 
   reloadCompanies(): void {
     this.loading = true;
+    this.errorMessage = '';
     this.adminService.getCompanies().subscribe({
       next: (res) => {
         this.companies = res.data ?? [];
+        this.errorMessage = '';
         this.loading = false;
         this.cdr.detectChanges();
       },

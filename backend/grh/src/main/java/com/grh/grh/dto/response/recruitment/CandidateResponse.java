@@ -55,6 +55,7 @@ public class CandidateResponse {
 
     // AI (stub)
     private BigDecimal aiMatchScore;
+    private String aiMatchRationale;
 
     private OffsetDateTime appliedAt;
     private OffsetDateTime createdAt;

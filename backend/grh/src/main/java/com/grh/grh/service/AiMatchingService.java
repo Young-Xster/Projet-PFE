@@ -30,6 +30,7 @@ public class AiMatchingService {
     private final JobListingRepository jobListingRepository;
     private final FileStorageService fileStorageService;
     private final RestTemplate restTemplate;
+    private final ActivityLogService activityLogService;
 
     @Value("${ai.service.url:http://localhost:8082/api/v1}")
     private String aiServiceUrl;
@@ -79,9 +80,19 @@ public class AiMatchingService {
             aiResponse.getResults().forEach(result ->
                     candidateRepository.findById(result.getCandidateId()).ifPresent(c -> {
                         c.setAiMatchScore(result.getScore());
+                        c.setAiMatchRationale(result.getReasoning());
                         candidateRepository.save(c);
                     })
             );
+
+            activityLogService.logActivity(
+                    listing.getCompany().getId(),
+                    null,
+                    "CANDIDATES_AI_MATCHED",
+                    "JOB_LISTING",
+                    listing.getId()
+            );
+
             return aiResponse.getResults();
         }
 

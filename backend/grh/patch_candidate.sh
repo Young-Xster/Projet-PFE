@@ -1,0 +1,2 @@
+sed -i '/private BigDecimal aiMatchScore;/a \    \n    @Column(name = "ai_match_reasoning", columnDefinition = "TEXT")\n    private String aiMatchRationale;' /home/young-xster/PFE/Projet-PFE/backend/grh/src/main/java/com/grh/grh/entity/Candidate.java
+sed -i '/private BigDecimal aiMatchScore;/a \    private String aiMatchRationale;' /home/young-xster/PFE/Projet-PFE/backend/grh/src/main/java/com/grh/grh/dto/response/recruitment/CandidateResponse.java

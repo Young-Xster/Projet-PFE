@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivityLogEntry, AdminService, Company } from '../../services/admin/admin.service';
 
@@ -19,6 +19,7 @@ import { ActivityLogEntry, AdminService, Company } from '../../services/admin/ad
             name="selectedCompanyId"
             class="mt-1 w-full min-w-[220px] px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
           >
+            <option [value]="ALL_COMPANIES_VALUE">All companies</option>
             <option value="" disabled>Select company</option>
             @for (company of companies; track company.id) {
               <option [value]="company.id">{{ company.name }}</option>
@@ -50,7 +51,7 @@ import { ActivityLogEntry, AdminService, Company } from '../../services/admin/ad
           type="button"
           (click)="loadLogs()"
           [disabled]="!selectedCompanyId || loading"
-          class="px-4 py-2 rounded-lg bg-purple-600 text-white font-medium disabled:opacity-60"
+          class="px-4 py-2 rounded-lg bg-purple-600 text-white font-medium disabled:opacity-60 hover:bg-purple-700 hover:-translate-y-[1px] hover:shadow-lg hover:shadow-purple-600/35 transition-all duration-150"
         >
           Load logs
         </button>
@@ -100,6 +101,7 @@ import { ActivityLogEntry, AdminService, Company } from '../../services/admin/ad
   `,
 })
 export class ActivityLogAdminPage implements OnInit {
+  readonly ALL_COMPANIES_VALUE = '__all__';
   companies: Company[] = [];
   selectedCompanyId = '';
   startDate = '';
@@ -109,19 +111,24 @@ export class ActivityLogAdminPage implements OnInit {
   loading = false;
   errorMessage = '';
 
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit(): void {
     this.adminService.getCompanies().subscribe({
       next: (res) => {
         this.companies = res.data ?? [];
-        this.selectedCompanyId = this.companies[0]?.id ?? '';
+        this.selectedCompanyId = this.ALL_COMPANIES_VALUE;
         if (this.selectedCompanyId) {
           this.loadLogs();
         }
+        this.cdr.detectChanges();
       },
       error: (err: unknown) => {
         this.errorMessage = this.extractError(err, 'Failed to load companies');
+        this.cdr.detectChanges();
       },
     });
   }
@@ -143,10 +150,12 @@ export class ActivityLogAdminPage implements OnInit {
         next: (res) => {
           this.logs = res.data ?? [];
           this.loading = false;
+          this.cdr.detectChanges();
         },
         error: (err: unknown) => {
           this.errorMessage = this.extractError(err, 'Failed to load activity logs');
           this.loading = false;
+          this.cdr.detectChanges();
         },
       });
   }

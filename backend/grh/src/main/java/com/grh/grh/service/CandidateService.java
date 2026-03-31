@@ -489,6 +489,7 @@ public class CandidateService {
             .hrNotes(candidate.getHrNotes())
             .hiredEmployeeId(candidate.getHiredEmployeeId())
             .aiMatchScore(candidate.getAiMatchScore())
+            .aiMatchRationale(candidate.getAiMatchRationale())
             .appliedAt(candidate.getAppliedAt())
             .createdAt(candidate.getCreatedAt())
             .updatedAt(candidate.getUpdatedAt())

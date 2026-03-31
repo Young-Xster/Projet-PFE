@@ -6,6 +6,7 @@ import { RecruitmentService } from '../../services/recruitment/recruitment.servi
 import { CandidateResponse, JobListingResponse } from '../../models/recruitment.model';
 import { EmployeeSkeletonLoader } from '../../loaders/employeeSkeletonLoader';
 import { finalize } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-candidate-tracker',
@@ -134,7 +135,7 @@ import { finalize } from 'rxjs/operators';
                           <div class="text-[11px] text-blue-600 mt-0.5">
                             @if (candidate.cvFileUrl) {
                               <a
-                                [href]="candidate.cvFileUrl"
+                                [href]="getFileUrl(candidate.cvFileUrl)"
                                 target="_blank"
                                 class="hover:underline flex items-center gap-1"
                               >
@@ -175,8 +176,9 @@ import { finalize } from 'rxjs/operators';
                           <span
                             class="text-sm font-semibold"
                             [ngClass]="getScoreTextColor(candidate.aiMatchScore)"
-                            >{{ candidate.aiMatchScore | number: '1.0-0' }}%</span
                           >
+                            {{ candidate.aiMatchScore | number: '1.0-0' }}%
+                          </span>
                         </div>
                       } @else {
                         <span class="text-sm text-gray-400 italic">Not evaluated</span>
@@ -199,6 +201,12 @@ import { finalize } from 'rxjs/operators';
                     </td>
                     <td class="px-5 py-4 whitespace-nowrap text-sm">
                       <div class="flex gap-2">
+                        <button
+                          (click)="openInspectModal(candidate)"
+                          class="px-3 py-1.5 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md font-medium transition-colors"
+                        >
+                          Inspect
+                        </button>
                         @if (candidate.status !== 'rejected' && candidate.status !== 'accepted') {
                           <button
                             (click)="advanceCandidate(candidate.id)"
@@ -219,8 +227,8 @@ import { finalize } from 'rxjs/operators';
                             Hire
                           </button>
                         } @else if (candidate.status === 'accepted') {
-                          <span class="text-green-600 font-semibold flex items-center gap-1"
-                            ><svg
+                          <span class="text-green-600 font-semibold flex items-center gap-1">
+                            <svg
                               class="w-4 h-4"
                               fill="none"
                               stroke="currentColor"
@@ -233,8 +241,8 @@ import { finalize } from 'rxjs/operators';
                                 d="M5 13l4 4L19 7"
                               ></path>
                             </svg>
-                            Hired</span
-                          >
+                            Hired
+                          </span>
                         }
                       </div>
                     </td>
@@ -254,6 +262,222 @@ import { finalize } from 'rxjs/operators';
           </div>
         }
       </div>
+
+      <!-- Inspect Modal -->
+      @if (selectedCandidate) {
+        <div
+          class="fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-gray-200 dark:border-gray-700 animate-fade-in-up"
+          >
+            <div
+              class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center"
+            >
+              <h3 class="text-lg font-bold text-gray-900 dark:text-white">Candidate Details</h3>
+              <button
+                (click)="closeInspectModal()"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+
+            <div class="p-6">
+              <div class="flex items-center gap-4 mb-6">
+                <div
+                  class="w-14 h-14 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xl"
+                >
+                  {{ selectedCandidate.firstName[0] }}{{ selectedCandidate.lastName[0] }}
+                </div>
+                <div>
+                  <h4 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    {{ selectedCandidate.firstName }} {{ selectedCandidate.lastName }}
+                  </h4>
+                  <p class="text-sm text-gray-500">{{ selectedCandidate.email }}</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 text-sm mb-6">
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg">
+                  <span
+                    class="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide"
+                    >Status</span
+                  >
+                  <span class="font-medium text-gray-900 dark:text-gray-100 capitalize">{{
+                    selectedCandidate.status.replace('_', ' ')
+                  }}</span>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg">
+                  <span
+                    class="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide"
+                    >AI Match Score</span
+                  >
+                  <span class="font-medium text-gray-900 dark:text-gray-100">
+                    {{
+                      selectedCandidate.aiMatchScore
+                        ? (selectedCandidate.aiMatchScore | number: '1.0-0') + '%'
+                        : 'Not Evaluated'
+                    }}
+                  </span>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg">
+                  <span
+                    class="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide"
+                    >Education Level</span
+                  >
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{
+                    selectedCandidate.educationLevel || 'N/A'
+                  }}</span>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg">
+                  <span
+                    class="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide"
+                    >Experience</span
+                  >
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{
+                    selectedCandidate.experienceYears !== undefined
+                      ? selectedCandidate.experienceYears + ' Years'
+                      : 'N/A'
+                  }}</span>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <span class="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide"
+                  >Skills</span
+                >
+                <div class="flex flex-wrap gap-2">
+                  @for (skill of selectedCandidate.skills?.split(',') || []; track skill) {
+                    @if (skill.trim()) {
+                      <span
+                        class="px-2.5 py-1 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-md text-xs font-medium border border-purple-100 dark:border-purple-800"
+                      >
+                        {{ skill.trim() }}
+                      </span>
+                    }
+                  }
+                  @if (!selectedCandidate.skills) {
+                    <span class="text-sm text-gray-500">None listed</span>
+                  }
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <span class="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide"
+                  >Languages Spoken</span
+                >
+                <div class="flex flex-wrap gap-2">
+                  @for (lang of selectedCandidate.languagesSpoken?.split(',') || []; track lang) {
+                    @if (lang.trim()) {
+                      <span
+                        class="px-2.5 py-1 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-md text-xs font-medium border border-blue-100 dark:border-blue-800"
+                      >
+                        {{ lang.trim() }}
+                      </span>
+                    }
+                  }
+                  @if (!selectedCandidate.languagesSpoken) {
+                    <span class="text-sm text-gray-500">None listed</span>
+                  }
+                </div>
+              </div>
+
+              @if (selectedCandidate.aiMatchRationale) {
+                <div
+                  class="mb-4 bg-purple-50/50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-800/30"
+                >
+                  <span
+                    class="block text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 uppercase tracking-wide flex items-center gap-1.5"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                    AI Reasoning
+                  </span>
+                  <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {{ selectedCandidate.aiMatchRationale }}
+                  </p>
+                </div>
+              }
+
+              <div class="mb-4">
+                <span class="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide"
+                  >Attachments</span
+                >
+                <div class="flex flex-col gap-2">
+                  @if (selectedCandidate.recommendationLetterUrl) {
+                    <a
+                      [href]="selectedCandidate.recommendationLetterUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                        />
+                      </svg>
+                      Recommendation Letter
+                    </a>
+                  }
+                  @for (cert of selectedCandidate.certificateUrls; track cert; let i = $index) {
+                    <a
+                      [href]="cert"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      Certificate {{ i + 1 }}
+                    </a>
+                  }
+                  @if (
+                    !selectedCandidate.recommendationLetterUrl &&
+                    (!selectedCandidate.certificateUrls ||
+                      selectedCandidate.certificateUrls.length === 0)
+                  ) {
+                    <span class="text-sm text-gray-500">No attachments provided</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex flex-wrap justify-end gap-3 rounded-b-2xl"
+            >
+              <button
+                (click)="closeInspectModal()"
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
 })
@@ -261,6 +485,7 @@ export class CandidateTrackerComponent implements OnInit {
   jobId: string | null = null;
   job: JobListingResponse | null = null;
   candidates: CandidateResponse[] = [];
+  selectedCandidate: CandidateResponse | null = null;
 
   loading = true;
   aiLoading = false;
@@ -279,6 +504,20 @@ export class CandidateTrackerComponent implements OnInit {
         this.loadCandidates();
       }
     });
+  }
+
+  getFileUrl(cvUrl: string): string {
+    return environment.apiUrl.replace('/api/v1', '') + '/files/' + cvUrl;
+  }
+
+  openInspectModal(candidate: CandidateResponse) {
+    this.selectedCandidate = candidate;
+    this.cdr.detectChanges();
+  }
+
+  closeInspectModal() {
+    this.selectedCandidate = null;
+    this.cdr.detectChanges();
   }
 
   loadJobDetails() {
@@ -304,7 +543,8 @@ export class CandidateTrackerComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.candidates = res.data || [];
+          // Filter out hired (accepted) candidates entirely from the list
+          this.candidates = (res.data || []).filter((c) => c.status !== 'accepted');
           this.sortCandidates();
         },
       });
@@ -334,9 +574,9 @@ export class CandidateTrackerComponent implements OnInit {
         }),
       )
       .subscribe({
-        next: (res) => {
-          this.candidates = res.data || this.candidates;
-          this.sortCandidates();
+        next: () => {
+          // Re-load the list with updated candidate scores instead of overwriting with small match payloads
+          this.loadCandidates();
           alert('AI Scoring complete!');
         },
         error: (err) => {
@@ -348,14 +588,24 @@ export class CandidateTrackerComponent implements OnInit {
 
   advanceCandidate(candidateId: string) {
     this.recruitmentService.advanceCandidate(candidateId).subscribe({
-      next: () => this.loadCandidates(),
+      next: () => {
+        this.loadCandidates();
+        if (this.selectedCandidate?.id === candidateId) {
+          this.closeInspectModal();
+        }
+      },
     });
   }
 
   rejectCandidate(candidateId: string) {
     if (confirm('Are you sure you want to reject this candidate?')) {
       this.recruitmentService.rejectCandidate(candidateId).subscribe({
-        next: () => this.loadCandidates(),
+        next: () => {
+          this.loadCandidates();
+          if (this.selectedCandidate?.id === candidateId) {
+            this.closeInspectModal();
+          }
+        },
       });
     }
   }
@@ -370,7 +620,12 @@ export class CandidateTrackerComponent implements OnInit {
         this.recruitmentService
           .hireCandidate(candidate.id, this.job.departmentId, this.job.positionId)
           .subscribe({
-            next: () => this.loadCandidates(),
+            next: () => {
+              this.loadCandidates();
+              if (this.selectedCandidate?.id === candidate.id) {
+                this.closeInspectModal();
+              }
+            },
             error: (err) => {
               console.error('Hire error', err);
               alert('Failed to hire candidate.');

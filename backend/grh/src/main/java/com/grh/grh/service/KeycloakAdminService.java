@@ -228,6 +228,25 @@ public class KeycloakAdminService {
         log.info("Updated user {} company to {}", keycloakUserId, companyId);
     }
 
+    public UUID getUserCompanyId(String keycloakUserId) {
+        try {
+            UserRepresentation user = getUsersResource().get(keycloakUserId).toRepresentation();
+            if (user == null || user.getAttributes() == null) {
+                return null;
+            }
+
+            List<String> values = user.getAttributes().get("companyId");
+            if (values == null || values.isEmpty() || values.get(0) == null || values.get(0).isBlank()) {
+                return null;
+            }
+
+            return UUID.fromString(values.get(0));
+        } catch (Exception ex) {
+            log.warn("Could not resolve companyId for Keycloak user {}: {}", keycloakUserId, ex.getMessage());
+            return null;
+        }
+    }
+
     public RoleRepresentation getRoleWithPermissions(String roleName) {
         return getRealm().roles().get(roleName).toRepresentation();
     }

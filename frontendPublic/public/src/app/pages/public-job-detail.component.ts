@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 import { JobListingResponse } from '../models/public-recruitment.model';
 import { PublicRecruitmentService } from '../services/public-recruitment.service';
 
@@ -75,6 +76,7 @@ export class PublicJobDetailComponent implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly recruitmentService: PublicRecruitmentService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -85,16 +87,24 @@ export class PublicJobDetailComponent implements OnInit {
     }
 
     this.loading = true;
-    this.recruitmentService.getPublicJobById(listingId).subscribe({
-      next: (job) => {
-        this.job = job;
-        this.loading = false;
-      },
-      error: (error: { error?: { message?: string } }) => {
-        this.errorMessage = error.error?.message ?? 'Unable to load this job posting.';
-        this.loading = false;
-      },
-    });
+    this.recruitmentService
+      .getPublicJobById(listingId)
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (job) => {
+          this.job = job;
+          this.cdr.detectChanges();
+        },
+        error: (error: { error?: { message?: string } }) => {
+          this.errorMessage = error.error?.message ?? 'Unable to load this job posting.';
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   formatSalary(job: JobListingResponse): string {

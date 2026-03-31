@@ -105,6 +105,9 @@ public class Candidate {
     // ─── AI (stub for later) ───────────────────────────────────────────────
     @Column(name = "ai_match_score")
     private BigDecimal aiMatchScore;
+    
+    @Column(name = "ai_match_reasoning", columnDefinition = "TEXT")
+    private String aiMatchRationale;
 
     // ─── Timestamps ────────────────────────────────────────────────────────
     @Column(name = "applied_at")
