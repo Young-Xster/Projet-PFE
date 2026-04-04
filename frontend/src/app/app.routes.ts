@@ -19,6 +19,7 @@ import { CreateJobPage } from './pages/recruitment/jobs/create-job.page';
 import { CompanyAdminPage } from './pages/admin/company-admin.page';
 import { UserRolesAdminPage } from './pages/admin/user-roles-admin.page';
 import { ActivityLogAdminPage } from './pages/admin/activity-log-admin.page';
+import { ScheduleDashboardPage } from './pages/scheduling/schedule-dashboard.page';
 
 export const routes: Routes = [
   {
@@ -90,6 +91,11 @@ export const routes: Routes = [
         data: { pageTitle: 'Daily Attendance', breadcrumb: 'Attendance' },
       },
       {
+        path: 'schedules',
+        component: ScheduleDashboardPage,
+        data: { pageTitle: 'Scheduling & Shifts', breadcrumb: 'Schedules' },
+      },
+      {
         path: 'payroll',
         component: PlaceholderPageComponent,
         data: {
@@ -126,7 +132,8 @@ export const routes: Routes = [
       },
       {
         path: 'leaves',
-        component: PlaceholderPageComponent,
+        loadComponent: () =>
+          import('./components/leave-management.component').then((m) => m.LeaveManagementComponent),
         data: {
           pageTitle: 'Leaves',
           breadcrumb: 'Leaves',

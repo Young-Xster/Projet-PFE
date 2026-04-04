@@ -67,10 +67,16 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     @Query("SELECT COUNT(e) FROM Employee e WHERE e.company.id = :companyId AND e.status != 'terminated'")
     long countActiveEmployees(@Param("companyId") UUID companyId);
 
-    @Query("SELECT e FROM Employee e WHERE e.nationalId = :nationalId AND e.email = :email AND e.company.id = :companyId AND e.status != 'terminated'")
+       @Query("SELECT e FROM Employee e WHERE TRIM(e.nationalId) = TRIM(:nationalId) AND LOWER(TRIM(e.email)) = LOWER(TRIM(:email)) AND e.company.id = :companyId AND e.status != 'terminated'")
     Optional<Employee> findByNationalIdAndEmailAndCompanyId(
     @Param("nationalId") String nationalId,
     @Param("email") String email,
     @Param("companyId") UUID companyId
+);
+
+       @Query("SELECT e FROM Employee e WHERE TRIM(e.nationalId) = TRIM(:nationalId) AND LOWER(TRIM(e.email)) = LOWER(TRIM(:email)) AND e.status != 'terminated'")
+    Optional<Employee> findByNationalIdAndEmail(
+    @Param("nationalId") String nationalId,
+    @Param("email") String email
 );
 }

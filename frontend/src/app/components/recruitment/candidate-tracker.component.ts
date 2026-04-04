@@ -355,7 +355,7 @@ import { environment } from '../../../environments/environment';
                   >Skills</span
                 >
                 <div class="flex flex-wrap gap-2">
-                  @for (skill of selectedCandidate.skills?.split(',') || []; track skill) {
+                  @for (skill of (selectedCandidate.skills || '').split(','); track skill) {
                     @if (skill.trim()) {
                       <span
                         class="px-2.5 py-1 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-md text-xs font-medium border border-purple-100 dark:border-purple-800"
@@ -375,7 +375,7 @@ import { environment } from '../../../environments/environment';
                   >Languages Spoken</span
                 >
                 <div class="flex flex-wrap gap-2">
-                  @for (lang of selectedCandidate.languagesSpoken?.split(',') || []; track lang) {
+                  @for (lang of (selectedCandidate.languagesSpoken || '').split(','); track lang) {
                     @if (lang.trim()) {
                       <span
                         class="px-2.5 py-1 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-md text-xs font-medium border border-blue-100 dark:border-blue-800"

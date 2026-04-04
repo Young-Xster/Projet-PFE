@@ -27,6 +27,22 @@ public class EmployeeService {
     private final LeaveTypeRepository leaveTypeRepository;
     private final LeaveBalanceRepository leaveBalanceRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ActivityLogService activityLogService;
+
+    public java.util.Map<String, String> verifyPublicEmployee(String email, String nationalId) {
+        String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
+        String normalizedNationalId = nationalId == null ? "" : nationalId.trim();
+
+        Employee employee = employeeRepository.findByNationalIdAndEmail(normalizedNationalId, normalizedEmail)
+            .orElseThrow(() -> new IllegalArgumentException("No active employee found with this National ID and Email"));
+        
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("employeeId", employee.getEmployeeId().toString());
+        response.put("companyId", employee.getCompany().getId().toString());
+        response.put("firstName", employee.getFirstName());
+        response.put("lastName", employee.getLastName());
+        return response;
+    }
 
     @Transactional
     public EmployeeResponse createEmployee(CreateEmployeeRequest request , Authentication authentication){
@@ -83,6 +99,21 @@ public class EmployeeService {
         // Initialize leave balances based on company's leave types
         initializeLeaveBalances(employee, company);
         
+        UUID currentUserId = null;
+        try {
+            currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        } catch (Exception ex) {
+            // Ignore if current user ID can't be resolved
+        }
+
+        activityLogService.logActivity(
+            company.getId(),
+            currentUserId,
+            "EMPLOYEE_CREATED",
+            "EMPLOYEE",
+            employee.getEmployeeId()
+        );
+
         log.info("Created employee: {} {} (ID: {})", employee.getFirstName(), employee.getLastName(), employee.getEmployeeId());
         
         return mapToResponse(employee);

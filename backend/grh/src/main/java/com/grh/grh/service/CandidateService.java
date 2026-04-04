@@ -37,6 +37,7 @@ public class CandidateService {
     private final LeaveBalanceRepository leaveBalanceRepository;
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
+    private final ActivityLogService activityLogService;
     private final KeycloakUserService keycloakUserService;
     private final PublicApplicationAttemptRepository publicApplicationAttemptRepository;
     private final TurnstileService turnstileService;
@@ -404,6 +405,29 @@ public class CandidateService {
         candidate.setStatus("hired");
         candidate.setHiredEmployeeId(employee.getEmployeeId());
         candidate = candidateRepository.save(candidate);
+
+        UUID currentUserId = null;
+        try {
+            currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        } catch (Exception ex) {
+            // Ignore if current user ID can't be resolved
+        }
+
+        activityLogService.logActivity(
+            company.getId(),
+            currentUserId,
+            "EMPLOYEE_CREATED",
+            "EMPLOYEE",
+            employee.getEmployeeId()
+        );
+
+        activityLogService.logActivity(
+            company.getId(),
+            currentUserId,
+            "CANDIDATE_HIRED",
+            "CANDIDATE",
+            candidate.getId()
+        );
 
         // Initialize leave balances for the new employee
         initializeLeaveBalances(employee, company);

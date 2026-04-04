@@ -4,7 +4,9 @@ import com.grh.grh.dto.common.ApiResponse;
 import com.grh.grh.dto.request.company.CreateCompanyRequest;
 import com.grh.grh.dto.response.company.CompanyResponse;
 import com.grh.grh.entity.Company;
+import com.grh.grh.entity.LeaveType;
 import com.grh.grh.repository.CompanyRepository;
+import com.grh.grh.repository.LeaveTypeRepository;
 import com.grh.grh.service.ActivityLogService;
 import com.grh.grh.service.KeycloakUserService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 public class CompanyController {
 
     private final CompanyRepository companyRepository;
+    private final LeaveTypeRepository leaveTypeRepository;
     private final KeycloakUserService keycloakUserService;
     private final ActivityLogService activityLogService;
 
@@ -56,6 +59,7 @@ public class CompanyController {
             .build();
 
         company = companyRepository.save(company);
+        seedDefaultLeaveTypes(company);
         activityLogService.logActivity(
             company.getId(),
             resolveCurrentUserId(authentication),
@@ -133,5 +137,52 @@ public class CompanyController {
             .createdAt(company.getCreatedAt())
             .updatedAt(company.getUpdatedAt())
             .build();
+    }
+
+    private void seedDefaultLeaveTypes(Company company) {
+        if (!leaveTypeRepository.findByCompanyId(company.getId()).isEmpty()) {
+            return;
+        }
+
+        String codePrefix = company.getCode() != null && !company.getCode().isBlank()
+            ? company.getCode().trim().toUpperCase()
+            : company.getId().toString().substring(0, 8).toUpperCase();
+
+        LeaveType paidAnnual = LeaveType.builder()
+            .company(company)
+            .name("Paid Annual Leave")
+            .code(codePrefix + "_PAID")
+            .isPaid(true)
+            .requiresApproval(true)
+            .maxDaysPerYear(22)
+            .description("Standard paid annual leave")
+            .colorHex("#22c55e")
+            .build();
+
+        LeaveType sickLeave = LeaveType.builder()
+            .company(company)
+            .name("Sick Leave")
+            .code(codePrefix + "_SICK")
+            .isPaid(true)
+            .requiresApproval(true)
+            .maxDaysPerYear(10)
+            .description("Leave used for medical reasons")
+            .colorHex("#f59e0b")
+            .build();
+
+        LeaveType unpaidLeave = LeaveType.builder()
+            .company(company)
+            .name("Unpaid Leave")
+            .code(codePrefix + "_UNPAID")
+            .isPaid(false)
+            .requiresApproval(true)
+            .maxDaysPerYear(30)
+            .description("Approved leave without salary")
+            .colorHex("#64748b")
+            .build();
+
+        leaveTypeRepository.save(paidAnnual);
+        leaveTypeRepository.save(sickLeave);
+        leaveTypeRepository.save(unpaidLeave);
     }
 }

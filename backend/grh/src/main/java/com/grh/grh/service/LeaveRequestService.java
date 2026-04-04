@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.temporal.ChronoUnit;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -31,6 +32,7 @@ public class LeaveRequestService {
     private final UserRepository userRepository;
     private final KeycloakUserService keycloakUserService;
     private final EmailService emailService;
+    private final ActivityLogService activityLogService;
 
     // ─── PUBLIC FLOW ──────────────────────────────────────────────────────────
 
@@ -56,6 +58,12 @@ public class LeaveRequestService {
         // Validate dates
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new IllegalArgumentException("End date cannot be before start date");
+        }
+
+        long calculatedDays = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) + 1;
+        BigDecimal calculatedTotal = BigDecimal.valueOf(calculatedDays);
+        if (request.getTotalDays() == null || request.getTotalDays().compareTo(calculatedTotal) != 0) {
+            throw new IllegalArgumentException("Total days must match the selected date range");
         }
 
         // Check overlapping requests
@@ -101,15 +109,27 @@ public class LeaveRequestService {
 
         leaveRequest = leaveRequestRepository.save(leaveRequest);
 
-        // Send confirmation email to employee
-        emailService.sendLeaveRequestConfirmation(
-            employee.getEmail(),
-            employee.getFirstName() + " " + employee.getLastName(),
-            leaveType.getName(),
-            request.getStartDate().toString(),
-            request.getEndDate().toString(),
-            request.getTotalDays().toString()
+        activityLogService.logActivity(
+            company.getId(),
+            null,
+            "LEAVE_REQUEST_SUBMITTED",
+            "LEAVE_REQUEST",
+            leaveRequest.getId()
         );
+
+        // Send confirmation email to employee
+        try {
+            emailService.sendLeaveRequestConfirmation(
+                employee.getEmail(),
+                employee.getFirstName() + " " + employee.getLastName(),
+                leaveType.getName(),
+                request.getStartDate().toString(),
+                request.getEndDate().toString(),
+                request.getTotalDays().toString()
+            );
+        } catch (Exception ex) {
+            log.warn("Failed to send leave request confirmation email for request {}: {}", leaveRequest.getId(), ex.getMessage());
+        }
 
         log.info("Public leave request submitted for employee: {} ({})",
             employee.getFirstName() + " " + employee.getLastName(),
@@ -139,7 +159,8 @@ public class LeaveRequestService {
             throw new IllegalArgumentException("Status must be 'approved' or 'rejected'");
         }
 
-        User reviewer = userRepository.findById(request.getApprovedByUserId())
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        User reviewer = userRepository.findById(currentUserId)
             .orElseThrow(() -> new IllegalArgumentException("Reviewer not found"));
 
         leaveRequest.setStatus(request.getStatus());
@@ -160,18 +181,31 @@ public class LeaveRequestService {
 
         leaveRequest = leaveRequestRepository.save(leaveRequest);
 
-        // Email employee the result
-        emailService.sendLeaveRequestResult(
-            leaveRequest.getEmployee().getEmail(),
-            leaveRequest.getEmployee().getFirstName() + " " + leaveRequest.getEmployee().getLastName(),
-            leaveRequest.getLeaveType().getName(),
-            leaveRequest.getStartDate().toString(),
-            leaveRequest.getEndDate().toString(),
-            request.getStatus(),
-            request.getComments()
+        activityLogService.logActivity(
+            leaveRequest.getCompany().getId(),
+            currentUserId,
+            "approved".equals(request.getStatus()) ? "LEAVE_REQUEST_APPROVED" : "LEAVE_REQUEST_REJECTED",
+            "LEAVE_REQUEST",
+            leaveRequest.getId()
         );
 
+        // Email employee the result
+        try {
+            emailService.sendLeaveRequestResult(
+                leaveRequest.getEmployee().getEmail(),
+                leaveRequest.getEmployee().getFirstName() + " " + leaveRequest.getEmployee().getLastName(),
+                leaveRequest.getLeaveType().getName(),
+                leaveRequest.getStartDate().toString(),
+                leaveRequest.getEndDate().toString(),
+                request.getStatus(),
+                request.getComments()
+            );
+        } catch (Exception ex) {
+            log.warn("Failed to send leave request result email for request {}: {}", leaveRequest.getId(), ex.getMessage());
+        }
+
         log.info("Leave request {} {}", leaveRequestId, request.getStatus());
+        
         return mapToDetailResponse(leaveRequest);
     }
 

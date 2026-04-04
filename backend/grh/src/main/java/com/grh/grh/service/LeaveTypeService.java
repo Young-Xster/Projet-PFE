@@ -104,11 +104,67 @@ public class LeaveTypeService {
         log.info("Deleted leave type: {}", leaveType.getName());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<LeaveTypeResponse> getLeaveTypesByCompanyPublic(UUID companyId) {
-        return leaveTypeRepository.findByCompanyId(companyId).stream()
+        List<LeaveType> leaveTypes = leaveTypeRepository.findByCompanyId(companyId);
+        if (leaveTypes.isEmpty()) {
+            Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+            seedDefaultLeaveTypes(company);
+            leaveTypes = leaveTypeRepository.findByCompanyId(companyId);
+        }
+
+        return leaveTypes.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());
+    }
+
+    @Transactional
+    protected void seedDefaultLeaveTypes(Company company) {
+        if (!leaveTypeRepository.findByCompanyId(company.getId()).isEmpty()) {
+            return;
+        }
+
+        String codePrefix = company.getCode() != null && !company.getCode().isBlank()
+            ? company.getCode().trim().toUpperCase()
+            : company.getId().toString().substring(0, 8).toUpperCase();
+
+        LeaveType paidAnnual = LeaveType.builder()
+            .company(company)
+            .name("Paid Annual Leave")
+            .code(codePrefix + "_PAID")
+            .isPaid(true)
+            .requiresApproval(true)
+            .maxDaysPerYear(22)
+            .description("Standard paid annual leave")
+            .colorHex("#22c55e")
+            .build();
+
+        LeaveType sickLeave = LeaveType.builder()
+            .company(company)
+            .name("Sick Leave")
+            .code(codePrefix + "_SICK")
+            .isPaid(true)
+            .requiresApproval(true)
+            .maxDaysPerYear(10)
+            .description("Leave used for medical reasons")
+            .colorHex("#f59e0b")
+            .build();
+
+        LeaveType unpaidLeave = LeaveType.builder()
+            .company(company)
+            .name("Unpaid Leave")
+            .code(codePrefix + "_UNPAID")
+            .isPaid(false)
+            .requiresApproval(true)
+            .maxDaysPerYear(30)
+            .description("Approved leave without salary")
+            .colorHex("#64748b")
+            .build();
+
+        leaveTypeRepository.save(paidAnnual);
+        leaveTypeRepository.save(sickLeave);
+        leaveTypeRepository.save(unpaidLeave);
     }
 
     private UUID resolveCompanyId(Authentication authentication, UUID requestCompanyId) {

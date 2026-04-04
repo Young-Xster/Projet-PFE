@@ -6,6 +6,9 @@ import { Employee } from '../models/employee.model';
 import { BreadcrumbService } from '../services/breadcrumb/breadcrumb.service';
 import { DocumentService } from '../services/document/document.service';
 import { EmployeeDocument } from '../models/document.model';
+import { SchedulingService } from '../services/scheduling.service';
+import { forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-employee-detail',
@@ -327,6 +330,15 @@ import { EmployeeDocument } from '../models/document.model';
                   employee.status
                 }}</span>
               </div>
+              <div class="flex flex-col gap-1">
+                <span
+                  class="text-xs font-semibold text-gray-400 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wide"
+                  >Work Schedule Template</span
+                >
+                <span class="text-[0.9rem] text-gray-800 dark:text-white font-medium capitalize">{{
+                  assignedSchedule
+                }}</span>
+              </div>
             </div>
           </div>
 
@@ -466,6 +478,7 @@ export class EmployeeDetailComponent implements OnInit {
   loading = true;
   documents: EmployeeDocument[] = [];
   documentsLoading = false;
+  assignedSchedule: string = 'Loading...';
 
   constructor(
     private route: ActivatedRoute,
@@ -474,6 +487,7 @@ export class EmployeeDetailComponent implements OnInit {
     private breadcrumbService: BreadcrumbService,
     private documentService: DocumentService,
     private cdr: ChangeDetectorRef,
+    private schedulingService: SchedulingService,
   ) {}
 
   ngOnInit(): void {
@@ -485,6 +499,11 @@ export class EmployeeDetailComponent implements OnInit {
           this.loading = false;
           this.cdr.detectChanges();
           this.loadDocuments(emp.employeeId);
+          if (emp.company?.id) {
+            this.loadAssignedSchedule(emp.company.id, emp.employeeId);
+          } else {
+            this.assignedSchedule = 'Not Assigned';
+          }
           this.breadcrumbService.setItems([
             { label: 'All Employees', routerLink: '/employees' },
             { label: `${emp.firstName} ${emp.lastName}` },
@@ -496,6 +515,56 @@ export class EmployeeDetailComponent implements OnInit {
         },
       });
     }
+  }
+
+  loadAssignedSchedule(companyId: string, employeeId: string): void {
+    this.schedulingService.getSchedulesByCompany(companyId).subscribe({
+      next: (res) => {
+        const schedules = res.data || [];
+        if (schedules.length === 0) {
+          this.assignedSchedule = 'Not Assigned';
+          this.cdr.detectChanges();
+          return;
+        }
+
+        const requests = schedules.map((sched) =>
+          this.schedulingService.getAssignmentsBySchedule(sched.id).pipe(
+            map((assignRes) => ({
+              scheduleName: sched.scheduleName,
+              assignments: assignRes.data || [],
+            })),
+            catchError(() => of({ scheduleName: sched.scheduleName, assignments: [] })),
+          ),
+        );
+
+        forkJoin(requests).subscribe((results) => {
+          const today = new Date().toISOString().split('T')[0];
+
+          for (const result of results) {
+            const hasEmployee = result.assignments.some((a: any) => {
+              if (a.personId !== employeeId) return false;
+
+              const hasStarted = !a.effectiveFrom || a.effectiveFrom <= today;
+              const hasNotEnded = !a.effectiveTo || a.effectiveTo >= today;
+
+              return hasStarted && hasNotEnded;
+            });
+
+            if (hasEmployee) {
+              this.assignedSchedule = result.scheduleName;
+              this.cdr.detectChanges();
+              return;
+            }
+          }
+          this.assignedSchedule = 'Not Assigned';
+          this.cdr.detectChanges();
+        });
+      },
+      error: () => {
+        this.assignedSchedule = 'Not Assigned';
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   loadDocuments(id: string): void {

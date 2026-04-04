@@ -24,6 +24,18 @@ public class EmployeeController {
     private final EmployeeService employeeService;
     private final KeycloakUserService keycloakUserService;
 
+    @PostMapping("/public/verify")
+    public ApiResponse<java.util.Map<String, String>> verifyEmployeePublic(
+        @RequestBody java.util.Map<String, String> request
+    ) {
+        String email = request.get("email");
+        String nationalId = request.get("nationalId");
+        if (email == null || nationalId == null) {
+            throw new IllegalArgumentException("Email and National ID are required");
+        }
+        return ApiResponse.success("Employee verified", employeeService.verifyPublicEmployee(email, nationalId));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'employees:create')")
     public ApiResponse<EmployeeResponse> createEmployee(

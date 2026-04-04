@@ -15,7 +15,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class ApproveLeaveRequest {
     
-    @NotNull(message = "Approved by user ID is required")
     private UUID approvedByUserId;
     
     @NotBlank(message = "Status is required")
