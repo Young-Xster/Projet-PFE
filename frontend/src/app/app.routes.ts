@@ -20,6 +20,8 @@ import { CompanyAdminPage } from './pages/admin/company-admin.page';
 import { UserRolesAdminPage } from './pages/admin/user-roles-admin.page';
 import { ActivityLogAdminPage } from './pages/admin/activity-log-admin.page';
 import { ScheduleDashboardPage } from './pages/scheduling/schedule-dashboard.page';
+import { NotificationsPage } from './pages/notifications/notifications.page';
+import { SubcontractorsPage } from './pages/subcontractors/subcontractors.page';
 
 export const routes: Routes = [
   {
@@ -141,12 +143,28 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'subcontractors',
+        component: SubcontractorsPage,
+        data: {
+          pageTitle: 'Subcontractors',
+          breadcrumb: 'Subcontractors',
+        },
+      },
+      {
         path: 'holidays',
         component: PlaceholderPageComponent,
         data: {
           pageTitle: 'Holidays',
           breadcrumb: 'Holidays',
           description: 'Holidays content will appear here.',
+        },
+      },
+      {
+        path: 'notifications',
+        component: NotificationsPage,
+        data: {
+          pageTitle: 'Notifications',
+          breadcrumb: 'Notifications',
         },
       },
       {

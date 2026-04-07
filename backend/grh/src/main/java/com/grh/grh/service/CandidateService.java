@@ -350,8 +350,9 @@ public class CandidateService {
 
         validateCompanyAccess(candidate.getCompany().getId(), authentication);
 
-        if (!"accepted".equals(candidate.getStatus())) {
-            throw new IllegalStateException("Only accepted candidates can be hired. Current status: " + candidate.getStatus());
+        String status = candidate.getStatus();
+        if (!"accepted".equals(status) && !"stage_2".equals(status) && !"stage2".equals(status)) {
+            throw new IllegalStateException("Only accepted or stage_2 candidates can be hired. Current status: " + status);
         }
 
         if (candidate.getHiredEmployeeId() != null) {

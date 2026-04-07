@@ -207,13 +207,15 @@ import { environment } from '../../../environments/environment';
                         >
                           Inspect
                         </button>
-                        @if (candidate.status !== 'rejected' && candidate.status !== 'accepted') {
-                          <button
-                            (click)="advanceCandidate(candidate.id)"
-                            class="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-md font-medium transition-colors"
-                          >
-                            Advance
-                          </button>
+                        @if (candidate.status !== 'rejected' && candidate.status !== 'accepted' && candidate.status !== 'hired') {
+                          @if ((candidate.currentStage || 1) < 2) {
+                            <button
+                              (click)="advanceCandidate(candidate.id)"
+                              class="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-md font-medium transition-colors"
+                            >
+                              Advance
+                            </button>
+                          }
                           <button
                             (click)="rejectCandidate(candidate.id)"
                             class="px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md font-medium transition-colors"
@@ -226,7 +228,7 @@ import { environment } from '../../../environments/environment';
                           >
                             Hire
                           </button>
-                        } @else if (candidate.status === 'accepted') {
+                        } @else if (candidate.status === 'accepted' || candidate.status === 'hired') {
                           <span class="text-green-600 font-semibold flex items-center gap-1">
                             <svg
                               class="w-4 h-4"
@@ -617,8 +619,15 @@ export class CandidateTrackerComponent implements OnInit {
       )
     ) {
       if (this.job) {
+        const payload = {
+          jobTitle: this.job.title,
+          employmentType: this.job.employmentType,
+          hireDate: new Date().toISOString().split('T')[0],
+          ...(this.job.departmentId ? { departmentId: this.job.departmentId } : {}),
+        };
+
         this.recruitmentService
-          .hireCandidate(candidate.id, this.job.departmentId, this.job.positionId)
+          .hireCandidate(candidate.id, payload)
           .subscribe({
             next: () => {
               this.loadCandidates();
@@ -628,7 +637,12 @@ export class CandidateTrackerComponent implements OnInit {
             },
             error: (err) => {
               console.error('Hire error', err);
-              alert('Failed to hire candidate.');
+              const backendMessage = err?.error?.message || err?.error?.error || err?.message;
+              alert(
+                backendMessage
+                  ? `Failed to hire candidate: ${backendMessage}`
+                  : 'Failed to hire candidate.',
+              );
             },
           });
       }

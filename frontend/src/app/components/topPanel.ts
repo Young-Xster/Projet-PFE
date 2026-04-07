@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { Router, RouterLink } from '@angular/router';
 import { environment } from '../../environments/environment';
+import { NotificationService } from '../services/notification/notification.service';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -27,7 +29,7 @@ type UserContextResponse = {
 @Component({
   selector: 'app-top-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   template: `
     <div
       class="w-full px-6 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
@@ -57,6 +59,7 @@ type UserContextResponse = {
       <!-- Right side: notification + user -->
       <div class="flex items-center gap-4">
         <button
+          routerLink="/notifications"
           class="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <svg
@@ -72,7 +75,13 @@ type UserContextResponse = {
               d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
             />
           </svg>
-          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+          @if (unreadCount > 0) {
+            <span
+              class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center"
+            >
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
+          }
         </button>
 
         <div class="w-px h-8 bg-gray-200 dark:bg-gray-600"></div>
@@ -115,8 +124,13 @@ export class TopPanelComponent implements OnInit {
   displayName = 'User';
   subLabel = 'HR Manager';
   initials = 'U';
+  unreadCount = 0;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private notificationService: NotificationService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
     if (typeof window === 'undefined') return;
@@ -134,6 +148,23 @@ export class TopPanelComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to fetch user context:', err);
+      },
+    });
+
+    this.loadUnreadCount();
+
+    this.router.events.subscribe(() => {
+      this.loadUnreadCount();
+    });
+  }
+
+  private loadUnreadCount(): void {
+    this.notificationService.getUnreadCount().subscribe({
+      next: (res) => {
+        this.unreadCount = res.data?.count ?? 0;
+      },
+      error: () => {
+        this.unreadCount = 0;
       },
     });
   }

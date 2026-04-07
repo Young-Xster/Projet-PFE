@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { CandidateResponse, CreateJobListingRequest, JobListingResponse } from '../../models/recruitment.model';
@@ -49,11 +49,19 @@ export class RecruitmentService {
     return this.http.post<ApiResponse<CandidateResponse>>(`${this.candidatesUrl}/${candidateId}/reject`, {});
   }
 
-  hireCandidate(candidateId: string, departmentId: string, positionId: string): Observable<ApiResponse<CandidateResponse>> {
-    let params = new HttpParams();
-    if(departmentId) params = params.set('departmentId', departmentId);
-    if(positionId) params = params.set('positionId', positionId);
-    return this.http.post<ApiResponse<CandidateResponse>>(`${this.candidatesUrl}/${candidateId}/hire`, {}, { params });
+  hireCandidate(
+    candidateId: string,
+    payload: {
+      jobTitle: string;
+      employmentType: string;
+      hireDate: string;
+      departmentId?: string;
+    },
+  ): Observable<ApiResponse<CandidateResponse>> {
+    return this.http.post<ApiResponse<CandidateResponse>>(
+      `${this.candidatesUrl}/${candidateId}/hire`,
+      payload,
+    );
   }
 
   updateCandidateNotes(candidateId: string, notes: string): Observable<ApiResponse<CandidateResponse>> {
