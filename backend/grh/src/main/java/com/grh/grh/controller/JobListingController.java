@@ -38,7 +38,7 @@ public class JobListingController {
 
     //HR endpoints
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:create')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment_requests:create')")
     public ApiResponse<JobListingResponse> createListing(
         @Valid @RequestBody CreateJobListingRequest request,
         Authentication authentication
@@ -48,7 +48,7 @@ public class JobListingController {
     }
 
     @PutMapping("/{listingId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment_requests:update')")
     public ApiResponse<JobListingResponse> updateListing(
         @PathVariable UUID listingId,
         @Valid @RequestBody UpdateJobListingRequest request,
@@ -59,7 +59,7 @@ public class JobListingController {
     }
 
     @PostMapping("/{listingId}/close")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment_requests:update')")
     public ApiResponse<JobListingResponse> closeListing(
         @PathVariable UUID listingId,
         Authentication authentication
@@ -69,7 +69,7 @@ public class JobListingController {
     }
 
     @GetMapping("/my-company")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment_requests:read')")
     public ApiResponse<List<JobListingResponse>> getMyCompanyListings(
         Authentication authentication
     ) {
@@ -78,7 +78,7 @@ public class JobListingController {
     }
 
     @GetMapping("/company/{companyId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment_requests:read')")
     public ApiResponse<List<JobListingResponse>> getListingsByCompany(
         @PathVariable UUID companyId,
         Authentication authentication
@@ -88,7 +88,7 @@ public class JobListingController {
     }
 
     @GetMapping("/{listingId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment_requests:read')")
     public ApiResponse<JobListingResponse> getListingById(
         @PathVariable UUID listingId,
         Authentication authentication
@@ -98,7 +98,7 @@ public class JobListingController {
     }
 
     @DeleteMapping("/{listingId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:delete')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment_requests:delete')")
     public ApiResponse<Void> deleteListing(
         @PathVariable UUID listingId,
         Authentication authentication

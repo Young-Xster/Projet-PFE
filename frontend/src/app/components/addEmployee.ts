@@ -591,9 +591,10 @@ export class AddEmployeeComponent implements OnInit {
             },
           });
         } else {
-          if (res?.data?.companyId) {
-            this.employee.companyId = res.data.companyId;
-            this.fetchOptions(res.data.companyId);
+          let cid = res?.data?.companyContext?.companyId || res?.data?.companyId;
+          if (cid) {
+            this.employee.companyId = cid;
+            this.fetchOptions(cid);
           }
         }
       },

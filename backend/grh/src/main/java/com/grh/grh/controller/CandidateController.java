@@ -55,7 +55,7 @@ public class CandidateController {
 
     //HR view candidates
     @GetMapping("/job-listing/{jobListingId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:read')")
     public ApiResponse<List<CandidateResponse>> getCandidatesByJobListing(
         @PathVariable UUID jobListingId,
         Authentication authentication
@@ -65,7 +65,7 @@ public class CandidateController {
     }
 
     @GetMapping("/job-listing/{jobListingId}/stage/{stage}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:read')")
     public ApiResponse<List<CandidateResponse>> getCandidatesByStage(
         @PathVariable UUID jobListingId,
         @PathVariable Integer stage,
@@ -76,7 +76,7 @@ public class CandidateController {
     }
 
     @GetMapping("/job-listing/{jobListingId}/status/{status}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:read')")
     public ApiResponse<List<CandidateResponse>> getCandidatesByStatus(
         @PathVariable UUID jobListingId,
         @PathVariable String status,
@@ -87,7 +87,7 @@ public class CandidateController {
     }
 
     @GetMapping("/{candidateId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:read')")
     public ApiResponse<CandidateResponse> getCandidateById(
         @PathVariable UUID candidateId,
         Authentication authentication
@@ -98,7 +98,7 @@ public class CandidateController {
 
     //hr stage mangement
     @PostMapping("/{candidateId}/advance")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:update')")
     public ApiResponse<CandidateResponse> advanceCandidate(
         @PathVariable UUID candidateId,
         Authentication authentication
@@ -108,7 +108,7 @@ public class CandidateController {
     }
 
     @PostMapping("/{candidateId}/accept")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:update')")
     public ApiResponse<CandidateResponse> acceptCandidate(
         @PathVariable UUID candidateId,
         Authentication authentication
@@ -118,7 +118,7 @@ public class CandidateController {
     }
 
     @PostMapping("/{candidateId}/reject")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:update')")
     public ApiResponse<CandidateResponse> rejectCandidate(
         @PathVariable UUID candidateId,
         Authentication authentication
@@ -129,7 +129,7 @@ public class CandidateController {
 
     //add notes
     @PostMapping("/{candidateId}/notes")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:update')")
     public ApiResponse<CandidateResponse> addNotes(
         @PathVariable UUID candidateId,
         @Valid @RequestBody CandidateNotesRequest request,
@@ -141,7 +141,7 @@ public class CandidateController {
 
     // ─── Hire candidate → create Employee ──────────────────────────────────
     @PostMapping("/{candidateId}/hire")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'recruitment:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:update')")
     public ApiResponse<CandidateResponse> hireCandidate(
         @PathVariable UUID candidateId,
         @Valid @RequestBody HireCandidateRequest request,

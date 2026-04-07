@@ -198,9 +198,10 @@ export class AddDepartmentComponent implements OnInit {
           });
         } else {
           // If not superadmin, automatically load options for the user's company
-          if (res?.data?.companyId) {
-             this.department.companyId = res.data.companyId;
-             this.fetchOptions(res.data.companyId);
+          let cid = res?.data?.companyContext?.companyId || res?.data?.companyId;
+          if (cid) {
+             this.department.companyId = cid;
+             this.fetchOptions(cid);
           }
         }
       },

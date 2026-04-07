@@ -8,8 +8,16 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
+  const resolveToken = (): string | null => {
+    return keycloak.token || localStorage.getItem('jwt_token');
+  };
+
   const withToken = (request: typeof req) => {
-    const token = keycloak.token;
+    if (request.headers.has('Authorization')) {
+      return request;
+    }
+
+    const token = resolveToken();
     if (!token) {
       return request;
     }

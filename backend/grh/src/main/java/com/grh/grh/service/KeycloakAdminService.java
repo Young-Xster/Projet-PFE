@@ -276,4 +276,42 @@ public class KeycloakAdminService {
             && !"offline_access".equals(lower)
             && !"uma_authorization".equals(lower);
     }
+
+    public UserRepresentation updateUserProfile(String keycloakUserId, String email) {
+        try {
+            UserRepresentation user = getUsersResource().get(keycloakUserId).toRepresentation();
+            if (user == null) {
+                throw new RuntimeException("User not found: " + keycloakUserId);
+            }
+
+            String targetEmail = email != null ? email.trim() : null;
+
+            user.setEmail(targetEmail);
+
+            getUsersResource().get(keycloakUserId).update(user);
+            return getUsersResource().get(keycloakUserId).toRepresentation();
+        } catch (jakarta.ws.rs.WebApplicationException e) {
+            String errorBody = e.getResponse().readEntity(String.class);
+            int status = e.getResponse().getStatus();
+
+            log.error("Failed to update profile in Keycloak. HTTP {}: {}", status, errorBody);
+
+            if (status >= 400 && status < 500) {
+                throw new IllegalArgumentException("Failed to update profile in Keycloak: " + errorBody);
+            }
+            throw new RuntimeException("Failed to update profile in Keycloak: " + errorBody);
+        } catch (Exception e) {
+            log.error("Failed to update profile in Keycloak. Error: {}", e.getMessage());
+            throw new RuntimeException("Failed to update profile in Keycloak: " + e.getMessage());
+        }
+    }
+
+    public void triggerPasswordReset(String keycloakUserId) {
+        try {
+            getUsersResource().get(keycloakUserId).executeActionsEmail(Collections.singletonList("UPDATE_PASSWORD"));
+        } catch (Exception e) {
+            log.error("Failed to trigger password reset in Keycloak. Error: {}", e.getMessage());
+            throw new RuntimeException("Failed to trigger password reset in Keycloak: " + e.getMessage());
+        }
+    }
 }

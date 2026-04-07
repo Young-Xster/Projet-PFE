@@ -24,7 +24,7 @@ public class SubcontractorController {
     // ─── Subcontractor CRUD ───────────────────────────────────────────────────
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:create')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:create')")
     public ApiResponse<SubcontractorResponse> create(
         @Valid @RequestBody CreateSubcontractorRequest request,
         Authentication authentication
@@ -34,7 +34,7 @@ public class SubcontractorController {
     }
 
     @GetMapping("/my-company")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:read')")
     public ApiResponse<List<SubcontractorResponse>> getMyCompanySubcontractors(
         @RequestParam(required = false) UUID companyId,
         Authentication authentication
@@ -44,7 +44,7 @@ public class SubcontractorController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:read')")
     public ApiResponse<SubcontractorResponse> getById(
         @PathVariable UUID id, Authentication authentication
     ) {
@@ -53,7 +53,7 @@ public class SubcontractorController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:update')")
     public ApiResponse<SubcontractorResponse> update(
         @PathVariable UUID id,
         @Valid @RequestBody UpdateSubcontractorRequest request,
@@ -64,7 +64,7 @@ public class SubcontractorController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:delete')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:delete')")
     public ApiResponse<Void> delete(
         @PathVariable UUID id, Authentication authentication
     ) {
@@ -75,7 +75,7 @@ public class SubcontractorController {
     // ─── Contracts ────────────────────────────────────────────────────────────
 
     @PostMapping(value = "/{subcontractorId}/contracts", consumes = "multipart/form-data")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:create')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:create')")
     public ApiResponse<ContractResponse> createContract(
         @PathVariable UUID subcontractorId,
         @Valid @ModelAttribute CreateContractRequest request,
@@ -87,7 +87,7 @@ public class SubcontractorController {
     }
 
     @GetMapping("/{subcontractorId}/contracts")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:read')")
     public ApiResponse<List<ContractResponse>> getContracts(
         @PathVariable UUID subcontractorId, Authentication authentication
     ) {
@@ -96,7 +96,7 @@ public class SubcontractorController {
     }
 
     @GetMapping("/{subcontractorId}/contracts/active")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:read')")
     public ApiResponse<ContractResponse> getActiveContract(
         @PathVariable UUID subcontractorId, Authentication authentication
     ) {
@@ -105,7 +105,7 @@ public class SubcontractorController {
     }
 
     @PostMapping(value = "/contracts/{contractId}/renew", consumes = "multipart/form-data")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:update')")
     public ApiResponse<ContractResponse> renewContract(
         @PathVariable UUID contractId,
         @Valid @ModelAttribute CreateContractRequest request,
@@ -117,7 +117,7 @@ public class SubcontractorController {
     }
 
     @PostMapping("/contracts/{contractId}/terminate")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:update')")
     public ApiResponse<ContractResponse> terminateContract(
         @PathVariable UUID contractId, Authentication authentication
     ) {
@@ -128,7 +128,7 @@ public class SubcontractorController {
     // ─── Invoices ─────────────────────────────────────────────────────────────
 
     @PostMapping(value = "/contracts/{contractId}/invoices", consumes = "multipart/form-data")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:create')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:create')")
     public ApiResponse<InvoiceResponse> createInvoice(
         @PathVariable UUID contractId,
         @Valid @ModelAttribute CreateInvoiceRequest request,
@@ -140,7 +140,7 @@ public class SubcontractorController {
     }
 
     @GetMapping("/contracts/{contractId}/invoices")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:read')")
     public ApiResponse<List<InvoiceResponse>> getInvoices(
         @PathVariable UUID contractId, Authentication authentication
     ) {
@@ -149,7 +149,7 @@ public class SubcontractorController {
     }
 
     @PostMapping(value = "/invoices/{invoiceId}/mark-paid", consumes = "multipart/form-data")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:update')")
     public ApiResponse<InvoiceResponse> markInvoicePaid(
         @PathVariable UUID invoiceId,
         @RequestPart("paymentProof") MultipartFile paymentProof,
@@ -162,7 +162,7 @@ public class SubcontractorController {
     // ─── Reviews ──────────────────────────────────────────────────────────────
 
     @GetMapping("/reviews/my-company")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:read')")
     public ApiResponse<List<SubcontractorReviewResponse>> getMyCompanyReviews(
         @RequestParam(required = false) UUID companyId,
         Authentication authentication
@@ -172,7 +172,7 @@ public class SubcontractorController {
     }
 
     @GetMapping("/{subcontractorId}/reviews")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:read')")
     public ApiResponse<List<SubcontractorReviewResponse>> getReviewsBySubcontractor(
         @PathVariable UUID subcontractorId, Authentication authentication
     ) {
@@ -181,7 +181,7 @@ public class SubcontractorController {
     }
 
     @GetMapping("/reviews/{reviewId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:read')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:read')")
     public ApiResponse<SubcontractorReviewResponse> getReviewById(
         @PathVariable UUID reviewId, Authentication authentication
     ) {
@@ -190,7 +190,7 @@ public class SubcontractorController {
     }
 
     @PutMapping("/reviews/{reviewId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:update')")
     public ApiResponse<SubcontractorReviewResponse> updateReview(
         @PathVariable UUID reviewId,
         @Valid @RequestBody UpdateReviewRequest request,
@@ -201,7 +201,7 @@ public class SubcontractorController {
     }
 
     @PostMapping("/reviews/{reviewId}/submit")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractor:update')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:update')")
     public ApiResponse<SubcontractorReviewResponse> submitReview(
         @PathVariable UUID reviewId, Authentication authentication
     ) {

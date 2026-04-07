@@ -379,10 +379,13 @@ export class AttendanceTableComponent implements OnInit {
             },
           });
         } else {
+          this.selectedCompanyId = res?.data?.companyContext?.companyId || res?.data?.companyId || '';
           this.loadAttendanceData();
         }
       },
-      error: () => this.loadAttendanceData(),
+      error: () => {
+        this.loadAttendanceData();
+      }
     });
   }
 
@@ -529,7 +532,7 @@ export class AttendanceTableComponent implements OnInit {
     // Using Angular's HTTP client to make the POST call via attendanceService
     this.attendanceService
       .createAttendance({
-        companyId: this.selectedCompanyId,
+        companyId: this.selectedCompanyId || undefined,
         employeeId: row.employee.employeeId,
         date: today,
         clockInTime: new Date().toISOString(),
@@ -559,7 +562,7 @@ export class AttendanceTableComponent implements OnInit {
     this.actionLoading[row.employee.employeeId] = true;
     this.attendanceService
       .createAttendance({
-        companyId: this.selectedCompanyId,
+        companyId: this.selectedCompanyId || undefined,
         employeeId: row.employee.employeeId,
         date: today,
         status: 'absent',

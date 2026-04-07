@@ -6,6 +6,7 @@ import { authGuard, superAdminGuard } from './core/auth/auth.guard';
 import { EmployeeTablePage } from './pages/employees/employee-table.page';
 import { AddEmployeePage } from './pages/employees/add-employee.page';
 import { EmployeeDetailPage } from './pages/employees/employee-detail.page';
+import { SettingsPage } from "./pages/settings/settings.page";
 import { PlaceholderPageComponent } from './components/placeholderPage';
 import { DepartmentTablePage } from './pages/departments/department-table.page';
 import { AddDepartmentPage } from './pages/departments/add-department.page';
@@ -169,7 +170,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        component: PlaceholderPageComponent,
+        component: SettingsPage,
         data: {
           pageTitle: 'Settings',
           breadcrumb: 'Settings',

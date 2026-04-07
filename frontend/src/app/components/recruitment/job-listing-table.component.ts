@@ -237,7 +237,7 @@ export class JobListingTableComponent implements OnInit {
             },
           });
         } else {
-          this.selectedCompanyId = this.employeeService['getCompanyId']() || '';
+          this.selectedCompanyId = res?.data?.companyContext?.companyId || this.employeeService['getCompanyId']() || '';
           this.companyId = this.selectedCompanyId;
           this.loadJobs();
         }

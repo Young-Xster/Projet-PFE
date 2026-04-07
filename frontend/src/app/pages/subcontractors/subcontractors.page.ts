@@ -23,7 +23,7 @@ import {
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Subcontractors</h2>
           <div class="flex items-center gap-2">
-            @if (companies.length > 0) {
+            @if (isSuperAdmin && companies.length > 0) {
               <select
                 [(ngModel)]="selectedCompanyId"
                 name="subCompanyId"
@@ -307,6 +307,7 @@ export class SubcontractorsPage implements OnInit {
   selectedSubcontractor: SubcontractorResponse | null = null;
   companies: Company[] = [];
   selectedCompanyId = '';
+  isSuperAdmin = false;
 
   loading = false;
   successMessage = '';
@@ -334,12 +335,29 @@ export class SubcontractorsPage implements OnInit {
   }
 
   private loadCompaniesAndSubcontractors(): void {
-    this.adminService.getCompanies().subscribe({
-      next: (res) => {
-        this.companies = res.data ?? [];
-        if (!this.selectedCompanyId && this.companies.length > 0) {
-          this.selectedCompanyId = this.companies[0].id;
+    this.adminService.getMe().subscribe({
+      next: (meRes) => {
+        const me = meRes?.data;
+        this.isSuperAdmin = !!me?.isSuperAdmin;
+
+        if (this.isSuperAdmin) {
+          this.adminService.getCompanies().subscribe({
+            next: (res) => {
+              this.companies = res.data ?? [];
+              if (!this.selectedCompanyId && this.companies.length > 0) {
+                this.selectedCompanyId = this.companies[0].id;
+              }
+              this.loadSubcontractors();
+            },
+            error: () => {
+              this.errorMessage = 'Failed to load companies';
+              this.loadSubcontractors();
+            },
+          });
+          return;
         }
+
+        this.selectedCompanyId = me?.companyContext?.companyId || this.selectedCompanyId;
         this.loadSubcontractors();
       },
       error: () => {

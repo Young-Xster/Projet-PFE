@@ -431,7 +431,7 @@ export class ScheduleCalendarComponent implements OnInit {
           this.isSuperAdmin = true;
           this.fetchCompanies();
         } else {
-          this.selectedCompanyId = res?.data?.companyId || '';
+          this.selectedCompanyId = res?.data?.companyContext?.companyId || '';
           if (this.selectedCompanyId) {
             this.loadSchedules();
           } else {

@@ -341,7 +341,7 @@ export class DepartmentTableComponent implements OnInit {
             },
           });
         } else {
-          this.selectedCompanyId = this.authService.getCompanyId() || res?.data?.companyId || '';
+          this.selectedCompanyId = this.authService.getCompanyId() || res?.data?.companyContext?.companyId || res?.data?.companyId || '';
           this.loadDepartments();
         }
       },
