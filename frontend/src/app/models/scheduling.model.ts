@@ -48,6 +48,15 @@ export interface WorkScheduleListResponse {
   companyName: string;
 }
 
+export interface ScheduleAssignmentResponse {
+  id: string;
+  type: string;
+  personId: string;
+  name: string;
+  effectiveFrom: string;
+  effectiveTo?: string;
+}
+
 export interface CreateShiftAssignmentRequest {
   employeeId: string;
   companyId: string;

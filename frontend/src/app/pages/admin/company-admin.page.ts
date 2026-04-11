@@ -166,24 +166,6 @@ import {
       @if (selectedCompany) {
         <form class="grid grid-cols-1 md:grid-cols-3 gap-3" (ngSubmit)="saveSettings()">
           <label class="text-sm text-gray-600 dark:text-gray-200">
-            Work start
-            <input
-              [(ngModel)]="settingsForm.workHoursStart"
-              name="workHoursStart"
-              type="time"
-              class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
-            />
-          </label>
-          <label class="text-sm text-gray-600 dark:text-gray-200">
-            Work end
-            <input
-              [(ngModel)]="settingsForm.workHoursEnd"
-              name="workHoursEnd"
-              type="time"
-              class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
-            />
-          </label>
-          <label class="text-sm text-gray-600 dark:text-gray-200">
             Grace period (min)
             <input
               [(ngModel)]="settingsForm.gracePeriodMinutes"
@@ -254,8 +236,6 @@ export class CompanyAdminPage implements OnInit {
   };
 
   settingsForm: CompanySettingsPayload = {
-    workHoursStart: '08:00',
-    workHoursEnd: '17:00',
     gracePeriodMinutes: 10,
     currency: 'USD',
     dateFormat: 'yyyy-MM-dd',
@@ -322,8 +302,6 @@ export class CompanyAdminPage implements OnInit {
       next: (res) => {
         const settings: CompanySettings = res.data;
         this.settingsForm = {
-          workHoursStart: settings.workHoursStart,
-          workHoursEnd: settings.workHoursEnd,
           gracePeriodMinutes: settings.gracePeriodMinutes,
           currency: settings.currency,
           dateFormat: settings.dateFormat,

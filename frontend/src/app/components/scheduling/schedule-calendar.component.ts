@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { SchedulingService } from '../../services/scheduling.service';
 import {
   CreateWorkScheduleRequest,
+  ScheduleAssignmentResponse,
   ScheduleDetailRequest,
+  WorkScheduleResponse,
   WorkScheduleListResponse,
 } from '../../models/scheduling.model';
 import { AuthService } from '../../core/auth/auth.service';
@@ -79,49 +81,127 @@ import { forkJoin, switchMap, of, throwError } from 'rxjs';
                   Description
                 </th>
                 <th class="p-3 text-sm font-semibold text-gray-600 dark:text-gray-300">Default</th>
+                <th class="p-3 text-sm font-semibold text-gray-600 dark:text-gray-300">Details</th>
                 <th class="p-3 text-sm font-semibold text-gray-600 dark:text-gray-300 text-right">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody>
-              <tr
-                *ngFor="let schedule of schedules"
-                class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-              >
-                <td class="p-3 text-sm font-medium text-gray-900 dark:text-white">
-                  {{ schedule.scheduleName }}
-                </td>
-                <td class="p-3 text-sm text-gray-600 dark:text-gray-300">
-                  {{ schedule.description || '-' }}
-                </td>
-                <td class="p-3">
-                  <span
-                    *ngIf="schedule.isDefault"
-                    class="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                    >Default</span
-                  >
-                  <span
-                    *ngIf="!schedule.isDefault"
-                    class="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
-                    >No</span
-                  >
-                </td>
-                <td class="p-3 text-right space-x-3">
-                  <button
-                    (click)="openAssignModal(schedule.id)"
-                    class="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
-                  >
-                    Assign
-                  </button>
-                  <button
-                    (click)="deleteSchedule(schedule.id)"
-                    class="text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 cursor-pointer"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
+              <ng-container *ngFor="let schedule of schedules">
+                <tr
+                  class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <td class="p-3 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ schedule.scheduleName }}
+                  </td>
+                  <td class="p-3 text-sm text-gray-600 dark:text-gray-300">
+                    {{ schedule.description || '-' }}
+                  </td>
+                  <td class="p-3">
+                    <span
+                      *ngIf="schedule.isDefault"
+                      class="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                      >Default</span
+                    >
+                    <span
+                      *ngIf="!schedule.isDefault"
+                      class="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+                      >No</span
+                    >
+                  </td>
+                  <td class="p-3">
+                    <button
+                      (click)="toggleScheduleDetails(schedule.id)"
+                      class="text-sm font-medium text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 cursor-pointer"
+                    >
+                      {{ isExpanded(schedule.id) ? 'Hide info' : 'View info' }}
+                    </button>
+                  </td>
+                  <td class="p-3 text-right space-x-3">
+                    <button
+                      (click)="openAssignModal(schedule.id)"
+                      class="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
+                    >
+                      Assign
+                    </button>
+                    <button
+                      (click)="deleteSchedule(schedule.id)"
+                      class="text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+
+                <tr *ngIf="isExpanded(schedule.id)" class="bg-gray-50/70 dark:bg-gray-900/30">
+                  <td colspan="5" class="p-4">
+                    <div *ngIf="detailsLoadingByScheduleId[schedule.id]" class="text-sm text-gray-500">
+                      Loading schedule details...
+                    </div>
+
+                    <div *ngIf="detailsErrorByScheduleId[schedule.id]" class="text-sm text-red-600 dark:text-red-400">
+                      {{ detailsErrorByScheduleId[schedule.id] }}
+                    </div>
+
+                    <div *ngIf="!detailsLoadingByScheduleId[schedule.id] && !detailsErrorByScheduleId[schedule.id]">
+                      <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                            Weekly schedule
+                          </h4>
+                          <div
+                            *ngIf="getScheduleDetailRows(schedule.id).length; else noScheduleDetails"
+                            class="space-y-2"
+                          >
+                            <div
+                              *ngFor="let detail of getScheduleDetailRows(schedule.id)"
+                              class="text-xs md:text-sm text-gray-700 dark:text-gray-300 flex items-center justify-between border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2"
+                            >
+                              <span class="font-medium">{{ formatDay(detail.dayOfWeek) }}</span>
+                              <span *ngIf="detail.isWorkingDay; else dayOff">
+                                {{ formatTime(detail.startTime) }} → {{ formatTime(detail.endTime) }}
+                              </span>
+                              <ng-template #dayOff>
+                                <span class="text-gray-500 dark:text-gray-400">Day off</span>
+                              </ng-template>
+                            </div>
+                          </div>
+                          <ng-template #noScheduleDetails>
+                            <p class="text-sm text-gray-500">No weekly details found.</p>
+                          </ng-template>
+                        </div>
+
+                        <div>
+                          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                            Assigned employees (active)
+                          </h4>
+                          <div
+                            *ngIf="getActiveEmployeeAssignments(schedule.id).length; else noAssignments"
+                            class="space-y-2"
+                          >
+                            <div
+                              *ngFor="let assignment of getActiveEmployeeAssignments(schedule.id)"
+                              class="text-xs md:text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2"
+                            >
+                              <p class="font-medium">{{ assignment.name }}</p>
+                              <p class="text-gray-500 dark:text-gray-400">
+                                Effective: {{ formatDate(assignment.effectiveFrom) }}
+                                <span *ngIf="assignment.effectiveTo">
+                                  → {{ formatDate(assignment.effectiveTo) }}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                          <ng-template #noAssignments>
+                            <p class="text-sm text-gray-500">No active employees assigned.</p>
+                          </ng-template>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
             </tbody>
           </table>
         </div>
@@ -380,6 +460,11 @@ import { forkJoin, switchMap, of, throwError } from 'rxjs';
 })
 export class ScheduleCalendarComponent implements OnInit {
   schedules: WorkScheduleListResponse[] = [];
+  expandedScheduleId: string | null = null;
+  scheduleById: Record<string, WorkScheduleResponse> = {};
+  assignmentsByScheduleId: Record<string, ScheduleAssignmentResponse[]> = {};
+  detailsLoadingByScheduleId: Record<string, boolean> = {};
+  detailsErrorByScheduleId: Record<string, string> = {};
   loading = true;
   selectedCompanyId = '';
   isSuperAdmin = false;
@@ -471,6 +556,11 @@ export class ScheduleCalendarComponent implements OnInit {
       this.loadSchedules();
     } else {
       this.schedules = [];
+      this.expandedScheduleId = null;
+      this.scheduleById = {};
+      this.assignmentsByScheduleId = {};
+      this.detailsLoadingByScheduleId = {};
+      this.detailsErrorByScheduleId = {};
       this.cdr.detectChanges();
     }
   }
@@ -482,6 +572,11 @@ export class ScheduleCalendarComponent implements OnInit {
     this.schedulingService.getSchedulesByCompany(this.selectedCompanyId).subscribe({
       next: (res) => {
         this.schedules = res.data || res || [];
+        this.expandedScheduleId = null;
+        this.scheduleById = {};
+        this.assignmentsByScheduleId = {};
+        this.detailsLoadingByScheduleId = {};
+        this.detailsErrorByScheduleId = {};
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -563,10 +658,123 @@ export class ScheduleCalendarComponent implements OnInit {
   deleteSchedule(id: string) {
     if (confirm('Are you sure you want to delete this schedule?')) {
       this.schedulingService.deleteSchedule(id).subscribe({
-        next: () => this.loadSchedules(),
+        next: () => {
+          if (this.expandedScheduleId === id) {
+            this.expandedScheduleId = null;
+          }
+          delete this.scheduleById[id];
+          delete this.assignmentsByScheduleId[id];
+          delete this.detailsLoadingByScheduleId[id];
+          delete this.detailsErrorByScheduleId[id];
+          this.loadSchedules();
+        },
         error: (err) => alert('Cannot delete this schedule, it might be in use.'),
       });
     }
+  }
+
+  isExpanded(scheduleId: string): boolean {
+    return this.expandedScheduleId === scheduleId;
+  }
+
+  toggleScheduleDetails(scheduleId: string) {
+    if (this.expandedScheduleId === scheduleId) {
+      this.expandedScheduleId = null;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.expandedScheduleId = scheduleId;
+    if (this.scheduleById[scheduleId] && this.assignmentsByScheduleId[scheduleId]) {
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.loadScheduleDetails(scheduleId);
+  }
+
+  private loadScheduleDetails(scheduleId: string) {
+    this.detailsLoadingByScheduleId[scheduleId] = true;
+    this.detailsErrorByScheduleId[scheduleId] = '';
+    this.cdr.detectChanges();
+
+    forkJoin({
+      schedule: this.schedulingService.getScheduleById(scheduleId),
+      assignments: this.schedulingService.getAssignmentsBySchedule(scheduleId),
+    }).subscribe({
+      next: ({ schedule, assignments }) => {
+        this.scheduleById[scheduleId] = schedule.data;
+        this.assignmentsByScheduleId[scheduleId] = assignments.data || [];
+        this.detailsLoadingByScheduleId[scheduleId] = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.detailsLoadingByScheduleId[scheduleId] = false;
+        this.detailsErrorByScheduleId[scheduleId] = 'Unable to load schedule information.';
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  getScheduleDetailRows(scheduleId: string) {
+    const details = this.scheduleById[scheduleId]?.scheduleDetails || [];
+    const weekOrder: Record<string, number> = {
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+      sunday: 7,
+    };
+    return [...details].sort((a, b) => {
+      const aDay = weekOrder[(a.dayOfWeek || '').toLowerCase()] || 99;
+      const bDay = weekOrder[(b.dayOfWeek || '').toLowerCase()] || 99;
+      return aDay - bDay;
+    });
+  }
+
+  getActiveEmployeeAssignments(scheduleId: string): ScheduleAssignmentResponse[] {
+    const assignments = this.assignmentsByScheduleId[scheduleId] || [];
+    const now = new Date();
+
+    return assignments.filter((assignment) => {
+      if ((assignment.type || '').toUpperCase() !== 'EMPLOYEE') {
+        return false;
+      }
+
+      const effectiveFrom = assignment.effectiveFrom ? new Date(assignment.effectiveFrom) : null;
+      const effectiveTo = assignment.effectiveTo ? new Date(assignment.effectiveTo) : null;
+
+      if (effectiveFrom && effectiveFrom > now) {
+        return false;
+      }
+      if (effectiveTo && effectiveTo < now) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  formatDay(dayOfWeek: string): string {
+    if (!dayOfWeek) {
+      return '-';
+    }
+    return dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1).toLowerCase();
+  }
+
+  formatTime(timeValue: string): string {
+    if (!timeValue) {
+      return '-';
+    }
+    return timeValue.length >= 5 ? timeValue.slice(0, 5) : timeValue;
+  }
+
+  formatDate(dateValue: string): string {
+    if (!dateValue) {
+      return '-';
+    }
+    return dateValue.slice(0, 10);
   }
 
   openAssignModal(scheduleId: string) {

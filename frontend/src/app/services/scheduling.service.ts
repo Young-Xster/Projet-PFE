@@ -7,6 +7,7 @@ import {
   UpdateWorkScheduleRequest,
   WorkScheduleResponse,
   WorkScheduleListResponse,
+  ScheduleAssignmentResponse,
   CreateShiftAssignmentRequest,
   UpdateShiftAssignmentRequest,
   ShiftAssignmentResponse,
@@ -71,8 +72,12 @@ export class SchedulingService {
     );
   }
 
-  getAssignmentsBySchedule(scheduleId: string): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.scheduleUrl}/${scheduleId}/assignments`);
+  getAssignmentsBySchedule(
+    scheduleId: string,
+  ): Observable<ApiResponse<ScheduleAssignmentResponse[]>> {
+    return this.http.get<ApiResponse<ScheduleAssignmentResponse[]>>(
+      `${this.scheduleUrl}/${scheduleId}/assignments`,
+    );
   }
 
   // --- Shift Assignments ---
