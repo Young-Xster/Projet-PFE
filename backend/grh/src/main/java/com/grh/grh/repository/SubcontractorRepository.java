@@ -18,4 +18,11 @@ public interface SubcontractorRepository extends JpaRepository<Subcontractor, UU
     boolean existsByContactEmailAndCompanyId(String contactEmail, UUID companyId);
 
     Optional<Subcontractor> findByContactEmailAndCompanyId(String contactEmail, UUID companyId);
+
+    Optional<Subcontractor> findByCompanyIdAndContactEmailIgnoreCase(UUID companyId, String contactEmail);
+
+    Optional<Subcontractor> findFirstByContactEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(
+        String contactEmail,
+        String status
+    );
 }

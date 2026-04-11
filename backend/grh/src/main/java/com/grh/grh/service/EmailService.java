@@ -167,6 +167,42 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, body);
     }
 
+    @Async
+    public void sendSubcontractorPortalAccessEmail(
+        String toEmail,
+        String subcontractorName,
+        String companyName,
+        String accessLink,
+        long expirationMinutes
+    ) {
+        String subject = companyName + " - Subcontractor Portal Access Link";
+        String safeName = (subcontractorName == null || subcontractorName.isBlank()) ? "Subcontractor" : subcontractorName;
+
+        String body = """
+            <html><body>
+            <h2>Subcontractor Portal Access</h2>
+            <p>Hello %s,</p>
+            <p>You requested access to your subcontractor portal for <b>%s</b>.</p>
+            <p>This secure link is valid for <b>%d minutes</b> and can only be used once:</p>
+            <p><a href=\"%s\">Open Subcontractor Portal</a></p>
+            <p>If the button does not work, copy and paste this URL in your browser:</p>
+            <p>%s</p>
+            <br>
+            <p>If you did not request this access, you can safely ignore this email.</p>
+            <p>Regards,<br><b>%s</b></p>
+            </body></html>
+            """.formatted(
+            safeName,
+            companyName,
+            expirationMinutes,
+            accessLink,
+            accessLink,
+            appName
+        );
+
+        sendHtmlEmail(toEmail, subject, body);
+    }
+
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

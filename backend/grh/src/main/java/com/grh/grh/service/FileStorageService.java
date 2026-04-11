@@ -1,6 +1,8 @@
 package com.grh.grh.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,7 +25,18 @@ public class FileStorageService {
     @Value("${app.file-storage.upload-dir:uploads}")
     private String uploadDir;
 
+    @Value("${app.file-storage.private-upload-dir:uploads-private}")
+    private String privateUploadDir;
+
     public String storeFile(MultipartFile file, String subfolder) {
+        return store(file, subfolder, uploadDir, false);
+    }
+
+    public String storePrivateFile(MultipartFile file, String subfolder) {
+        return store(file, subfolder, privateUploadDir, true);
+    }
+
+    private String store(MultipartFile file, String subfolder, String baseDir, boolean privateFile) {
         if (file == null || file.isEmpty()) {
             return null;
         }
@@ -43,8 +56,7 @@ public class FileStorageService {
         }
 
         try {
-            
-            Path dirPath = Paths.get(uploadDir, subfolder);
+            Path dirPath = Paths.get(baseDir, subfolder);
             Files.createDirectories(dirPath);
 
             String storedFilename = UUID.randomUUID() + "-" + sanitizeFilename(originalFilename);
@@ -54,12 +66,14 @@ public class FileStorageService {
 
             String relativePath = subfolder + "/" + storedFilename;
             log.info("Stored file: {}", relativePath);
+            if (privateFile) {
+                return "private/" + relativePath;
+            }
             return relativePath;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to store file: " + originalFilename, e);
         }
-
     }
 
     public void deleteFile(String relativePath){
@@ -88,6 +102,29 @@ public class FileStorageService {
             return Files.readAllBytes(filePath);
         } catch (IOException e) {
             throw new RuntimeException("Could not read file: " + relativePath, e);
+        }
+    }
+
+    public Resource loadFileAsResource(String relativePath) {
+        return buildResource(Paths.get(uploadDir, relativePath), relativePath);
+    }
+
+    public Resource loadPrivateFileAsResource(String storedPrivatePath) {
+        String relativePath = storedPrivatePath.startsWith("private/")
+            ? storedPrivatePath.substring("private/".length())
+            : storedPrivatePath;
+        return buildResource(Paths.get(privateUploadDir, relativePath), relativePath);
+    }
+
+    private Resource buildResource(Path path, String originalPath) {
+        try {
+            Resource resource = new UrlResource(path.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new IllegalArgumentException("File not found: " + originalPath);
+            }
+            return resource;
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not load file: " + originalPath, ex);
         }
     }
 

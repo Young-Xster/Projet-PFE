@@ -1,0 +1,157 @@
+<main class="container">
+  <h1>Subcontractor Portal</h1>
+
+  <div *ngIf="loading()" class="info">Loading...</div>
+  <div *ngIf="successMessage()" class="success">{{ successMessage() }}</div>
+  <div *ngIf="errorMessage()" class="error">{{ errorMessage() }}</div>
+
+  <section *ngIf="!hasSession()" class="card">
+    <h2>Request access link</h2>
+    <p>Enter your subcontractor contact email to receive a one-time login link.</p>
+
+    <label>
+      Contact email
+      <input [ngModel]="accessEmail()" (ngModelChange)="accessEmail.set($event)" type="email" />
+    </label>
+
+    <button (click)="requestAccessLink()">Send access link</button>
+  </section>
+
+  <section *ngIf="hasSession()" class="grid">
+    <article class="card" *ngIf="profile() as profileData">
+      <h2>My profile</h2>
+      <p><strong>Name:</strong> {{ profileData.displayName }}</p>
+      <p><strong>Company:</strong> {{ profileData.companyName }}</p>
+      <p><strong>Status:</strong> {{ profileData.status }}</p>
+      <p><strong>Session expires:</strong> {{ sessionExpiresAt() || 'Active' }}</p>
+      <button class="secondary" (click)="logout()">Logout</button>
+    </article>
+
+    <article class="card">
+      <h2>Update contact info</h2>
+      <label>
+        Email
+        <input [ngModel]="contactEmail()" (ngModelChange)="contactEmail.set($event)" type="email" />
+      </label>
+      <label>
+        Phone
+        <input [ngModel]="contactPhone()" (ngModelChange)="contactPhone.set($event)" />
+      </label>
+      <label>
+        Address
+        <input [ngModel]="address()" (ngModelChange)="address.set($event)" />
+      </label>
+      <label>
+        City
+        <input [ngModel]="city()" (ngModelChange)="city.set($event)" />
+      </label>
+      <label>
+        Specialization
+        <input [ngModel]="specialization()" (ngModelChange)="specialization.set($event)" />
+      </label>
+      <button (click)="updateContactInfo()">Save contact info</button>
+    </article>
+
+    <article class="card full-width">
+      <h2>My contracts</h2>
+      <table *ngIf="contracts().length > 0; else noContracts">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Document</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let contract of contracts()">
+            <td>{{ contract.startDate }} → {{ contract.endDate }}</td>
+            <td>{{ contract.paymentType }} / {{ contract.amount }}</td>
+            <td>{{ contract.status }}</td>
+            <td>
+              <a *ngIf="contract.documentDownloadUrl" [href]="contract.documentDownloadUrl" target="_blank" rel="noopener">Download</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #noContracts><p>No contracts found.</p></ng-template>
+    </article>
+
+    <article class="card full-width">
+      <h2>Submit invoice</h2>
+      <label>
+        Contract
+        <select [ngModel]="invoiceContractId()" (ngModelChange)="invoiceContractId.set($event)">
+          <option value="">Select contract</option>
+          <option *ngFor="let contract of contracts()" [value]="contract.id">{{ contract.id }} ({{ contract.status }})</option>
+        </select>
+      </label>
+      <label>
+        Invoice number
+        <input [ngModel]="invoiceNumber()" (ngModelChange)="invoiceNumber.set($event)" />
+      </label>
+      <label>
+        Amount
+        <input [ngModel]="invoiceAmount()" (ngModelChange)="invoiceAmount.set($event)" type="number" step="0.01" />
+      </label>
+      <label>
+        Due date
+        <input [ngModel]="invoiceDueDate()" (ngModelChange)="invoiceDueDate.set($event)" type="date" />
+      </label>
+      <label>
+        Notes
+        <input [ngModel]="invoiceNotes()" (ngModelChange)="invoiceNotes.set($event)" />
+      </label>
+      <label>
+        Invoice/supporting document
+        <input type="file" (change)="onInvoiceDocumentSelected($event)" />
+      </label>
+      <button (click)="submitInvoice()">Submit invoice</button>
+    </article>
+
+    <article class="card full-width">
+      <h2>My invoices</h2>
+      <table *ngIf="invoices().length > 0; else noInvoices">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Amount</th>
+            <th>Due</th>
+            <th>Status</th>
+            <th>Invoice doc</th>
+            <th>Payment proof</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let invoice of invoices()">
+            <td>{{ invoice.invoiceNumber }}</td>
+            <td>{{ invoice.amount }}</td>
+            <td>{{ invoice.dueDate }}</td>
+            <td>{{ invoice.status }}</td>
+            <td>
+              <a *ngIf="invoice.invoiceDocumentDownloadUrl" [href]="invoice.invoiceDocumentDownloadUrl" target="_blank" rel="noopener">Download</a>
+            </td>
+            <td>
+              <a *ngIf="invoice.paymentProofDownloadUrl" [href]="invoice.paymentProofDownloadUrl" target="_blank" rel="noopener">Download</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #noInvoices><p>No invoices found.</p></ng-template>
+
+      <h3>Upload payment proof</h3>
+      <label>
+        Invoice
+        <select [ngModel]="proofInvoiceId()" (ngModelChange)="proofInvoiceId.set($event)">
+          <option value="">Select invoice</option>
+          <option *ngFor="let invoice of invoices()" [value]="invoice.id">{{ invoice.invoiceNumber }}</option>
+        </select>
+      </label>
+      <label>
+        Payment proof file
+        <input type="file" (change)="onPaymentProofSelected($event)" />
+      </label>
+      <button (click)="uploadPaymentProof()">Upload payment proof</button>
+    </article>
+  </section>
+</main>

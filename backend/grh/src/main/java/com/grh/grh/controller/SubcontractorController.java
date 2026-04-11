@@ -3,6 +3,7 @@ package com.grh.grh.controller;
 import com.grh.grh.dto.common.ApiResponse;
 import com.grh.grh.dto.request.subcontractor.*;
 import com.grh.grh.dto.response.subcontractor.*;
+import com.grh.grh.service.SubcontractorPortalService;
 import com.grh.grh.service.SubcontractorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class SubcontractorController {
 
     private final SubcontractorService subcontractorService;
+    private final SubcontractorPortalService subcontractorPortalService;
 
     // ─── Subcontractor CRUD ───────────────────────────────────────────────────
 
@@ -70,6 +72,23 @@ public class SubcontractorController {
     ) {
         subcontractorService.delete(id, authentication);
         return ApiResponse.success("Subcontractor deleted", null);
+    }
+
+    @PostMapping("/{id}/portal/send-access-link")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'subcontractors:update')")
+    public ApiResponse<Void> sendPortalAccessLink(
+        @PathVariable UUID id,
+        jakarta.servlet.http.HttpServletRequest request
+    ) {
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress != null && !ipAddress.isBlank()) {
+            ipAddress = ipAddress.split(",")[0].trim();
+        } else {
+            ipAddress = request.getRemoteAddr();
+        }
+
+        subcontractorPortalService.sendAccessLinkBySubcontractorId(id, ipAddress, request.getHeader("User-Agent"));
+        return ApiResponse.success("Portal access link sent", null);
     }
 
     // ─── Contracts ────────────────────────────────────────────────────────────
