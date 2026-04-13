@@ -356,7 +356,7 @@ export class EmployeeTableComponent implements OnInit {
             next: (companiesRes) => {
               this.companies = companiesRes?.data || [];
               this.selectedCompanyId =
-                this.employeeService['getCompanyId']() ||
+                localStorage.getItem('company_id') ||
                 (this.companies.length ? this.companies[0].id : '');
               if (this.selectedCompanyId) {
                 this.employeeService.setCompanyId(this.selectedCompanyId);

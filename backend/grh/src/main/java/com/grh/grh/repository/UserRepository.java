@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
@@ -27,4 +28,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     
     @Query("SELECT u FROM User u WHERE u.isActive = :isActive")
     java.util.List<User> findAllByIsActive(@Param("isActive") Boolean isActive);
+
+    List<User> findByCompanyIdAndIsActiveTrue(UUID companyId);
+
+    List<User> findByIsSuperAdminTrueAndIsActiveTrue();
 }

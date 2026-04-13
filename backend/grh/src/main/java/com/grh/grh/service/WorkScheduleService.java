@@ -28,6 +28,8 @@ public class WorkScheduleService {
     private final SubcontractorRepository subcontractorRepository;
     private final CompanyRepository companyRepository;
     private final KeycloakUserService keycloakUserService;
+    private final NotificationService notificationService;
+    private final ActivityLogService activityLogService;
 
     // schedule crud
     @Transactional
@@ -73,6 +75,16 @@ public class WorkScheduleService {
         }
 
         log.info("Created work schedule '{}' for company {}", schedule.getName(), companyId);
+        String actorCreate = authentication != null ? authentication.getName() : "System";
+        notificationService.createNotification(
+            companyId,
+            "SCHEDULE_UPDATED",
+            "New schedule created",
+            actorCreate + " created schedule " + schedule.getName() + ".",
+            "SCHEDULE",
+            schedule.getId(),
+            "MEDIUM"
+        );
         return mapToDetailResponse(schedule);
     }
 
@@ -112,6 +124,16 @@ public class WorkScheduleService {
 
         schedule = workScheduleRepository.save(schedule);
         log.info("Updated work schedule: {}", scheduleId);
+        String actorUpdate = authentication != null ? authentication.getName() : "System";
+        notificationService.createNotification(
+            schedule.getCompany().getId(),
+            "SCHEDULE_UPDATED",
+            "Schedule updated",
+            actorUpdate + " updated schedule " + schedule.getName() + ".",
+            "SCHEDULE",
+            schedule.getId(),
+            "MEDIUM"
+        );
         return mapToDetailResponse(schedule);
     }
 
@@ -184,6 +206,33 @@ public class WorkScheduleService {
         log.info("Assigned schedule '{}' to employee {} effective from {}",
                 schedule.getName(), employeeId, assignment.getEffectiveFrom());
 
+        UUID currentUserId = null;
+        try {
+            currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        } catch (Exception ex) {
+            // no-op
+        }
+
+        activityLogService.logActivity(
+            employee.getCompany().getId(),
+            currentUserId,
+            "SCHEDULE_ASSIGNED",
+            "EMPLOYEE_SCHEDULE",
+            assignment.getId()
+        );
+
+        String actor = authentication != null ? authentication.getName() : "System";
+        notificationService.createNotification(
+            employee.getCompany().getId(),
+            "SCHEDULE_ASSIGNED",
+            "Schedule assigned to employee",
+            actor + " assigned schedule " + schedule.getName() + " to "
+                + employee.getFirstName() + " " + employee.getLastName() + ".",
+            "SCHEDULE",
+            assignment.getId(),
+            "HIGH"
+        );
+
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("id", assignment.getId());
         response.put("employeeId", employeeId);
@@ -221,6 +270,33 @@ public class WorkScheduleService {
         assignment = employeeScheduleRepository.save(assignment);
         log.info("Assigned schedule '{}' to subcontractor {} effective from {}",
                 schedule.getName(), subcontractorId, assignment.getEffectiveFrom());
+
+        UUID currentUserId = null;
+        try {
+            currentUserId = keycloakUserService.getCurrentUserId(auth);
+        } catch (Exception ex) {
+            // no-op
+        }
+
+        activityLogService.logActivity(
+            sub.getCompany().getId(),
+            currentUserId,
+            "SCHEDULE_ASSIGNED",
+            "SUBCONTRACTOR_SCHEDULE",
+            assignment.getId()
+        );
+
+        String actor = auth != null ? auth.getName() : "System";
+        notificationService.createNotification(
+            sub.getCompany().getId(),
+            "SCHEDULE_ASSIGNED",
+            "Schedule assigned to subcontractor",
+            actor + " assigned schedule " + schedule.getName() + " to "
+                + resolveSubcontractorName(sub) + ".",
+            "SCHEDULE",
+            sub.getId(),
+            "HIGH"
+        );
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("id", assignment.getId());

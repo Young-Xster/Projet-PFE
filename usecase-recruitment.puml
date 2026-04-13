@@ -1,0 +1,77 @@
+@startuml HR_Module_Recruitment
+skinparam backgroundColor white
+skinparam usecaseBackgroundColor white
+skinparam usecaseBorderColor #2c3e50
+skinparam actorBorderColor #2c3e50
+skinparam usecaseFontColor #2c3e50
+skinparam fontSize 12
+skinparam defaultFontName Arial
+
+title Recruitment & Hiring Module - Detailed Use Case
+
+left to right direction
+
+actor "Super Admin" as superadmin #e74c3c
+actor "HR Manager" as hrmanager #2ecc71
+actor "Job Seeker" as jobseeker #9b59b6
+
+package "Recruitment & Hiring" {
+  usecase "Create Recruitment Request" as UC_REC_CREATE
+  usecase "Approve Recruitment Request" as UC_REC_APPROVE
+  usecase "Reject Recruitment Request" as UC_REC_REJECT
+  usecase "Mark Position as Filled" as UC_REC_FILLED
+  
+  usecase "Create Job Listing" as UC_JOB_CREATE
+  usecase "Update Job Listing" as UC_JOB_UPDATE
+  usecase "Delete Job Listing" as UC_JOB_DELETE
+  
+  usecase "Browse Public Jobs" as UC_JOB_BROWSE
+  usecase "View Job Details" as UC_JOB_DETAIL
+  usecase "Submit Application" as UC_JOB_APPLY
+  
+  usecase "View Candidate Pipeline" as UC_CAND_VIEW
+  usecase "Add Candidate" as UC_CAND_ADD
+  usecase "Update Candidate Stage" as UC_CAND_STAGE
+  usecase "Reject Candidate" as UC_CAND_REJECT
+  usecase "Add Candidate Notes" as UC_CAND_NOTES
+  
+  usecase "Schedule Interview" as UC_INTERVIEW_SCHED
+  usecase "Update Interview Stage" as UC_INTERVIEW_UPDATE
+  
+  usecase "Hire Candidate" as UC_HIRE
+  usecase "AI Match Candidates" as UC_AI_MATCH
+}
+
+superadmin --> UC_REC_CREATE
+superadmin --> UC_REC_APPROVE
+superadmin --> UC_REC_FILLED
+superadmin --> UC_JOB_CREATE
+superadmin --> UC_JOB_UPDATE
+superadmin --> UC_JOB_DELETE
+
+hrmanager --> UC_REC_CREATE
+hrmanager --> UC_REC_APPROVE
+hrmanager --> UC_REC_REJECT
+hrmanager --> UC_REC_FILLED
+hrmanager --> UC_JOB_CREATE
+hrmanager --> UC_JOB_UPDATE
+hrmanager --> UC_JOB_DELETE
+hrmanager --> UC_CAND_VIEW
+hrmanager --> UC_CAND_ADD
+hrmanager --> UC_CAND_STAGE
+hrmanager --> UC_CAND_REJECT
+hrmanager --> UC_CAND_NOTES
+hrmanager --> UC_INTERVIEW_SCHED
+hrmanager --> UC_INTERVIEW_UPDATE
+hrmanager --> UC_HIRE
+hrmanager --> UC_AI_MATCH
+
+jobseeker --> UC_JOB_BROWSE
+jobseeker --> UC_JOB_DETAIL
+jobseeker --> UC_JOB_APPLY
+
+UC_AI_MATCH ..> UC_CAND_VIEW : <<include>>
+UC_HIRE ..> UC_CAND_STAGE : <<include>>
+UC_JOB_APPLY ..> UC_CAND_ADD : <<include>>
+
+@enduml

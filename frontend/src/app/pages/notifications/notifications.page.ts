@@ -1,6 +1,6 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { NotificationEntry, NotificationService } from '../../services/notification/notification.service';
+import { NotificationEntry, NotificationService, NotificationStream } from '../../services/notification/notification.service';
 
 @Component({
   selector: 'app-notifications-page',
@@ -88,6 +88,8 @@ export class NotificationsPage implements OnInit {
   unreadCount = 0;
   loading = false;
   errorMessage = '';
+  private refreshIntervalId: ReturnType<typeof setInterval> | null = null;
+  private stream: NotificationStream | null = null;
 
   constructor(
     private notificationService: NotificationService,
@@ -96,6 +98,26 @@ export class NotificationsPage implements OnInit {
 
   ngOnInit(): void {
     this.loadNotifications();
+    this.refreshIntervalId = setInterval(() => this.loadNotificationsSilently(), 15000);
+    this.stream = this.notificationService.connectStream((entry) => {
+      const existing = this.notifications.find((n) => n.id === entry.id);
+      if (!existing) {
+        this.notifications = [entry, ...this.notifications];
+        if (!entry.isRead) {
+          this.unreadCount += 1;
+        }
+      }
+      this.cdr.detectChanges();
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshIntervalId) {
+      clearInterval(this.refreshIntervalId);
+      this.refreshIntervalId = null;
+    }
+    this.stream?.close();
+    this.stream = null;
   }
 
   loadNotifications(): void {
@@ -156,5 +178,18 @@ export class NotificationsPage implements OnInit {
   private extractError(err: unknown, fallback: string): string {
     const maybeError = err as { error?: { message?: string } };
     return maybeError?.error?.message ?? fallback;
+  }
+
+  private loadNotificationsSilently(): void {
+    this.notificationService.getMyNotifications().subscribe({
+      next: (res) => {
+        this.notifications = res.data ?? [];
+        this.unreadCount = this.notifications.filter((n) => !n.isRead).length;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // silent poll failure
+      },
+    });
   }
 }

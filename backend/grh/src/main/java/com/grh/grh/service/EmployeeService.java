@@ -28,6 +28,7 @@ public class EmployeeService {
     private final LeaveBalanceRepository leaveBalanceRepository;
     private final KeycloakUserService keycloakUserService;
     private final ActivityLogService activityLogService;
+    private final NotificationService notificationService;
 
     public java.util.Map<String, String> verifyPublicEmployee(String email, String nationalId) {
         String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
@@ -112,6 +113,17 @@ public class EmployeeService {
             "EMPLOYEE_CREATED",
             "EMPLOYEE",
             employee.getEmployeeId()
+        );
+
+        String actor = authentication != null ? authentication.getName() : "System";
+        notificationService.createNotification(
+            company.getId(),
+            "EMPLOYEE_CREATED",
+            "New employee added",
+            actor + " added employee " + employee.getFirstName() + " " + employee.getLastName() + ".",
+            "EMPLOYEE",
+            employee.getEmployeeId(),
+            "HIGH"
         );
 
         log.info("Created employee: {} {} (ID: {})", employee.getFirstName(), employee.getLastName(), employee.getEmployeeId());

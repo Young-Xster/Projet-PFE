@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
+import { map, switchMap, tap, timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Employee, ApiResponse, CreateEmployeeRequest } from '../../models/employee.model';
+import { EmployeePerformanceRating } from '../../models/performance.model';
 
 @Injectable({
   providedIn: 'root',
@@ -20,7 +21,7 @@ export class EmployeeService {
     return localStorage.getItem('jwt_token');
   }
 
-  private getCompanyId(): string | null {
+  private getCompanyIdFromStorage(): string | null {
     return localStorage.getItem(this.companyStorageKey);
   }
 
@@ -35,13 +36,13 @@ export class EmployeeService {
 
   private resolveCompanyId(companyId?: string): Observable<string> {
     if (companyId) {
-      if (this.getCompanyId() !== companyId) {
+      if (this.getCompanyIdFromStorage() !== companyId) {
         this.setCompanyId(companyId);
       }
       return of(companyId);
     }
 
-    const storedCompanyId = this.getCompanyId();
+    const storedCompanyId = this.getCompanyIdFromStorage();
     if (storedCompanyId) {
       return of(storedCompanyId);
     }
@@ -49,11 +50,9 @@ export class EmployeeService {
     return this.http
       .get<ApiResponse<{ companyContext: { companyId?: string } | null }>>(
         `${this.baseUrl}/auth/me`,
-        {
-          headers: this.getHeaders(),
-        },
       )
       .pipe(
+        timeout(10000),
         map((res) => res.data?.companyContext?.companyId ?? ''),
         switchMap((contextCompanyId) => {
           if (contextCompanyId) {
@@ -62,10 +61,9 @@ export class EmployeeService {
           }
 
           return this.http
-            .get<ApiResponse<Array<{ id: string }>>>(`${this.baseUrl}/companies`, {
-              headers: this.getHeaders(),
-            })
+            .get<ApiResponse<Array<{ id: string }>>>(`${this.baseUrl}/companies`)
             .pipe(
+              timeout(10000),
               map((companiesRes) => companiesRes.data?.[0]?.id ?? ''),
               tap((firstCompanyId) => {
                 if (firstCompanyId) {
@@ -85,6 +83,23 @@ export class EmployeeService {
 
   getAllEmployeesByCompany(companyId?: string): Observable<Employee[]> {
     return this.getEmployeesByCompany(companyId);
+  }
+
+  rateAllPerformances(companyId?: string): Observable<EmployeePerformanceRating[]> {
+    const cid = companyId || localStorage.getItem('company_id');
+    if (!cid) {
+      return of([]);
+    }
+    return this.http
+      .post<ApiResponse<EmployeePerformanceRating[]>>(
+        `${environment.apiUrl}/performance-reviews/company/${cid}/rate-all`, 
+        {},
+        { headers: this.getHeaders() }
+      )
+      .pipe(
+        timeout(60000),
+        map((res) => res.data),
+      );
   }
 
   getEmployeesByCompany(companyId?: string): Observable<Employee[]> {

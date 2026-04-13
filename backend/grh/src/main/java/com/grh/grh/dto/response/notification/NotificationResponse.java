@@ -15,6 +15,7 @@ public class NotificationResponse {
     private String type;
     private String title;
     private String message;
+    private String importance;
     private String targetModule;
     private UUID targetId;
     private Boolean isRead;

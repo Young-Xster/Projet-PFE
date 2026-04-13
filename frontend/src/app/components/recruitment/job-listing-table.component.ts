@@ -222,7 +222,7 @@ export class JobListingTableComponent implements OnInit {
             next: (companiesRes) => {
               this.companies = companiesRes?.data || [];
               this.selectedCompanyId =
-                this.employeeService['getCompanyId']() ||
+                localStorage.getItem('company_id') ||
                 (this.companies.length ? this.companies[0].id : '');
 
               this.companyId = this.selectedCompanyId;
@@ -237,13 +237,13 @@ export class JobListingTableComponent implements OnInit {
             },
           });
         } else {
-          this.selectedCompanyId = res?.data?.companyContext?.companyId || this.employeeService['getCompanyId']() || '';
+          this.selectedCompanyId = res?.data?.companyContext?.companyId || localStorage.getItem('company_id') || '';
           this.companyId = this.selectedCompanyId;
           this.loadJobs();
         }
       },
       error: () => {
-        this.selectedCompanyId = this.employeeService['getCompanyId']() || '';
+        this.selectedCompanyId = localStorage.getItem('company_id') || '';
         this.companyId = this.selectedCompanyId;
         this.loadJobs();
       },

@@ -62,7 +62,8 @@ public class SecurityConfig {
                     "/api/v1/leave-types/public/**",
                     "/api/v1/job-listings/public/**",
                     "/api/v1/candidates/public/**",
-                        "/api/v1/subcontractors/portal/public/**",
+                    "/api/v1/subcontractors/portal/public/**",
+                    "/api/v1/notifications/stream",
                     "/files/**"
                 ).permitAll()
                 

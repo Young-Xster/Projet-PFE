@@ -13,6 +13,7 @@ import { AddDepartmentPage } from './pages/departments/add-department.page';
 import { EditDepartmentPage } from './pages/departments/edit-department.page';
 import { DepartmentDetailPage } from './pages/departments/department-detail.page';
 import { AttendanceTablePage } from './pages/attendance/attendance-table.page';
+import { PerformancePage } from './pages/performance/performance.page';
 
 import { JobListingTablePage } from './pages/recruitment/jobs/job-listing-table.page';
 import { CandidateTrackerPage } from './pages/recruitment/candidates/candidate-tracker.page';
@@ -132,6 +133,11 @@ export const routes: Routes = [
           breadcrumb: 'Candidates',
           description: 'Candidates content will appear here.',
         },
+      },
+      {
+        path: 'performance',
+        component: PerformancePage,
+        data: { pageTitle: 'Performance', breadcrumb: 'Performance' },
       },
       {
         path: 'leaves',

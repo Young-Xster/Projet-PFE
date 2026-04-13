@@ -24,5 +24,7 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
         @Param("endDate") LocalDate endDate
     );
 
+    List<ShiftAssignment> findByCompanyIdAndShiftDateBetween(UUID companyId, LocalDate startDate, LocalDate endDate);
+
     List<ShiftAssignment> findByStatus(String status);
 }

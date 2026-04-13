@@ -37,6 +37,10 @@ public class Notification {
     @Column(name = "target_id")
     private UUID targetId; // navigate to this record when clicked
 
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private String importance = "MEDIUM";
+
     @Column(name = "is_read", nullable = false)
     @Builder.Default
     private Boolean isRead = false;

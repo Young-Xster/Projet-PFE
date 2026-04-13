@@ -1,0 +1,62 @@
+@startuml HR_Module_Notifications_Documents
+skinparam backgroundColor white
+skinparam usecaseBackgroundColor white
+skinparam usecaseBorderColor #2c3e50
+skinparam actorBorderColor #2c3e50
+skinparam usecaseFontColor #2c3e50
+skinparam fontSize 12
+skinparam defaultFontName Arial
+
+title Notifications & Document Management - Detailed Use Case
+
+left to right direction
+
+actor "Super Admin" as superadmin #e74c3c
+actor "HR Manager" as hrmanager #2ecc71
+actor "Subcontractor" as subcontractor #1abc9c
+
+package "Notifications" {
+  usecase "View Notifications" as UC_NOTIF_VIEW
+  usecase "View Unread Count" as UC_NOTIF_COUNT
+  usecase "Mark as Read" as UC_NOTIF_READ
+  usecase "Mark All as Read" as UC_NOTIF_READ_ALL
+  usecase "Receive Real-time Updates (SSE)" as UC_NOTIF_REALTIME
+}
+
+package "Document Management" {
+  usecase "Upload Document" as UC_DOC_UPLOAD
+  usecase "Download Document" as UC_DOC_DOWNLOAD
+  usecase "Update Document" as UC_DOC_UPDATE
+  usecase "Delete Document" as UC_DOC_DELETE
+  usecase "Log Document Access" as UC_DOC_LOG
+}
+
+superadmin --> UC_NOTIF_VIEW
+superadmin --> UC_NOTIF_COUNT
+superadmin --> UC_NOTIF_READ
+superadmin --> UC_NOTIF_READ_ALL
+superadmin --> UC_NOTIF_REALTIME
+
+superadmin --> UC_DOC_UPLOAD
+superadmin --> UC_DOC_DOWNLOAD
+superadmin --> UC_DOC_UPDATE
+superadmin --> UC_DOC_DELETE
+
+hrmanager --> UC_NOTIF_VIEW
+hrmanager --> UC_NOTIF_COUNT
+hrmanager --> UC_NOTIF_READ
+hrmanager --> UC_NOTIF_READ_ALL
+hrmanager --> UC_NOTIF_REALTIME
+
+hrmanager --> UC_DOC_UPLOAD
+hrmanager --> UC_DOC_DOWNLOAD
+hrmanager --> UC_DOC_UPDATE
+hrmanager --> UC_DOC_DELETE
+hrmanager --> UC_DOC_LOG
+
+subcontractor --> UC_NOTIF_VIEW
+subcontractor --> UC_NOTIF_READ
+
+UC_DOC_LOG ..> UC_DOC_DOWNLOAD : <<include>>
+
+@enduml

@@ -13,10 +13,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   };
 
   const withToken = (request: typeof req) => {
-    if (request.headers.has('Authorization')) {
-      return request;
-    }
-
     const token = resolveToken();
     if (!token) {
       return request;

@@ -1,0 +1,70 @@
+@startuml HR_Module_Performance_Schedule
+skinparam backgroundColor white
+skinparam usecaseBackgroundColor white
+skinparam usecaseBorderColor #2c3e50
+skinparam actorBorderColor #2c3e50
+skinparam usecaseFontColor #2c3e50
+skinparam fontSize 12
+skinparam defaultFontName Arial
+
+title Performance & Scheduling Module - Detailed Use Case
+
+left to right direction
+
+actor "Super Admin" as superadmin #e74c3c
+actor "HR Manager" as hrmanager #2ecc71
+
+package "Performance Management" {
+  usecase "Create Performance Review" as UC_PERF_CREATE
+  usecase "Update Performance Review" as UC_PERF_UPDATE
+  usecase "Delete Performance Review" as UC_PERF_DELETE
+  usecase "View Performance Reviews" as UC_PERF_VIEW
+  usecase "Acknowledge Review" as UC_PERF_ACK
+  usecase "Query by Employee" as UC_PERF_EMP
+  usecase "Query by Company" as UC_PERF_COMP
+  usecase "Query by Status" as UC_PERF_STATUS
+  usecase "AI Performance Rating" as UC_AI_PERF
+}
+
+package "Work Schedules & Shifts" {
+  usecase "Create Schedule Template" as UC_SCHED_CREATE
+  usecase "Update Schedule Template" as UC_SCHED_UPDATE
+  usecase "Delete Schedule Template" as UC_SCHED_DELETE
+  usecase "View Schedules" as UC_SCHED_VIEW
+  
+  usecase "Assign Schedule to Employee" as UC_SCHED_ASSIGN_EMP
+  usecase "Assign Schedule to Subcontractor" as UC_SCHED_ASSIGN_SUB
+  
+  usecase "Create Manual Shift" as UC_SHIFT_CREATE
+  usecase "View Shifts" as UC_SHIFT_VIEW
+  usecase "Cancel Shift" as UC_SHIFT_CANCEL
+}
+
+superadmin --> UC_PERF_CREATE
+superadmin --> UC_PERF_UPDATE
+superadmin --> UC_PERF_DELETE
+superadmin --> UC_PERF_VIEW
+
+hrmanager --> UC_PERF_CREATE
+hrmanager --> UC_PERF_UPDATE
+hrmanager --> UC_PERF_DELETE
+hrmanager --> UC_PERF_VIEW
+hrmanager --> UC_PERF_ACK
+hrmanager --> UC_PERF_EMP
+hrmanager --> UC_PERF_COMP
+hrmanager --> UC_PERF_STATUS
+hrmanager --> UC_AI_PERF
+
+hrmanager --> UC_SCHED_CREATE
+hrmanager --> UC_SCHED_UPDATE
+hrmanager --> UC_SCHED_DELETE
+hrmanager --> UC_SCHED_VIEW
+hrmanager --> UC_SCHED_ASSIGN_EMP
+hrmanager --> UC_SCHED_ASSIGN_SUB
+hrmanager --> UC_SHIFT_CREATE
+hrmanager --> UC_SHIFT_VIEW
+hrmanager --> UC_SHIFT_CANCEL
+
+UC_AI_PERF ..> UC_PERF_CREATE : <<include>>
+
+@enduml

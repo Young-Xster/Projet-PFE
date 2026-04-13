@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { environment } from '../../environments/environment';
-import { NotificationService } from '../services/notification/notification.service';
+import { NotificationService, NotificationStream } from '../services/notification/notification.service';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -125,6 +125,8 @@ export class TopPanelComponent implements OnInit {
   subLabel = 'HR Manager';
   initials = 'U';
   unreadCount = 0;
+  private unreadRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
+  private stream: NotificationStream | null = null;
 
   constructor(
     private http: HttpClient,
@@ -156,6 +158,23 @@ export class TopPanelComponent implements OnInit {
     this.router.events.subscribe(() => {
       this.loadUnreadCount();
     });
+
+    this.unreadRefreshIntervalId = setInterval(() => this.loadUnreadCount(), 15000);
+
+    this.stream = this.notificationService.connectStream((entry) => {
+      if (!entry.isRead) {
+        this.unreadCount += 1;
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.unreadRefreshIntervalId) {
+      clearInterval(this.unreadRefreshIntervalId);
+      this.unreadRefreshIntervalId = null;
+    }
+    this.stream?.close();
+    this.stream = null;
   }
 
   private loadUnreadCount(): void {

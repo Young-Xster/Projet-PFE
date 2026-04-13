@@ -7,30 +7,71 @@ class EmployeePerformanceRater:
     firstName: str
     lastName: str
     jobtitle: str
+    department: str
+    totalWorkingDays: int
+    presentDays: int
     lateArrivalsCount: int
+    totalLateMinutes: int
     absencesCount: int
+    earlyDeparturesCount: int
+    totalEarlyDepartureMinutes: int
     overtimeMinutes: int
     sickLeaveDays: int
+    totalLeaveDays: int
     periodLabel: str
 
-    def __init__(self, employeeId: UUID, firstName: str, lastName: str, jobTitle: str, lateArrivalsCount: int, absencesCount: int, overtimeMinutes: int, sickLeaveDays: int, periodLabel: str):
+    def __init__(self, employeeId: UUID, firstName: str, lastName: str, jobTitle: str, department: str,
+                 totalWorkingDays: int, presentDays: int, lateArrivalsCount: int, totalLateMinutes: int,
+                 absencesCount: int, earlyDeparturesCount: int, totalEarlyDepartureMinutes: int,
+                 overtimeMinutes: int, sickLeaveDays: int, totalLeaveDays: int, periodLabel: str):
         self.employeeId = employeeId
         self.firstName = firstName
         self.lastName = lastName
         self.jobTitle = jobTitle
+        self.department = department
+        self.totalWorkingDays = totalWorkingDays
+        self.presentDays = presentDays
         self.lateArrivalsCount = lateArrivalsCount
+        self.totalLateMinutes = totalLateMinutes
         self.absencesCount = absencesCount
+        self.earlyDeparturesCount = earlyDeparturesCount
+        self.totalEarlyDepartureMinutes = totalEarlyDepartureMinutes
         self.overtimeMinutes = overtimeMinutes
         self.sickLeaveDays = sickLeaveDays
+        self.totalLeaveDays = totalLeaveDays
         self.periodLabel = periodLabel
         self.score = 0.0
         self.reasoning = ""
 
     def compute_rating(self):
         client = Client()
-        systemPrompt = "You are an HR specialist evaluating a employee's performance based on their job title, late arrivals, absences, overtime, and sick leave. The rating is from 1 to 100 and it's float with 100 being the best performance and 1 being the worst performance. Your output should exactly be under this format : 'RATING: x.xx | REASON: your reason here(keep it short and concise)'"
-        prompt = f"Period: {self.periodLabel}\nJob: {self.jobTitle}\n\nLate Arrivals: {self.lateArrivalsCount}\nAbsences: {self.absencesCount}\nOvertime: {self.overtimeMinutes} minutes\nSick Leave: {self.sickLeaveDays} days\n\nRate the employee's performance on a scale of 1 to 100, where 1 means poor performance and 100 means excellent performance."
-        response = client.chat.completions.create(model="moonshotai/kimi-k2-instruct", provider="Groq" , messages=[{"role": "system", "content": systemPrompt}, {"role": "user", "content": prompt}])
+        systemPrompt = ("You are an HR specialist evaluating an employee's performance based on attendance and leave data. "
+                        "The rating is from 1 to 100 (float, 2 decimals), where 100 is excellent and 1 is poor. "
+                        "Consider: punctuality (late arrivals), absences, early departures, overtime contribution, and sick leave. "
+                        "Your output MUST follow this exact format: "
+                        "'RATING: x.xx | REASON: short reason (max 2 sentences)'")
+        
+        prompt = (f"Period: {self.periodLabel}\n"
+                  f"Job: {self.jobTitle}\n"
+                  f"Department: {self.department}\n\n"
+                  f"ATTENDANCE METRICS:\n"
+                  f"- Total Working Days: {self.totalWorkingDays}\n"
+                  f"- Present Days: {self.presentDays}\n"
+                  f"- Late Arrivals: {self.lateArrivalsCount} times ({self.totalLateMinutes} min total)\n"
+                  f"- Absences: {self.absencesCount} days\n"
+                  f"- Early Departures: {self.earlyDeparturesCount} times ({self.totalEarlyDepartureMinutes} min total)\n"
+                  f"- Overtime: {self.overtimeMinutes} minutes\n"
+                  f"- Sick Leave: {self.sickLeaveDays} days\n"
+                  f"- Total Leave: {self.totalLeaveDays} days\n\n"
+                  f"Rate this employee's performance from 1 to 100 based on these metrics.")
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": systemPrompt},
+                {"role": "user", "content": prompt}
+            ]
+        )
         try:
             content = response.choices[0].message.content.strip()
             match = re.search(r'RATING:\s*([\d.]+)', content)
