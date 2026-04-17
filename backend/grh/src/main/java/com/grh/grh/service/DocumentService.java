@@ -12,8 +12,11 @@ import com.grh.grh.repository.CompanyRepository;
 import com.grh.grh.repository.EmployeeDocumentRepository;
 import com.grh.grh.repository.EmployeeRepository;
 import com.grh.grh.repository.UserRepository;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.security.core.Authentication;
@@ -52,6 +55,7 @@ public class DocumentService {
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final KeycloakUserService keycloakUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public DocumentResponse uploadDocument(MultipartFile file,
@@ -96,6 +100,30 @@ public class DocumentService {
             .build();
 
         document = documentRepository.save(document);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        String employeeName = employee.getFirstName() + " " + employee.getLastName();
+
+        // Publish notification event (document uploads are important for compliance)
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(companyId)
+            .type("SYSTEM")
+            .title("Document Uploaded")
+            .message(request.getDocumentType().replace("_", " ").toUpperCase() + " uploaded for " + employeeName)
+            .targetModule("DOCUMENT")
+            .targetId(document.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(companyId)
+            .userId(currentUserId)
+            .action("DOCUMENT_UPLOADED")
+            .entityType("DOCUMENT")
+            .entityId(document.getId())
+            .build());
+
         log.info("Uploaded document: {} for employee: {}", document.getId(), employee.getEmployeeId());
         return mapToResponse(document);
     }
@@ -128,6 +156,18 @@ public class DocumentService {
         if (request.getDocumentName() != null) document.setDocumentName(request.getDocumentName());
 
         document = documentRepository.save(document);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(document.getCompany().getId())
+            .userId(currentUserId)
+            .action("DOCUMENT_UPDATED")
+            .entityType("DOCUMENT")
+            .entityId(document.getId())
+            .build());
+
         log.info("Updated document: {}", documentId);
         return mapToResponse(document);
     }
@@ -138,8 +178,22 @@ public class DocumentService {
             .orElseThrow(() -> new IllegalArgumentException("Document not found"));
         validateCompanyAccess(document.getCompany().getId(), authentication);
 
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        UUID companyId = document.getCompany().getId();
+        UUID documentEntityId = document.getId();
+
         fileStorageService.deleteFile(document.getDocumentPath());
         documentRepository.delete(document);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(companyId)
+            .userId(currentUserId)
+            .action("DOCUMENT_DELETED")
+            .entityType("DOCUMENT")
+            .entityId(documentEntityId)
+            .build());
+
         log.info("Deleted document: {}", documentId);
     }
 

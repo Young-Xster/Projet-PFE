@@ -25,4 +25,6 @@ public interface SubcontractorRepository extends JpaRepository<Subcontractor, UU
         String contactEmail,
         String status
     );
+
+    Optional<Subcontractor> findFirstByContactEmailIgnoreCaseOrderByCreatedAtDesc(String contactEmail);
 }

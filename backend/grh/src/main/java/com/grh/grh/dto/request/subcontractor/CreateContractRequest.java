@@ -1,5 +1,6 @@
 package com.grh.grh.dto.request.subcontractor;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -18,7 +19,7 @@ public class CreateContractRequest {
     @NotNull(message = "End date is required")
     private LocalDate endDate;
 
-    @NotNull(message = "Payment type is required")
+    @NotBlank(message = "Payment type is required")
     private String paymentType; 
 
     @NotNull(message = "Amount is required")

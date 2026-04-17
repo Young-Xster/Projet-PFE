@@ -60,12 +60,18 @@ public class SubcontractorPortalService {
 
         String normalizedEmail = normalizeEmail(request.getContactEmail());
         Subcontractor subcontractor = subcontractorRepository
-            .findFirstByContactEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(normalizedEmail, ACTIVE_STATUS)
+            .findFirstByContactEmailIgnoreCaseOrderByCreatedAtDesc(normalizedEmail)
             .orElse(null);
 
         if (subcontractor == null) {
             logAttempt(null, null, normalizedEmail, ipAddress, userAgent, "REJECTED", "SUBCONTRACTOR_NOT_FOUND");
-            throw new IllegalArgumentException("No active subcontractor found for this email");
+            throw new IllegalArgumentException("Email is not on record");
+        }
+
+        String status = subcontractor.getStatus();
+        if (!"ACTIVE".equalsIgnoreCase(status) && !"TERMINATED".equalsIgnoreCase(status)) {
+            logAttempt(subcontractor.getCompany(), subcontractor, normalizedEmail, ipAddress, userAgent, "REJECTED", "SUBCONTRACTOR_INACTIVE");
+            throw new IllegalArgumentException("This subcontractor account is not active or terminated");
         }
 
         Company company = subcontractor.getCompany();

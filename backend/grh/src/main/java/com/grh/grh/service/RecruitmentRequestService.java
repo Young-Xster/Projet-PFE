@@ -3,9 +3,12 @@ package com.grh.grh.service;
 import com.grh.grh.dto.request.recruitment.CreateRecruitmentRequestRequest;
 import com.grh.grh.dto.response.recruitment.RecruitmentRequestResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +29,7 @@ public class RecruitmentRequestService {
     private final DepartmentRepository departmentRepository;
     private final UserRepository userRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ═══════════════════════════════════════════════════════════════════════
     // CREATE
@@ -64,6 +68,32 @@ public class RecruitmentRequestService {
                 .build();
 
         rr = recruitmentRequestRepository.save(rr);
+
+        UUID currentUserId = null;
+        try {
+            currentUserId = keycloakUserService.getCurrentUserId(auth);
+        } catch (Exception ignored) {}
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(company.getId())
+            .type("RECRUITMENT_REQUEST_CREATED")
+            .title("New Recruitment Request")
+            .message("A recruitment request has been created for " + position.getTitle() + " in " + department.getName())
+            .targetModule("RECRUITMENT")
+            .targetId(rr.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(currentUserId)
+            .action("RECRUITMENT_REQUEST_CREATED")
+            .entityType("RECRUITMENT_REQUEST")
+            .entityId(rr.getId())
+            .build());
+
         log.info("Created recruitment request for position '{}' in company {}", position.getTitle(), companyId);
         return mapToResponse(rr);
     }
@@ -128,6 +158,31 @@ public class RecruitmentRequestService {
         rr.setApprovedAt(OffsetDateTime.now());
         rr = recruitmentRequestRepository.save(rr);
 
+        UUID currentUserId = null;
+        try {
+            currentUserId = keycloakUserService.getCurrentUserId(auth);
+        } catch (Exception ignored) {}
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(rr.getCompany().getId())
+            .type("RECRUITMENT_REQUEST_APPROVED")
+            .title("Recruitment Request Approved")
+            .message("The recruitment request for " + rr.getPosition().getTitle() + " has been approved")
+            .targetModule("RECRUITMENT")
+            .targetId(rr.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(rr.getCompany().getId())
+            .userId(currentUserId)
+            .action("RECRUITMENT_REQUEST_APPROVED")
+            .entityType("RECRUITMENT_REQUEST")
+            .entityId(rr.getId())
+            .build());
+
         log.info("Approved recruitment request: {}", id);
         return mapToResponse(rr);
     }
@@ -145,6 +200,31 @@ public class RecruitmentRequestService {
         rr.setStatus("cancelled");
         rr = recruitmentRequestRepository.save(rr);
 
+        UUID currentUserId = null;
+        try {
+            currentUserId = keycloakUserService.getCurrentUserId(auth);
+        } catch (Exception ignored) {}
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(rr.getCompany().getId())
+            .type("RECRUITMENT_REQUEST_REJECTED")
+            .title("Recruitment Request Rejected")
+            .message("The recruitment request for " + rr.getPosition().getTitle() + " has been rejected")
+            .targetModule("RECRUITMENT")
+            .targetId(rr.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(rr.getCompany().getId())
+            .userId(currentUserId)
+            .action("RECRUITMENT_REQUEST_REJECTED")
+            .entityType("RECRUITMENT_REQUEST")
+            .entityId(rr.getId())
+            .build());
+
         log.info("Rejected recruitment request: {}", id);
         return mapToResponse(rr);
     }
@@ -157,6 +237,31 @@ public class RecruitmentRequestService {
 
         rr.setStatus("filled");
         rr = recruitmentRequestRepository.save(rr);
+
+        UUID currentUserId = null;
+        try {
+            currentUserId = keycloakUserService.getCurrentUserId(auth);
+        } catch (Exception ignored) {}
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(rr.getCompany().getId())
+            .type("RECRUITMENT_REQUEST_FILLED")
+            .title("Recruitment Request Filled")
+            .message("The recruitment request for " + rr.getPosition().getTitle() + " has been marked as filled")
+            .targetModule("RECRUITMENT")
+            .targetId(rr.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(rr.getCompany().getId())
+            .userId(currentUserId)
+            .action("RECRUITMENT_REQUEST_FILLED")
+            .entityType("RECRUITMENT_REQUEST")
+            .entityId(rr.getId())
+            .build());
 
         log.info("Marked recruitment request as filled: {}", id);
         return mapToResponse(rr);

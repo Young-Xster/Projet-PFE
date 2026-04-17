@@ -99,3 +99,58 @@ td {
 	background: #fee2e2;
 	color: #991b1b;
 }
+
+.portal-section {
+	margin-top: 16px;
+}
+
+.tabs {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 16px;
+	border-bottom: 2px solid #e5e7eb;
+	padding-bottom: 0;
+}
+
+.tab-button {
+	padding: 10px 20px;
+	background: transparent;
+	color: #475569;
+	border: none;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -2px;
+	border-radius: 8px 8px 0 0;
+	cursor: pointer;
+	font-weight: 500;
+	transition: all 0.2s;
+}
+
+.tab-button:hover {
+	background: #f1f5f9;
+	color: #0f172a;
+}
+
+.tab-button.active {
+	background: #f1f5f9;
+	color: #0f172a;
+	border-bottom-color: #0f172a;
+}
+
+.tab-content {
+	animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.info-text {
+	color: #64748b;
+	font-size: 13px;
+	margin-bottom: 12px;
+}

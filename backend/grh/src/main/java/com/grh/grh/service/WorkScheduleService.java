@@ -5,9 +5,11 @@ import com.grh.grh.dto.request.schedule.UpdateWorkScheduleRequest;
 import com.grh.grh.dto.response.schedule.WorkScheduleListResponse;
 import com.grh.grh.dto.response.schedule.WorkScheduleResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,7 @@ public class WorkScheduleService {
     private final KeycloakUserService keycloakUserService;
     private final NotificationService notificationService;
     private final ActivityLogService activityLogService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // schedule crud
     @Transactional
@@ -85,6 +88,17 @@ public class WorkScheduleService {
             schedule.getId(),
             "MEDIUM"
         );
+
+        // Publish activity log event
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(companyId)
+            .userId(currentUserId)
+            .action("SCHEDULE_CREATED")
+            .entityType("SCHEDULE")
+            .entityId(schedule.getId())
+            .build());
+
         return mapToDetailResponse(schedule);
     }
 
@@ -134,6 +148,17 @@ public class WorkScheduleService {
             schedule.getId(),
             "MEDIUM"
         );
+
+        // Publish activity log event
+        UUID currentUserIdUpdate = keycloakUserService.getCurrentUserId(authentication);
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(schedule.getCompany().getId())
+            .userId(currentUserIdUpdate)
+            .action("SCHEDULE_UPDATED")
+            .entityType("SCHEDULE")
+            .entityId(schedule.getId())
+            .build());
+
         return mapToDetailResponse(schedule);
     }
 
@@ -168,6 +193,17 @@ public class WorkScheduleService {
         }
 
         workScheduleRepository.delete(schedule);
+
+        // Publish activity log event
+        UUID currentUserIdDelete = keycloakUserService.getCurrentUserId(authentication);
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(schedule.getCompany().getId())
+            .userId(currentUserIdDelete)
+            .action("SCHEDULE_DELETED")
+            .entityType("SCHEDULE")
+            .entityId(scheduleId)
+            .build());
+
         log.info("Deleted work schedule: {}", scheduleId);
     }
 

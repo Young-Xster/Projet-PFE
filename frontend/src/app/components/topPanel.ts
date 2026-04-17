@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { environment } from '../../environments/environment';
 import { NotificationService, NotificationStream } from '../services/notification/notification.service';
+import { AuthService } from '../core/auth/auth.service';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -132,17 +133,26 @@ export class TopPanelComponent implements OnInit {
     private http: HttpClient,
     private notificationService: NotificationService,
     private router: Router,
+    private authService: AuthService,
   ) {}
 
   ngOnInit(): void {
     if (typeof window === 'undefined') return;
 
+    // Initialize with Keycloak username immediately (available synchronously after login)
+    const keycloakUsername = this.authService.getUsername();
+    if (keycloakUsername) {
+      this.displayName = keycloakUsername;
+      this.initials = this.makeInitials(this.displayName);
+    }
+
+    // Then update from API for full context (company name, etc.)
     this.http.get<ApiResponse<UserContextResponse>>(this.authMeUrl).subscribe({
       next: (res) => {
         const u = res?.data;
         if (!u) return;
 
-        this.displayName = u.username || 'User';
+        this.displayName = u.username || this.displayName || 'User';
         this.initials = this.makeInitials(this.displayName);
         this.subLabel = u.isSuperAdmin
           ? 'Super Admin'

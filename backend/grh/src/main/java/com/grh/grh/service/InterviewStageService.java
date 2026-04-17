@@ -3,9 +3,12 @@ package com.grh.grh.service;
 import com.grh.grh.dto.request.recruitment.CreateInterviewStageRequest;
 import com.grh.grh.dto.response.recruitment.InterviewStageResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +28,7 @@ public class InterviewStageService {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ═══════════════════════════════════════════════════════════════════════
     // CREATE
@@ -55,6 +59,30 @@ public class InterviewStageService {
                 .build();
 
         stage = interviewStageRepository.save(stage);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+        String candidateName = candidate.getFirstName() + " " + candidate.getLastName();
+
+        // Publish notification event (interviews are important for HR scheduling)
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(company.getId())
+            .type("SYSTEM")
+            .title("Interview Scheduled")
+            .message("Interview '" + stage.getStageName() + "' scheduled for " + candidateName)
+            .targetModule("RECRUITMENT")
+            .targetId(stage.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(currentUserId)
+            .action("INTERVIEW_CREATED")
+            .entityType("INTERVIEW")
+            .entityId(stage.getId())
+            .build());
+
         log.info("Created interview stage '{}' for candidate {}", stage.getStageName(), candidate.getId());
         return mapToResponse(stage);
     }
@@ -84,6 +112,16 @@ public class InterviewStageService {
         }
 
         stage = interviewStageRepository.save(stage);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(stage.getCompany().getId())
+            .userId(keycloakUserService.getCurrentUserId(auth))
+            .action("INTERVIEW_UPDATED")
+            .entityType("INTERVIEW")
+            .entityId(stage.getId())
+            .build());
+
         log.info("Updated interview stage: {} → status={}", stageId, stage.getStatus());
         return mapToResponse(stage);
     }
@@ -101,6 +139,28 @@ public class InterviewStageService {
         stage.setScheduledAt(newDate);
         stage.setStatus("scheduled");
         stage = interviewStageRepository.save(stage);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event (rescheduling is important for interviewers)
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(stage.getCompany().getId())
+            .type("SYSTEM")
+            .title("Interview Rescheduled")
+            .message("Interview has been rescheduled to " + newDate)
+            .targetModule("RECRUITMENT")
+            .targetId(stage.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(stage.getCompany().getId())
+            .userId(currentUserId)
+            .action("INTERVIEW_RESCHEDULED")
+            .entityType("INTERVIEW")
+            .entityId(stage.getId())
+            .build());
 
         log.info("Rescheduled interview stage {} to {}", stageId, newDate);
         return mapToResponse(stage);
@@ -162,6 +222,16 @@ public class InterviewStageService {
         }
 
         interviewStageRepository.delete(stage);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(stage.getCompany().getId())
+            .userId(keycloakUserService.getCurrentUserId(auth))
+            .action("INTERVIEW_DELETED")
+            .entityType("INTERVIEW")
+            .entityId(stage.getId())
+            .build());
+
         log.info("Deleted interview stage: {}", stageId);
     }
 

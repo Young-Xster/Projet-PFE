@@ -5,10 +5,12 @@ import com.grh.grh.dto.request.leave.UpdateLeaveTypeRequest;
 import com.grh.grh.dto.response.leave.LeaveTypeResponse;
 import com.grh.grh.entity.Company;
 import com.grh.grh.entity.LeaveType;
+import com.grh.grh.event.ActivityLogEvent;
 import com.grh.grh.repository.CompanyRepository;
 import com.grh.grh.repository.LeaveTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class LeaveTypeService {
     private final LeaveTypeRepository leaveTypeRepository;
     private final CompanyRepository companyRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public LeaveTypeResponse createLeaveType(CreateLeaveTypeRequest request, Authentication authentication) {
@@ -52,6 +55,18 @@ public class LeaveTypeService {
             .build();
 
         leaveType = leaveTypeRepository.save(leaveType);
+
+        UUID currentUserId = resolveCurrentUserId(authentication);
+
+        // Publish activity log event (leave type changes affect employee balances)
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(currentUserId)
+            .action("LEAVE_TYPE_CREATED")
+            .entityType("LEAVE_TYPE")
+            .entityId(leaveType.getId())
+            .build());
+
         log.info("Created leave type: {} for company: {}", leaveType.getName(), company.getName());
         return mapToResponse(leaveType);
     }
@@ -70,6 +85,18 @@ public class LeaveTypeService {
         if (request.getMaxDaysPerYear() != null) leaveType.setMaxDaysPerYear(request.getMaxDaysPerYear().intValue());
 
         leaveType = leaveTypeRepository.save(leaveType);
+
+        UUID currentUserId = resolveCurrentUserId(authentication);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(leaveType.getCompany().getId())
+            .userId(currentUserId)
+            .action("LEAVE_TYPE_UPDATED")
+            .entityType("LEAVE_TYPE")
+            .entityId(leaveType.getId())
+            .build());
+
         log.info("Updated leave type: {}", leaveType.getName());
         return mapToResponse(leaveType);
     }
@@ -100,7 +127,20 @@ public class LeaveTypeService {
             throw new IllegalStateException("Cannot delete leave type with existing leave requests");
         }
 
+        UUID currentUserId = resolveCurrentUserId(authentication);
+        UUID companyId = leaveType.getCompany().getId();
+
         leaveTypeRepository.delete(leaveType);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(companyId)
+            .userId(currentUserId)
+            .action("LEAVE_TYPE_DELETED")
+            .entityType("LEAVE_TYPE")
+            .entityId(leaveTypeId)
+            .build());
+
         log.info("Deleted leave type: {}", leaveType.getName());
     }
 
@@ -181,6 +221,14 @@ public class LeaveTypeService {
         UUID userCompanyId = keycloakUserService.getCurrentUserCompanyId(authentication);
         if (userCompanyId == null || !userCompanyId.equals(companyId)) {
             throw new SecurityException("Access denied");
+        }
+    }
+
+    private UUID resolveCurrentUserId(Authentication authentication) {
+        try {
+            return keycloakUserService.getCurrentUserId(authentication);
+        } catch (Exception ex) {
+            return null;
         }
     }
 

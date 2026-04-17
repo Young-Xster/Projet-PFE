@@ -3,9 +3,12 @@ package com.grh.grh.service;
 import com.grh.grh.dto.request.subcontractor.*;
 import com.grh.grh.dto.response.subcontractor.*;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,7 @@ public class SubcontractorService {
     private final CompanyRepository companyRepository;
     private final FileStorageService fileStorageService;
     private final KeycloakUserService keycloakUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public SubcontractorResponse create(CreateSubcontractorRequest request, Authentication auth) {
@@ -70,6 +74,30 @@ public class SubcontractorService {
             .build();
 
         sub = subcontractorRepository.save(sub);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+        String subName = resolveDisplayName(sub);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(company.getId())
+            .type("SYSTEM")
+            .title("New Subcontractor Added")
+            .message(subName + " has been added as a new subcontractor (" + type + ")")
+            .targetModule("SUBCONTRACTOR")
+            .targetId(sub.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(currentUserId)
+            .action("SUBCONTRACTOR_CREATED")
+            .entityType("SUBCONTRACTOR")
+            .entityId(sub.getId())
+            .build());
+
         log.info("Created subcontractor: {} type={}", resolveDisplayName(sub), type);
         return mapToResponse(sub);
     }
@@ -101,6 +129,29 @@ public class SubcontractorService {
         }
 
         sub = subcontractorRepository.save(sub);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(sub.getCompany().getId())
+            .type("SYSTEM")
+            .title("Subcontractor Updated")
+            .message("Subcontractor " + resolveDisplayName(sub) + " has been updated")
+            .targetModule("SUBCONTRACTOR")
+            .targetId(sub.getId())
+            .importance("LOW")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(sub.getCompany().getId())
+            .userId(currentUserId)
+            .action("SUBCONTRACTOR_UPDATED")
+            .entityType("SUBCONTRACTOR")
+            .entityId(sub.getId())
+            .build());
+
         log.info("Updated subcontractor: {}", id);
         return mapToResponse(sub);
     }
@@ -117,6 +168,29 @@ public class SubcontractorService {
 
         sub.setStatus("TERMINATED");
         sub = subcontractorRepository.save(sub);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event (HIGH importance - termination is significant)
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(sub.getCompany().getId())
+            .type("SYSTEM")
+            .title("Subcontractor Terminated")
+            .message("Subcontractor " + resolveDisplayName(sub) + " has been terminated")
+            .targetModule("SUBCONTRACTOR")
+            .targetId(sub.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(sub.getCompany().getId())
+            .userId(currentUserId)
+            .action("SUBCONTRACTOR_TERMINATED")
+            .entityType("SUBCONTRACTOR")
+            .entityId(sub.getId())
+            .build());
+
         log.info("Terminated subcontractor: {} — data preserved", id);
         return mapToResponse(sub);
     }
@@ -187,6 +261,29 @@ public class SubcontractorService {
             .build();
 
         contract = contractRepository.save(contract);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(sub.getCompany().getId())
+            .type("SYSTEM")
+            .title("New Contract Created")
+            .message("A contract has been created for " + resolveDisplayName(sub))
+            .targetModule("SUBCONTRACTOR")
+            .targetId(contract.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(sub.getCompany().getId())
+            .userId(currentUserId)
+            .action("SUBCONTRACTOR_CONTRACT_CREATED")
+            .entityType("SUBCONTRACTOR_CONTRACT")
+            .entityId(contract.getId())
+            .build());
+
         log.info("Created contract for subcontractor {}", subcontractorId);
         return mapContractToResponse(contract);
     }
@@ -235,6 +332,29 @@ public class SubcontractorService {
             .build();
 
         renewed = contractRepository.save(renewed);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(old.getCompany().getId())
+            .type("SYSTEM")
+            .title("Contract Renewed")
+            .message("A contract has been renewed for " + resolveDisplayName(old.getSubcontractor()))
+            .targetModule("SUBCONTRACTOR")
+            .targetId(renewed.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(old.getCompany().getId())
+            .userId(currentUserId)
+            .action("SUBCONTRACTOR_CONTRACT_RENEWED")
+            .entityType("SUBCONTRACTOR_CONTRACT")
+            .entityId(renewed.getId())
+            .build());
+
         log.info("Renewed contract {} → new contract {}", contractId, renewed.getId());
         return mapContractToResponse(renewed);
     }
@@ -246,6 +366,29 @@ public class SubcontractorService {
         validateCompanyAccess(contract.getCompany().getId(), auth);
         contract.setStatus("TERMINATED");
         contract = contractRepository.save(contract);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(contract.getCompany().getId())
+            .type("SYSTEM")
+            .title("Contract Terminated")
+            .message("A contract has been terminated")
+            .targetModule("SUBCONTRACTOR")
+            .targetId(contract.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(contract.getCompany().getId())
+            .userId(currentUserId)
+            .action("SUBCONTRACTOR_CONTRACT_TERMINATED")
+            .entityType("SUBCONTRACTOR_CONTRACT")
+            .entityId(contract.getId())
+            .build());
+
         log.info("Terminated contract {}", contractId);
         return mapContractToResponse(contract);
     }
@@ -277,6 +420,30 @@ public class SubcontractorService {
             .build();
 
         invoice = invoiceRepository.save(invoice);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event (invoices are important for HR to track payments)
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(contract.getCompany().getId())
+            .type("SYSTEM")
+            .title("New Invoice Created")
+            .message("Invoice " + request.getInvoiceNumber() + " for " + invoice.getAmount() + " has been created for " +
+                resolveDisplayName(contract.getSubcontractor()))
+            .targetModule("SUBCONTRACTOR")
+            .targetId(invoice.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(contract.getCompany().getId())
+            .userId(currentUserId)
+            .action("SUBCONTRACTOR_INVOICE_CREATED")
+            .entityType("SUBCONTRACTOR_INVOICE")
+            .entityId(invoice.getId())
+            .build());
+
         log.info("Created invoice {} for contract {}", invoice.getInvoiceNumber(), contractId);
         return mapInvoiceToResponse(invoice);
     }
@@ -305,6 +472,29 @@ public class SubcontractorService {
         invoice.setPaidDate(LocalDate.now());
         invoice.setPaymentProofPath(proofPath);
         invoice = invoiceRepository.save(invoice);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(invoice.getCompany().getId())
+            .type("SYSTEM")
+            .title("Invoice Marked as Paid")
+            .message("Invoice " + invoice.getInvoiceNumber() + " has been marked as paid")
+            .targetModule("SUBCONTRACTOR")
+            .targetId(invoice.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(invoice.getCompany().getId())
+            .userId(currentUserId)
+            .action("SUBCONTRACTOR_INVOICE_PAID")
+            .entityType("SUBCONTRACTOR_INVOICE")
+            .entityId(invoice.getId())
+            .build());
+
         log.info("Marked invoice {} as paid", invoiceId);
         return mapInvoiceToResponse(invoice);
     }
@@ -377,6 +567,29 @@ public class SubcontractorService {
         review.setStatus("SUBMITTED");
         review.setOverallScore(calculateOverallScore(review));
         review = reviewRepository.save(review);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(review.getCompany().getId())
+            .type("SYSTEM")
+            .title("Subcontractor Review Submitted")
+            .message("A performance review has been submitted for " + resolveDisplayName(review.getSubcontractor()))
+            .targetModule("SUBCONTRACTOR")
+            .targetId(review.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(review.getCompany().getId())
+            .userId(currentUserId)
+            .action("SUBCONTRACTOR_REVIEW_SUBMITTED")
+            .entityType("SUBCONTRACTOR_REVIEW")
+            .entityId(review.getId())
+            .build());
+
         log.info("Submitted review {}", reviewId);
         return mapReviewToResponse(review);
     }

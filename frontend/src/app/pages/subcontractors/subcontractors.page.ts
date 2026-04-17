@@ -216,7 +216,54 @@ import {
           </div>
         </div>
 
-        <h3 class="text-md font-semibold text-gray-800 dark:text-gray-100 mb-2">Contracts</h3>
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-md font-semibold text-gray-800 dark:text-gray-100">Contracts</h3>
+          <button (click)="showCreateContractForm = !showCreateContractForm" class="text-sm px-3 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors">
+            {{ showCreateContractForm ? 'Cancel' : 'Add Contract' }}
+          </button>
+        </div>
+
+        @if (showCreateContractForm) {
+          <div class="mb-5 p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+            <h4 class="text-sm font-medium mb-3">Create New Contract</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                <input type="date" [(ngModel)]="createContractPayload.startDate" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+                <input type="date" [(ngModel)]="createContractPayload.endDate" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Type</label>
+                <select [(ngModel)]="createContractPayload.paymentType" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm">
+                  <option value="FIXED_MONTHLY">FIXED_MONTHLY</option>
+                  <option value="PER_PROJECT">PER_PROJECT</option>
+                  <option value="PER_INVOICE">PER_INVOICE</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Amount</label>
+                <input type="number" [(ngModel)]="createContractPayload.amount" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+                <input type="text" [(ngModel)]="createContractPayload.notes" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Contract Document (PDF)</label>
+                <input type="file" accept="application/pdf" (change)="onContractFileChange($event)" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm">
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <button (click)="submitContract()" [disabled]="!createContractPayload.startDate || !createContractPayload.endDate || !createContractPayload.amount || !contractDocumentFile" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                Save Contract
+              </button>
+            </div>
+          </div>
+        }
+
         <div class="overflow-x-auto mb-5">
           <table class="min-w-full text-sm">
             <thead>
@@ -253,6 +300,7 @@ import {
                 <th class="py-2 pr-3">Amount</th>
                 <th class="py-2 pr-3">Due Date</th>
                 <th class="py-2 pr-3">Status</th>
+                <th class="py-2 pr-3">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -261,10 +309,28 @@ import {
                   <td class="py-2 pr-3">{{ invoice.invoiceNumber }}</td>
                   <td class="py-2 pr-3">{{ invoice.amount }}</td>
                   <td class="py-2 pr-3">{{ invoice.dueDate }}</td>
-                  <td class="py-2 pr-3">{{ invoice.status }}</td>
+                  <td class="py-2 pr-3">
+                    <span 
+                      class="text-xs px-2 py-1 rounded-full"
+                      [class.bg-yellow-100]="invoice.status === 'PENDING'"
+                      [class.text-yellow-700]="invoice.status === 'PENDING'"
+                      [class.bg-green-100]="invoice.status === 'PAID'"
+                      [class.text-green-700]="invoice.status === 'PAID'"
+                    >{{ invoice.status }}</span>
+                  </td>
+                  <td class="py-2 pr-3">
+                    @if (invoice.status === 'PENDING') {
+                      <div class="flex items-center gap-2">
+                        <input type="file" (change)="onPaymentProofFileChange($event, invoice.id)" accept="application/pdf,image/*" class="w-40 text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800">
+                        <button (click)="markInvoicePaid(invoice.id)" [disabled]="!paymentProofFiles[invoice.id] || loading" class="px-2 py-1 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Mark Paid</button>
+                      </div>
+                    } @else if (invoice.status === 'PAID') {
+                      <span class="text-xs text-gray-500">Paid on {{ invoice.paidDate }}</span>
+                    }
+                  </td>
                 </tr>
               } @empty {
-                <tr><td colspan="4" class="py-4 text-gray-400">No invoices.</td></tr>
+                <tr><td colspan="5" class="py-4 text-gray-400">No invoices.</td></tr>
               }
             </tbody>
           </table>
@@ -312,6 +378,17 @@ export class SubcontractorsPage implements OnInit {
   loading = false;
   successMessage = '';
   errorMessage = '';
+
+  showCreateContractForm = false;
+  createContractPayload = {
+    startDate: '',
+    endDate: '',
+    paymentType: 'PER_PROJECT',
+    amount: '',
+    notes: '',
+  };
+  contractDocumentFile: File | null = null;
+  paymentProofFiles: { [invoiceId: string]: File } = {};
 
   subcontractorForm: CreateSubcontractorRequest = {
     type: 'INDIVIDUAL',
@@ -427,6 +504,7 @@ export class SubcontractorsPage implements OnInit {
 
   inspect(sub: SubcontractorResponse): void {
     this.selectedSubcontractor = sub;
+    this.showCreateContractForm = false;
     this.contracts = [];
     this.invoices = [];
     this.reviews = [];
@@ -494,5 +572,97 @@ export class SubcontractorsPage implements OnInit {
   private extractError(err: unknown, fallback: string): string {
     const maybeError = err as { error?: { message?: string } };
     return maybeError?.error?.message ?? fallback;
+  }
+
+  onContractFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.contractDocumentFile = input.files[0];
+    } else {
+      this.contractDocumentFile = null;
+    }
+  }
+
+  submitContract(): void {
+    if (!this.selectedSubcontractor) return;
+
+    this.loading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const formData = new FormData();
+    formData.append('startDate', this.createContractPayload.startDate);
+    formData.append('endDate', this.createContractPayload.endDate);
+    formData.append('paymentType', this.createContractPayload.paymentType);
+    formData.append('amount', this.createContractPayload.amount);
+    if (this.createContractPayload.notes) {
+      formData.append('notes', this.createContractPayload.notes);
+    }
+    if (this.contractDocumentFile) {
+      formData.append('contractDocument', this.contractDocumentFile);
+    }
+
+    this.subcontractorService.createContract(this.selectedSubcontractor.id, formData).subscribe({
+      next: (res) => {
+        this.successMessage = 'Contract created successfully';
+        this.loading = false;
+        this.showCreateContractForm = false;
+        
+        // Reset form state
+        this.createContractPayload = {
+          startDate: '',
+          endDate: '',
+          paymentType: 'PER_PROJECT',
+          amount: '',
+          notes: '',
+        };
+        this.contractDocumentFile = null;
+
+        // Reload contracts for the specific user
+        this.inspect(this.selectedSubcontractor!);
+      },
+      error: (err: unknown) => {
+        this.errorMessage = this.extractError(err, 'Failed to create contract');
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  onPaymentProofFileChange(event: Event, invoiceId: string): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.paymentProofFiles[invoiceId] = input.files[0];
+    } else {
+      delete this.paymentProofFiles[invoiceId];
+    }
+  }
+
+  markInvoicePaid(invoiceId: string): void {
+    const file = this.paymentProofFiles[invoiceId];
+    if (!file) return;
+
+    this.loading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const formData = new FormData();
+    formData.append('paymentProof', file);
+
+    this.subcontractorService.markInvoicePaid(invoiceId, formData).subscribe({
+      next: () => {
+        this.successMessage = 'Invoice marked as paid successfully';
+        this.loading = false;
+        delete this.paymentProofFiles[invoiceId];
+        if (this.selectedSubcontractor) {
+          this.inspect(this.selectedSubcontractor);
+        }
+      },
+      error: (err: unknown) => {
+        this.errorMessage = this.extractError(err, 'Failed to mark invoice as paid');
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

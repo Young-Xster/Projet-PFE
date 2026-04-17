@@ -5,9 +5,12 @@ import com.grh.grh.dto.request.employee.OffboardEmployeeRequest;
 import com.grh.grh.dto.request.employee.UpdateEmployeeRequest;
 import com.grh.grh.dto.response.employee.EmployeeResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,7 @@ public class EmployeeService {
     private final KeycloakUserService keycloakUserService;
     private final ActivityLogService activityLogService;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public java.util.Map<String, String> verifyPublicEmployee(String email, String nationalId) {
         String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
@@ -217,7 +221,30 @@ public class EmployeeService {
         }
         
         employee = employeeRepository.save(employee);
-        
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        String employeeName = employee.getFirstName() + " " + employee.getLastName();
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(employee.getCompany().getId())
+            .type("EMPLOYEE_UPDATED")
+            .title("Employee Profile Updated")
+            .message(employeeName + " (ID: " + employee.getEmployeeId() + ") has been updated")
+            .targetModule("EMPLOYEE")
+            .targetId(employee.getEmployeeId())
+            .importance("LOW")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(employee.getCompany().getId())
+            .userId(currentUserId)
+            .action("EMPLOYEE_UPDATED")
+            .entityType("EMPLOYEE")
+            .entityId(employee.getEmployeeId())
+            .build());
+
         log.info("Updated employee: {} {} (ID: {})", employee.getFirstName(), employee.getLastName(), employee.getEmployeeId());
         
         return mapToResponse(employee);
@@ -269,7 +296,29 @@ public class EmployeeService {
 
         employee.setDepartment(null);
         employee = employeeRepository.save(employee);
-        
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(employee.getCompany().getId())
+            .type("EMPLOYEE_UPDATED")
+            .title("Employee Department Removed")
+            .message(employee.getFirstName() + " " + employee.getLastName() + " has been removed from their department")
+            .targetModule("EMPLOYEE")
+            .targetId(employee.getEmployeeId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(employee.getCompany().getId())
+            .userId(currentUserId)
+            .action("EMPLOYEE_DEPARTMENT_REMOVED")
+            .entityType("EMPLOYEE")
+            .entityId(employee.getEmployeeId())
+            .build());
+
         log.info("Removed department for employee: {} {} (ID: {})",
             employee.getFirstName(), employee.getLastName(), employee.getEmployeeId());
 
@@ -297,6 +346,30 @@ public class EmployeeService {
         }
 
         employee = employeeRepository.save(employee);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(employee.getCompany().getId())
+            .type("EMPLOYEE_OFFBOARDED")
+            .title("Employee Offboarded")
+            .message(employee.getFirstName() + " " + employee.getLastName() + " has been offboarded. Reason: " +
+                request.getTerminationReason())
+            .targetModule("EMPLOYEE")
+            .targetId(employee.getEmployeeId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(employee.getCompany().getId())
+            .userId(currentUserId)
+            .action("EMPLOYEE_OFFBOARDED")
+            .entityType("EMPLOYEE")
+            .entityId(employee.getEmployeeId())
+            .build());
+
         log.info("Offboarded employee: {} {} (ID: {}) - Reason: {}",
             employee.getFirstName(), employee.getLastName(),
             employee.getEmployeeId(), request.getTerminationReason());
@@ -308,12 +381,33 @@ public class EmployeeService {
     public void deleteEmployee(UUID employeeId , Authentication authentication){
         Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new IllegalArgumentException("Employee not found"));
         validateCompanyAccess(employee.getCompany().getId() , authentication);
-        
-        
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
         employee.setStatus("terminated");
         employee.setTerminationDate(java.time.LocalDate.now());
         employeeRepository.save(employee);
-        
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(employee.getCompany().getId())
+            .type("EMPLOYEE_TERMINATED")
+            .title("Employee Terminated")
+            .message(employee.getFirstName() + " " + employee.getLastName() + " (ID: " + employee.getEmployeeId() + ") has been terminated")
+            .targetModule("EMPLOYEE")
+            .targetId(employee.getEmployeeId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(employee.getCompany().getId())
+            .userId(currentUserId)
+            .action("EMPLOYEE_TERMINATED")
+            .entityType("EMPLOYEE")
+            .entityId(employee.getEmployeeId())
+            .build());
+
         log.info("Deleted employee: {} {} (ID: {})", employee.getFirstName(), employee.getLastName(), employee.getEmployeeId());
     }
 

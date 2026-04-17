@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:4201,http://localhost:8080,http://localhost:*}")
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:4201,http://localhost:8080,http://localhost:44491,http://localhost:*}")
     private String allowedOrigins;
 
     @Bean
@@ -62,6 +62,7 @@ public class SecurityConfig {
                     "/api/v1/leave-types/public/**",
                     "/api/v1/job-listings/public/**",
                     "/api/v1/candidates/public/**",
+                    "/api/v1/subcontractors/portal/**",
                     "/api/v1/subcontractors/portal/public/**",
                     "/api/v1/notifications/stream",
                     "/files/**"

@@ -4,9 +4,12 @@ import com.grh.grh.dto.request.performance.CreatePerformanceReviewRequest;
 import com.grh.grh.dto.request.performance.UpdatePerformanceReviewRequest;
 import com.grh.grh.dto.response.performance.PerformanceReviewResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +29,7 @@ public class PerformanceReviewService {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ─── HR creates a review for an employee ─────────────────────────────────
 
@@ -73,6 +77,30 @@ public class PerformanceReviewService {
             .build();
 
         review = performanceReviewRepository.save(review);
+
+        String employeeName = employee.getFirstName() + " " + employee.getLastName();
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(company.getId())
+            .type("PERFORMANCE_REVIEW_CREATED")
+            .title("Performance Review Created")
+            .message("A performance review has been created for " + employeeName + " for the period " +
+                request.getReviewPeriodStart() + " to " + request.getReviewPeriodEnd())
+            .targetModule("PERFORMANCE")
+            .targetId(review.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(reviewerUserId)
+            .action("PERFORMANCE_REVIEW_CREATED")
+            .entityType("PERFORMANCE_REVIEW")
+            .entityId(review.getId())
+            .build());
+
         log.info("Created performance review for employee: {} period: {} to {}",
             employee.getFirstName() + " " + employee.getLastName(),
             request.getReviewPeriodStart(), request.getReviewPeriodEnd());
@@ -109,9 +137,34 @@ public class PerformanceReviewService {
             }
             review.setStatus("reviewed");
             review.setReviewedAt(OffsetDateTime.now());
+
+            String employeeName = review.getEmployee().getFirstName() + " " + review.getEmployee().getLastName();
+
+            // Publish notification event
+            eventPublisher.publishEvent(NotificationEvent.builder()
+                .companyId(review.getCompany().getId())
+                .type("PERFORMANCE_REVIEW_REVIEWED")
+                .title("Performance Review Completed")
+                .message("The performance review for " + employeeName + " has been completed and is ready for acknowledgment")
+                .targetModule("PERFORMANCE")
+                .targetId(review.getId())
+                .importance("HIGH")
+                .build());
         }
 
         review = performanceReviewRepository.save(review);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(review.getCompany().getId())
+            .userId(currentUserId)
+            .action("PERFORMANCE_REVIEW_UPDATED")
+            .entityType("PERFORMANCE_REVIEW")
+            .entityId(review.getId())
+            .build());
+
         log.info("Updated performance review: {} status: {}", reviewId, review.getStatus());
         return mapToResponse(review);
     }
@@ -140,6 +193,29 @@ public class PerformanceReviewService {
         review.setAcknowledgedBy(acknowledgedBy);
 
         review = performanceReviewRepository.save(review);
+
+        String employeeName = review.getEmployee().getFirstName() + " " + review.getEmployee().getLastName();
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(review.getCompany().getId())
+            .type("PERFORMANCE_REVIEW_ACKNOWLEDGED")
+            .title("Performance Review Acknowledged")
+            .message("The performance review for " + employeeName + " has been acknowledged")
+            .targetModule("PERFORMANCE")
+            .targetId(review.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(review.getCompany().getId())
+            .userId(acknowledgedByUserId)
+            .action("PERFORMANCE_REVIEW_ACKNOWLEDGED")
+            .entityType("PERFORMANCE_REVIEW")
+            .entityId(review.getId())
+            .build());
+
         log.info("Performance review {} acknowledged by user {}", reviewId, acknowledgedByUserId);
         return mapToResponse(review);
     }
@@ -194,6 +270,18 @@ public class PerformanceReviewService {
         if ("acknowledged".equals(review.getStatus())) {
             throw new IllegalStateException("Cannot delete an acknowledged review");
         }
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(review.getCompany().getId())
+            .userId(currentUserId)
+            .action("PERFORMANCE_REVIEW_DELETED")
+            .entityType("PERFORMANCE_REVIEW")
+            .entityId(review.getId())
+            .build());
+
         performanceReviewRepository.delete(review);
         log.info("Deleted performance review: {}", reviewId);
     }

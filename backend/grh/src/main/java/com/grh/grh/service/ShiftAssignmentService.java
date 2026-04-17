@@ -4,9 +4,12 @@ import com.grh.grh.dto.request.shift.CreateShiftAssignmentRequest;
 import com.grh.grh.dto.request.shift.UpdateShiftAssignmentRequest;
 import com.grh.grh.dto.response.shift.ShiftAssignmentResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,7 @@ public class ShiftAssignmentService {
     private final EmployeeScheduleRepository employeeScheduleRepository;
     private final LeaveRequestRepository leaveRequestRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ShiftAssignmentResponse createShift(CreateShiftAssignmentRequest request, Authentication auth) {
@@ -70,6 +74,30 @@ public class ShiftAssignmentService {
                 .build();
 
         shift = shiftAssignmentRepository.save(shift);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+        String employeeName = employee.getFirstName() + " " + employee.getLastName();
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(company.getId())
+            .type("SHIFT_CREATED")
+            .title("Shift Assigned")
+            .message("A shift has been created for " + employeeName + " on " + request.getShiftDate())
+            .targetModule("SCHEDULING")
+            .targetId(shift.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(currentUserId)
+            .action("SHIFT_CREATED")
+            .entityType("SHIFT")
+            .entityId(shift.getId())
+            .build());
+
         log.info("Created shift for employee {} on {}", request.getEmployeeId(), request.getShiftDate());
         return mapToResponse(shift);
     }
@@ -96,6 +124,44 @@ public class ShiftAssignmentService {
         }
 
         shift = shiftAssignmentRepository.save(shift);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event
+        String status = shift.getStatus();
+        if ("cancelled".equalsIgnoreCase(status)) {
+            eventPublisher.publishEvent(NotificationEvent.builder()
+                .companyId(shift.getCompany().getId())
+                .type("SHIFT_CANCELLED")
+                .title("Shift Cancelled")
+                .message("A shift has been cancelled for " + shift.getEmployee().getFirstName() + " " +
+                    shift.getEmployee().getLastName() + " on " + shift.getShiftDate())
+                .targetModule("SCHEDULING")
+                .targetId(shift.getId())
+                .importance("HIGH")
+                .build());
+        } else {
+            eventPublisher.publishEvent(NotificationEvent.builder()
+                .companyId(shift.getCompany().getId())
+                .type("SHIFT_UPDATED")
+                .title("Shift Updated")
+                .message("A shift has been updated for " + shift.getEmployee().getFirstName() + " " +
+                    shift.getEmployee().getLastName() + " on " + shift.getShiftDate())
+                .targetModule("SCHEDULING")
+                .targetId(shift.getId())
+                .importance("LOW")
+                .build());
+        }
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(shift.getCompany().getId())
+            .userId(currentUserId)
+            .action("SHIFT_UPDATED")
+            .entityType("SHIFT")
+            .entityId(shift.getId())
+            .build());
+
         log.info("Updated shift: {}", shiftId);
         return mapToResponse(shift);
     }
@@ -175,6 +241,30 @@ public class ShiftAssignmentService {
 
         log.info("Generated {} shifts for schedule '{}' from {} to {}",
                 generated.size(), schedule.getName(), startDate, endDate);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(schedule.getCompany().getId())
+            .type("SHIFTS_GENERATED")
+            .title("Shifts Auto-Generated")
+            .message(generated.size() + " shifts have been auto-generated for schedule '" + schedule.getName() +
+                "' from " + startDate + " to " + endDate)
+            .targetModule("SCHEDULING")
+            .targetId(schedule.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(schedule.getCompany().getId())
+            .userId(currentUserId)
+            .action("SHIFTS_GENERATED")
+            .entityType("SCHEDULE")
+            .entityId(schedule.getId())
+            .build());
+
         return generated;
     }
     
@@ -219,6 +309,30 @@ public class ShiftAssignmentService {
 
         shift.setStatus("cancelled");
         shiftAssignmentRepository.save(shift);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(auth);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(shift.getCompany().getId())
+            .type("SHIFT_CANCELLED")
+            .title("Shift Cancelled")
+            .message("A shift has been cancelled for " + shift.getEmployee().getFirstName() + " " +
+                shift.getEmployee().getLastName() + " on " + shift.getShiftDate())
+            .targetModule("SCHEDULING")
+            .targetId(shift.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(shift.getCompany().getId())
+            .userId(currentUserId)
+            .action("SHIFT_CANCELLED")
+            .entityType("SHIFT")
+            .entityId(shift.getId())
+            .build());
+
         log.info("Cancelled shift: {}", shiftId);
     }
 

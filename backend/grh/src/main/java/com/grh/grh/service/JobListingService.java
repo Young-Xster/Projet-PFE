@@ -4,9 +4,12 @@ import com.grh.grh.dto.request.recruitment.CreateJobListingRequest;
 import com.grh.grh.dto.request.recruitment.UpdateJobListingRequest;
 import com.grh.grh.dto.response.recruitment.JobListingResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,7 @@ public class JobListingService {
     private final PositionRepository positionRepository;
     private final DepartmentRepository departmentRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     //public (for candidates portal)
     @Transactional(readOnly = true)
@@ -90,6 +94,29 @@ public class JobListingService {
         }
 
         JobListing listing = jobListingRepository.save(builder.build());
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(company.getId())
+            .type("SYSTEM")
+            .title("Job Listing Created")
+            .message(listing.getTitle() + " has been published")
+            .targetModule("RECRUITMENT")
+            .targetId(listing.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(currentUserId)
+            .action("JOB_LISTING_CREATED")
+            .entityType("JOB_LISTING")
+            .entityId(listing.getId())
+            .build());
+
         log.info("Created job listing: {} for company: {}", listing.getTitle(), company.getName());
         return mapToResponse(listing);
     }
@@ -124,6 +151,18 @@ public class JobListingService {
         }
 
         listing = jobListingRepository.save(listing);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(listing.getCompany().getId())
+            .userId(currentUserId)
+            .action("JOB_LISTING_UPDATED")
+            .entityType("JOB_LISTING")
+            .entityId(listing.getId())
+            .build());
+
         log.info("Updated job listing: {}", listingId);
         return mapToResponse(listing);
     }
@@ -141,6 +180,29 @@ public class JobListingService {
 
         listing.setStatus("closed");
         listing = jobListingRepository.save(listing);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(listing.getCompany().getId())
+            .type("SYSTEM")
+            .title("Job Listing Closed")
+            .message(listing.getTitle() + " has been closed")
+            .targetModule("RECRUITMENT")
+            .targetId(listing.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(listing.getCompany().getId())
+            .userId(currentUserId)
+            .action("JOB_LISTING_CLOSED")
+            .entityType("JOB_LISTING")
+            .entityId(listing.getId())
+            .build());
+
         log.info("Closed job listing: {}", listingId);
         return mapToResponse(listing);
     }
@@ -185,7 +247,22 @@ public class JobListingService {
         JobListing listing = jobListingRepository.findById(listingId)
             .orElseThrow(() -> new IllegalArgumentException("Job listing not found"));
         validateCompanyAccess(listing.getCompany().getId(), authentication);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        UUID companyId = listing.getCompany().getId();
+        String listingTitle = listing.getTitle();
+
         jobListingRepository.delete(listing);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(companyId)
+            .userId(currentUserId)
+            .action("JOB_LISTING_DELETED")
+            .entityType("JOB_LISTING")
+            .entityId(listingId)
+            .build());
+
         log.info("Deleted job listing: {}", listingId);
     }
 
@@ -196,6 +273,7 @@ public class JobListingService {
         int closed = jobListingRepository.closeExpiredListings(LocalDate.now());
         if (closed > 0) {
             log.info("Auto-closed {} expired job listings", closed);
+            // Note: Scheduler doesn't publish activity logs - no user context
         }
     }
 

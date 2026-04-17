@@ -6,10 +6,13 @@ import com.grh.grh.dto.request.recruitment.CandidateNotesRequest;
 import com.grh.grh.dto.request.recruitment.HireCandidateRequest;
 import com.grh.grh.dto.response.recruitment.CandidateResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -41,6 +44,7 @@ public class CandidateService {
     private final KeycloakUserService keycloakUserService;
     private final PublicApplicationAttemptRepository publicApplicationAttemptRepository;
     private final TurnstileService turnstileService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // public 
 
@@ -134,6 +138,27 @@ public class CandidateService {
             );
 
             logPublicAttempt(listing, normalizedEmail, ipAddress, userAgent, "ACCEPTED", null);
+
+            // Publish notification event
+            eventPublisher.publishEvent(NotificationEvent.builder()
+                .companyId(listing.getCompany().getId())
+                .type("CANDIDATE_APPLIED")
+                .title("New Job Application Received")
+                .message(request.getFirstName() + " " + request.getLastName() + " applied for " + listing.getTitle())
+                .targetModule("RECRUITMENT")
+                .targetId(candidate.getId())
+                .importance("MEDIUM")
+                .build());
+
+            // Publish activity log event
+            eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .companyId(listing.getCompany().getId())
+                .userId(null)
+                .action("CANDIDATE_APPLIED")
+                .entityType("CANDIDATE")
+                .entityId(candidate.getId())
+                .build());
+
             log.info("New application from {} {} for job: {}",
                 request.getFirstName(), request.getLastName(), listing.getTitle());
 
@@ -247,6 +272,29 @@ public class CandidateService {
         candidate.setStatus("stage_2");
         candidate = candidateRepository.save(candidate);
 
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(candidate.getCompany().getId())
+            .type("CANDIDATE_ADVANCED")
+            .title("Candidate Advanced to Stage 2")
+            .message(candidate.getFirstName() + " " + candidate.getLastName() + " has advanced to stage 2 for " +
+                candidate.getJobListing().getTitle())
+            .targetModule("RECRUITMENT")
+            .targetId(candidate.getId())
+            .importance("LOW")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(candidate.getCompany().getId())
+            .userId(currentUserId)
+            .action("CANDIDATE_ADVANCED")
+            .entityType("CANDIDATE")
+            .entityId(candidate.getId())
+            .build());
+
         log.info("Advanced candidate {} {} to stage 2",
             candidate.getFirstName(), candidate.getLastName());
         return mapToResponse(candidate);
@@ -276,6 +324,29 @@ public class CandidateService {
             candidate.getJobListing().getTitle(),
             candidate.getCompany().getName()
         );
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(candidate.getCompany().getId())
+            .type("CANDIDATE_ACCEPTED")
+            .title("Candidate Accepted")
+            .message(candidate.getFirstName() + " " + candidate.getLastName() + " has been accepted for " +
+                candidate.getJobListing().getTitle())
+            .targetModule("RECRUITMENT")
+            .targetId(candidate.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(candidate.getCompany().getId())
+            .userId(currentUserId)
+            .action("CANDIDATE_ACCEPTED")
+            .entityType("CANDIDATE")
+            .entityId(candidate.getId())
+            .build());
 
         log.info("Accepted candidate {} {} for job: {}",
             candidate.getFirstName(), candidate.getLastName(),
@@ -309,6 +380,29 @@ public class CandidateService {
             candidate.getJobListing().getTitle(),
             candidate.getCompany().getName()
         );
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(candidate.getCompany().getId())
+            .type("CANDIDATE_REJECTED")
+            .title("Candidate Rejected")
+            .message(candidate.getFirstName() + " " + candidate.getLastName() + " was rejected at stage " +
+                candidate.getRejectedAtStage() + " for " + candidate.getJobListing().getTitle())
+            .targetModule("RECRUITMENT")
+            .targetId(candidate.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(candidate.getCompany().getId())
+            .userId(currentUserId)
+            .action("CANDIDATE_REJECTED")
+            .entityType("CANDIDATE")
+            .entityId(candidate.getId())
+            .build());
 
         log.info("Rejected candidate {} {} at stage {} for job: {}",
             candidate.getFirstName(), candidate.getLastName(),
@@ -414,21 +508,35 @@ public class CandidateService {
             // Ignore if current user ID can't be resolved
         }
 
-        activityLogService.logActivity(
-            company.getId(),
-            currentUserId,
-            "EMPLOYEE_CREATED",
-            "EMPLOYEE",
-            employee.getEmployeeId()
-        );
+        String employeeName = employee.getFirstName() + " " + employee.getLastName();
 
-        activityLogService.logActivity(
-            company.getId(),
-            currentUserId,
-            "CANDIDATE_HIRED",
-            "CANDIDATE",
-            candidate.getId()
-        );
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(company.getId())
+            .type("CANDIDATE_HIRED")
+            .title("New Employee Hired from Recruitment")
+            .message(employeeName + " has been hired and created as a new employee")
+            .targetModule("RECRUITMENT")
+            .targetId(candidate.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log events
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(currentUserId)
+            .action("EMPLOYEE_CREATED")
+            .entityType("EMPLOYEE")
+            .entityId(employee.getEmployeeId())
+            .build());
+
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(currentUserId)
+            .action("CANDIDATE_HIRED")
+            .entityType("CANDIDATE")
+            .entityId(candidate.getId())
+            .build());
 
         // Initialize leave balances for the new employee
         initializeLeaveBalances(employee, company);

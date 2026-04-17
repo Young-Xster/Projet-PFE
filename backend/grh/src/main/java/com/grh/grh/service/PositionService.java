@@ -6,11 +6,13 @@ import com.grh.grh.dto.response.position.PositionResponse;
 import com.grh.grh.entity.Company;
 import com.grh.grh.entity.Department;
 import com.grh.grh.entity.Position;
+import com.grh.grh.event.ActivityLogEvent;
 import com.grh.grh.repository.CompanyRepository;
 import com.grh.grh.repository.DepartmentRepository;
 import com.grh.grh.repository.PositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,7 @@ public class PositionService {
     private final CompanyRepository companyRepository;
     private final DepartmentRepository departmentRepository;
     private final KeycloakUserService keycloakUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public PositionResponse createPosition(CreatePositionRequest request, Authentication authentication) {
@@ -54,6 +57,18 @@ public class PositionService {
         }
 
         Position position = positionRepository.save(builder.build());
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(currentUserId)
+            .action("POSITION_CREATED")
+            .entityType("POSITION")
+            .entityId(position.getId())
+            .build());
+
         log.info("Created position: {} for company: {}", position.getTitle(), company.getName());
         return mapToResponse(position);
     }
@@ -75,6 +90,18 @@ public class PositionService {
         }
 
         position = positionRepository.save(position);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(position.getCompany().getId())
+            .userId(currentUserId)
+            .action("POSITION_UPDATED")
+            .entityType("POSITION")
+            .entityId(position.getId())
+            .build());
+
         log.info("Updated position: {}", position.getTitle());
         return mapToResponse(position);
     }
@@ -110,7 +137,20 @@ public class PositionService {
         Position position = positionRepository.findById(positionId)
             .orElseThrow(() -> new IllegalArgumentException("Position not found"));
         validateCompanyAccess(position.getCompany().getId(), authentication);
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        UUID companyId = position.getCompany().getId();
+
         positionRepository.delete(position);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(companyId)
+            .userId(currentUserId)
+            .action("POSITION_DELETED")
+            .entityType("POSITION")
+            .entityId(positionId)
+            .build());
+
         log.info("Deleted position: {}", position.getTitle());
     }
 

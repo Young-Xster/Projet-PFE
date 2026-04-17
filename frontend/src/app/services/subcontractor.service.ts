@@ -151,6 +151,10 @@ export class SubcontractorService {
     return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
   }
 
+  createContract(subcontractorId: string, formData: FormData): Observable<ApiResponse<ContractResponse>> {
+    return this.http.post<ApiResponse<ContractResponse>>(`${this.baseUrl}/${subcontractorId}/contracts`, formData);
+  }
+
   getContracts(subcontractorId: string): Observable<ApiResponse<ContractResponse[]>> {
     return this.http.get<ApiResponse<ContractResponse[]>>(`${this.baseUrl}/${subcontractorId}/contracts`);
   }
@@ -163,6 +167,10 @@ export class SubcontractorService {
 
   getInvoices(contractId: string): Observable<ApiResponse<InvoiceResponse[]>> {
     return this.http.get<ApiResponse<InvoiceResponse[]>>(`${this.baseUrl}/contracts/${contractId}/invoices`);
+  }
+
+  markInvoicePaid(invoiceId: string, formData: FormData): Observable<ApiResponse<InvoiceResponse>> {
+    return this.http.post<ApiResponse<InvoiceResponse>>(`${this.baseUrl}/invoices/${invoiceId}/mark-paid`, formData);
   }
 
   getReviews(subcontractorId: string): Observable<ApiResponse<SubcontractorReviewResponse[]>> {

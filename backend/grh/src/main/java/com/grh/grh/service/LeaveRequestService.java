@@ -6,9 +6,12 @@ import com.grh.grh.dto.response.leave.LeaveBalanceResponse;
 import com.grh.grh.dto.response.leave.LeaveRequestDetailResponse;
 import com.grh.grh.dto.response.leave.LeaveRequestResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +36,7 @@ public class LeaveRequestService {
     private final KeycloakUserService keycloakUserService;
     private final EmailService emailService;
     private final ActivityLogService activityLogService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ─── PUBLIC FLOW ──────────────────────────────────────────────────────────
 
@@ -109,13 +113,26 @@ public class LeaveRequestService {
 
         leaveRequest = leaveRequestRepository.save(leaveRequest);
 
-        activityLogService.logActivity(
-            company.getId(),
-            null,
-            "LEAVE_REQUEST_SUBMITTED",
-            "LEAVE_REQUEST",
-            leaveRequest.getId()
-        );
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(company.getId())
+            .type("LEAVE_REQUEST_SUBMITTED")
+            .title("New Leave Request Submitted")
+            .message(employee.getFirstName() + " " + employee.getLastName() + " submitted a leave request from " +
+                request.getStartDate() + " to " + request.getEndDate())
+            .targetModule("LEAVE")
+            .targetId(leaveRequest.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(company.getId())
+            .userId(null)
+            .action("LEAVE_REQUEST_SUBMITTED")
+            .entityType("LEAVE_REQUEST")
+            .entityId(leaveRequest.getId())
+            .build());
 
         // Send confirmation email to employee
         try {
@@ -181,13 +198,34 @@ public class LeaveRequestService {
 
         leaveRequest = leaveRequestRepository.save(leaveRequest);
 
-        activityLogService.logActivity(
-            leaveRequest.getCompany().getId(),
-            currentUserId,
-            "approved".equals(request.getStatus()) ? "LEAVE_REQUEST_APPROVED" : "LEAVE_REQUEST_REJECTED",
-            "LEAVE_REQUEST",
-            leaveRequest.getId()
-        );
+        String status = request.getStatus();
+        String actionType = "approved".equals(status) ? "LEAVE_REQUEST_APPROVED" : "LEAVE_REQUEST_REJECTED";
+        String notifType = "approved".equals(status) ? "LEAVE_REQUEST_APPROVED" : "LEAVE_REQUEST_REJECTED";
+        String title = "approved".equals(status) ? "Leave Request Approved" : "Leave Request Rejected";
+        String message = "approved".equals(status)
+            ? "Your leave request from " + leaveRequest.getStartDate() + " to " + leaveRequest.getEndDate() + " has been approved"
+            : "Your leave request from " + leaveRequest.getStartDate() + " to " + leaveRequest.getEndDate() + " has been rejected" +
+                (request.getComments() != null ? ". Reason: " + request.getComments() : "");
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(leaveRequest.getCompany().getId())
+            .type(notifType)
+            .title(title)
+            .message(message)
+            .targetModule("LEAVE")
+            .targetId(leaveRequest.getId())
+            .importance("HIGH")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(leaveRequest.getCompany().getId())
+            .userId(currentUserId)
+            .action(actionType)
+            .entityType("LEAVE_REQUEST")
+            .entityId(leaveRequest.getId())
+            .build());
 
         // Email employee the result
         try {
@@ -232,6 +270,30 @@ public class LeaveRequestService {
 
         leaveRequest.setStatus("cancelled");
         leaveRequestRepository.save(leaveRequest);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(leaveRequest.getCompany().getId())
+            .type("LEAVE_REQUEST_CANCELLED")
+            .title("Leave Request Cancelled")
+            .message(leaveRequest.getEmployee().getFirstName() + " " + leaveRequest.getEmployee().getLastName() +
+                " cancelled their leave request from " + leaveRequest.getStartDate() + " to " + leaveRequest.getEndDate())
+            .targetModule("LEAVE")
+            .targetId(leaveRequest.getId())
+            .importance("MEDIUM")
+            .build());
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(leaveRequest.getCompany().getId())
+            .userId(currentUserId)
+            .action("LEAVE_REQUEST_CANCELLED")
+            .entityType("LEAVE_REQUEST")
+            .entityId(leaveRequest.getId())
+            .build());
+
         log.info("Cancelled leave request: {}", leaveRequestId);
     }
 

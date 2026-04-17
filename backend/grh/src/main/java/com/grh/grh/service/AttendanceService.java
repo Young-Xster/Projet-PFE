@@ -4,9 +4,12 @@ import com.grh.grh.dto.request.attendance.CreateAttendanceRequest;
 import com.grh.grh.dto.request.attendance.UpdateAttendanceRequest;
 import com.grh.grh.dto.response.attendance.AttendanceResponse;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.ActivityLogEvent;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +34,7 @@ public class AttendanceService {
     private final SubcontractorRepository subcontractorRepository;
     private final KeycloakUserService keycloakUserService;
     private final WorkScheduleService workScheduleService;
+    private final ApplicationEventPublisher eventPublisher;
 
 
     @Transactional
@@ -93,8 +97,61 @@ public class AttendanceService {
         
         // Calculate early departure / overtime based on the final record
         calculateDepartureStats(record);
-        
+
         record = attendanceRepository.save(record);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+        String employeeName = record.getEmployee() != null ?
+            record.getEmployee().getFirstName() + " " + record.getEmployee().getLastName() : null;
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(companyId)
+            .userId(currentUserId)
+            .action("ATTENDANCE_CREATED")
+            .entityType("ATTENDANCE")
+            .entityId(record.getId())
+            .build());
+
+        // Publish notifications for attendance anomalies
+        if (record.getEmployee() != null) {
+            if (record.getDelayMinutes() != null && record.getDelayMinutes() > 0) {
+                eventPublisher.publishEvent(NotificationEvent.builder()
+                    .companyId(companyId)
+                    .type("ATTENDANCE_LATE")
+                    .title("Late Arrival Detected")
+                    .message(employeeName + " clocked in " + record.getDelayMinutes() + " minutes late on " + record.getDate())
+                    .targetModule("ATTENDANCE")
+                    .targetId(record.getId())
+                    .importance("MEDIUM")
+                    .build());
+            }
+
+            if (record.getOvertimeMinutes() != null && record.getOvertimeMinutes() > 0) {
+                eventPublisher.publishEvent(NotificationEvent.builder()
+                    .companyId(companyId)
+                    .type("ATTENDANCE_OVERTIME")
+                    .title("Overtime Detected")
+                    .message(employeeName + " worked " + record.getOvertimeMinutes() + " minutes overtime on " + record.getDate())
+                    .targetModule("ATTENDANCE")
+                    .targetId(record.getId())
+                    .importance("LOW")
+                    .build());
+            }
+
+            if (record.getEarlyDepartureMinutes() != null && record.getEarlyDepartureMinutes() > 0) {
+                eventPublisher.publishEvent(NotificationEvent.builder()
+                    .companyId(companyId)
+                    .type("ATTENDANCE_EARLY_DEPARTURE")
+                    .title("Early Departure Detected")
+                    .message(employeeName + " left " + record.getEarlyDepartureMinutes() + " minutes early on " + record.getDate())
+                    .targetModule("ATTENDANCE")
+                    .targetId(record.getId())
+                    .importance("MEDIUM")
+                    .build());
+            }
+        }
+
         log.info("Created attendance record for date: {} source: manual", request.getDate());
         return mapToResponse(record);
     }
@@ -126,6 +183,18 @@ public class AttendanceService {
         if (request.getOvertimeMinutes() != null) record.setOvertimeMinutes(request.getOvertimeMinutes());
 
         record = attendanceRepository.save(record);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(record.getCompany().getId())
+            .userId(currentUserId)
+            .action("ATTENDANCE_UPDATED")
+            .entityType("ATTENDANCE")
+            .entityId(record.getId())
+            .build());
+
         log.info("Updated attendance record: {}", recordId);
         return mapToResponse(record);
     }
@@ -173,6 +242,18 @@ public class AttendanceService {
         AttendanceRecord record = attendanceRepository.findById(recordId)
             .orElseThrow(() -> new IllegalArgumentException("Attendance record not found"));
         validateCompanyAccess(record.getCompany().getId(), authentication);
+
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(record.getCompany().getId())
+            .userId(currentUserId)
+            .action("ATTENDANCE_DELETED")
+            .entityType("ATTENDANCE")
+            .entityId(record.getId())
+            .build());
+
         attendanceRepository.delete(record);
         log.info("Deleted attendance record: {}", recordId);
     }

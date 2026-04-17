@@ -6,11 +6,13 @@ import com.grh.grh.dto.response.department.DepartmentResponse;
 import com.grh.grh.entity.Company;
 import com.grh.grh.entity.Department;
 import com.grh.grh.entity.Employee;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.CompanyRepository;
 import com.grh.grh.repository.DepartmentRepository;
 import com.grh.grh.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,7 @@ public class DepartmentService {
     private final EmployeeRepository employeeRepository;
     private final KeycloakUserService keycloakUserService;
     private final ActivityLogService activityLogService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public DepartmentResponse createDepartment(CreateDepartmentRequest request, Authentication authentication) {
@@ -67,6 +70,18 @@ public class DepartmentService {
             "DEPARTMENT",
             department.getId()
         );
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(company.getId())
+            .type("SYSTEM")
+            .title("Department Created")
+            .message(department.getName() + " has been created")
+            .targetModule("DEPARTMENT")
+            .targetId(department.getId())
+            .importance("MEDIUM")
+            .build());
+
         log.info("Created department: {} for company: {}", department.getName(), company.getName());
         return mapToResponse(department);
     }
@@ -105,6 +120,18 @@ public class DepartmentService {
             "DEPARTMENT",
             department.getId()
         );
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(department.getCompany().getId())
+            .type("SYSTEM")
+            .title("Department Updated")
+            .message(department.getName() + " has been updated")
+            .targetModule("DEPARTMENT")
+            .targetId(department.getId())
+            .importance("LOW")
+            .build());
+
         log.info("Updated department: {}", department.getName());
         return mapToResponse(department);
     }
@@ -161,6 +188,18 @@ public class DepartmentService {
             "DEPARTMENT",
             deletedDepartmentId
         );
+
+        // Publish notification event
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(companyId)
+            .type("SYSTEM")
+            .title("Department Deleted")
+            .message(department.getName() + " has been deleted")
+            .targetModule("DEPARTMENT")
+            .targetId(deletedDepartmentId)
+            .importance("HIGH")
+            .build());
+
         log.info("Deleted department: {}", department.getName());
     }
 
