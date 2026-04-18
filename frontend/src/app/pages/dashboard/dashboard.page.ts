@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,7 @@ import { NotificationEntry } from '../../services/notification/notification.serv
 import { LeaveRequest } from '../../services/leave-management.service';
 import { environment } from '../../../environments/environment';
 import { forkJoin, of } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -404,7 +405,7 @@ interface ApiLoadResult<T> {
     </div>
   `,
 })
-export class DashboardPage implements OnInit {
+export class DashboardPage implements OnInit, OnDestroy {
   private employeeService = inject(EmployeeService);
   private departmentService = inject(DepartmentService);
   private attendanceService = inject(AttendanceService);
@@ -415,6 +416,7 @@ export class DashboardPage implements OnInit {
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private zone = inject(NgZone);
+  private readonly notificationReadEventsSub = new Subscription();
 
   // State signals
   isLoading = signal(true);
@@ -656,12 +658,31 @@ export class DashboardPage implements OnInit {
   todayFormatted = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   ngOnInit(): void {
+    this.notificationReadEventsSub.add(
+      this.notificationService.readEvents$.subscribe((event) => {
+        if (event.type === 'all') {
+          this.notifications.update((items) => items.map((item) => ({ ...item, isRead: true })));
+        } else {
+          this.notifications.update((items) =>
+            items.map((item) =>
+              item.id === event.notificationId && !item.isRead ? { ...item, isRead: true } : item,
+            ),
+          );
+        }
+        this.cdr.detectChanges();
+      }),
+    );
+
     this.checkSuperAdminAndLoadCompanies();
     this.updateChartDimensions();
 
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', () => this.updateChartDimensions());
     }
+  }
+
+  ngOnDestroy(): void {
+    this.notificationReadEventsSub.unsubscribe();
   }
 
   private updateChartDimensions(): void {
@@ -825,6 +846,7 @@ export class DashboardPage implements OnInit {
           this.attendance.set(data.attendance.data);
           this.jobListings.set(data.jobs.data);
           this.notifications.set(data.notifications.data);
+          this.notificationService.setUnreadCount(data.notifications.data.filter((n) => !n.isRead).length);
           this.leaveRequests.set(data.leaves.data);
           this.performanceData.set(data.performance.data);
 

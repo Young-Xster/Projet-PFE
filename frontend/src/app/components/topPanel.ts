@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { NotificationService, NotificationStream } from '../services/notification/notification.service';
 import { AuthService } from '../core/auth/auth.service';
@@ -76,11 +77,11 @@ type UserContextResponse = {
               d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
             />
           </svg>
-          @if (unreadCount > 0) {
+          @if (notificationService.unreadCount() > 0) {
             <span
               class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center"
             >
-              {{ unreadCount > 99 ? '99+' : unreadCount }}
+              {{ notificationService.unreadCount() > 99 ? '99+' : notificationService.unreadCount() }}
             </span>
           }
         </button>
@@ -118,20 +119,21 @@ type UserContextResponse = {
     </div>
   `,
 })
-export class TopPanelComponent implements OnInit {
+export class TopPanelComponent implements OnInit, OnDestroy {
   private readonly baseUrl = environment.apiUrl;
   private readonly authMeUrl = `${this.baseUrl}/auth/me`;
 
   displayName = 'User';
   subLabel = 'HR Manager';
   initials = 'U';
-  unreadCount = 0;
   private unreadRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
   private stream: NotificationStream | null = null;
+  private authMeSubscription: Subscription | null = null;
+  private routerEventsSubscription: Subscription | null = null;
 
   constructor(
     private http: HttpClient,
-    private notificationService: NotificationService,
+    public notificationService: NotificationService,
     private router: Router,
     private authService: AuthService,
   ) {}
@@ -147,7 +149,7 @@ export class TopPanelComponent implements OnInit {
     }
 
     // Then update from API for full context (company name, etc.)
-    this.http.get<ApiResponse<UserContextResponse>>(this.authMeUrl).subscribe({
+    this.authMeSubscription = this.http.get<ApiResponse<UserContextResponse>>(this.authMeUrl).subscribe({
       next: (res) => {
         const u = res?.data;
         if (!u) return;
@@ -163,17 +165,17 @@ export class TopPanelComponent implements OnInit {
       },
     });
 
-    this.loadUnreadCount();
+    this.notificationService.refreshUnreadCount();
 
-    this.router.events.subscribe(() => {
-      this.loadUnreadCount();
+    this.routerEventsSubscription = this.router.events.subscribe(() => {
+      this.notificationService.refreshUnreadCount();
     });
 
-    this.unreadRefreshIntervalId = setInterval(() => this.loadUnreadCount(), 15000);
+    this.unreadRefreshIntervalId = setInterval(() => this.notificationService.refreshUnreadCount(), 15000);
 
     this.stream = this.notificationService.connectStream((entry) => {
       if (!entry.isRead) {
-        this.unreadCount += 1;
+        this.notificationService.incrementUnreadCount();
       }
     });
   }
@@ -183,19 +185,12 @@ export class TopPanelComponent implements OnInit {
       clearInterval(this.unreadRefreshIntervalId);
       this.unreadRefreshIntervalId = null;
     }
+    this.authMeSubscription?.unsubscribe();
+    this.authMeSubscription = null;
+    this.routerEventsSubscription?.unsubscribe();
+    this.routerEventsSubscription = null;
     this.stream?.close();
     this.stream = null;
-  }
-
-  private loadUnreadCount(): void {
-    this.notificationService.getUnreadCount().subscribe({
-      next: (res) => {
-        this.unreadCount = res.data?.count ?? 0;
-      },
-      error: () => {
-        this.unreadCount = 0;
-      },
-    });
   }
 
   private makeInitials(value: string): string {

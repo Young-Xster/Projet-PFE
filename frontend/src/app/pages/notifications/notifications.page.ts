@@ -103,9 +103,8 @@ export class NotificationsPage implements OnInit {
       const existing = this.notifications.find((n) => n.id === entry.id);
       if (!existing) {
         this.notifications = [entry, ...this.notifications];
-        if (!entry.isRead) {
-          this.unreadCount += 1;
-        }
+        this.unreadCount = this.notifications.filter((n) => !n.isRead).length;
+        this.notificationService.setUnreadCount(this.unreadCount);
       }
       this.cdr.detectChanges();
     });
@@ -128,6 +127,7 @@ export class NotificationsPage implements OnInit {
       next: (res) => {
         this.notifications = res.data ?? [];
         this.unreadCount = this.notifications.filter((n) => !n.isRead).length;
+        this.notificationService.setUnreadCount(this.unreadCount);
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -147,7 +147,9 @@ export class NotificationsPage implements OnInit {
     this.notificationService.markRead(notification.id).subscribe({
       next: () => {
         notification.isRead = true;
-        this.unreadCount = Math.max(0, this.unreadCount - 1);
+        this.unreadCount = this.notifications.filter((n) => !n.isRead).length;
+        this.notificationService.setUnreadCount(this.unreadCount);
+        this.notificationService.emitMarkedRead(notification.id);
         this.cdr.detectChanges();
       },
       error: (err: unknown) => {
@@ -166,6 +168,8 @@ export class NotificationsPage implements OnInit {
       next: () => {
         this.notifications = this.notifications.map((n) => ({ ...n, isRead: true }));
         this.unreadCount = 0;
+        this.notificationService.setUnreadCount(0);
+        this.notificationService.emitMarkedAllRead();
         this.cdr.detectChanges();
       },
       error: (err: unknown) => {
@@ -185,6 +189,7 @@ export class NotificationsPage implements OnInit {
       next: (res) => {
         this.notifications = res.data ?? [];
         this.unreadCount = this.notifications.filter((n) => !n.isRead).length;
+        this.notificationService.setUnreadCount(this.unreadCount);
         this.cdr.detectChanges();
       },
       error: () => {

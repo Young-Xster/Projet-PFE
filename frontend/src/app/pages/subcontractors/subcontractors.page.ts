@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../environments/environment';
 import { AdminService, Company } from '../../services/admin/admin.service';
 import {
   ContractResponse,
@@ -252,8 +253,8 @@ import {
                 <input type="text" [(ngModel)]="createContractPayload.notes" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm">
               </div>
               <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Contract Document (PDF)</label>
-                <input type="file" accept="application/pdf" (change)="onContractFileChange($event)" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Contract Document (PDF/PNG/JPG)</label>
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg" (change)="onContractFileChange($event)" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm">
               </div>
             </div>
             <div class="flex justify-end">
@@ -273,6 +274,7 @@ import {
                 <th class="py-2 pr-3">Payment Type</th>
                 <th class="py-2 pr-3">Amount</th>
                 <th class="py-2 pr-3">Status</th>
+                <th class="py-2 pr-3">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -283,9 +285,31 @@ import {
                   <td class="py-2 pr-3">{{ contract.paymentType }}</td>
                   <td class="py-2 pr-3">{{ contract.amount }}</td>
                   <td class="py-2 pr-3">{{ contract.status }}</td>
+                  <td class="py-2 pr-3">
+                    @if (hasContractProof(contract)) {
+                      <div class="flex items-center gap-2">
+                        <button
+                          type="button"
+                          (click)="viewContractProof(contract)"
+                          class="px-2 py-1 rounded border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-200"
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          (click)="downloadContractProof(contract)"
+                          class="px-2 py-1 rounded border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-200"
+                        >
+                          Download
+                        </button>
+                      </div>
+                    } @else {
+                      <span class="text-xs text-gray-500">No file</span>
+                    }
+                  </td>
                 </tr>
               } @empty {
-                <tr><td colspan="5" class="py-4 text-gray-400">No contracts.</td></tr>
+                <tr><td colspan="6" class="py-4 text-gray-400">No contracts.</td></tr>
               }
             </tbody>
           </table>
@@ -572,6 +596,65 @@ export class SubcontractorsPage implements OnInit {
   private extractError(err: unknown, fallback: string): string {
     const maybeError = err as { error?: { message?: string } };
     return maybeError?.error?.message ?? fallback;
+  }
+
+  private toAbsoluteFileUrl(path: string | null | undefined): string | null {
+    const rawPath = path?.trim();
+    if (!rawPath) {
+      return null;
+    }
+
+    if (/^https?:\/\//i.test(rawPath)) {
+      return rawPath;
+    }
+
+    const apiRoot = environment.apiUrl
+      .replace(/\/api\/v[^/]*\/?$/i, '')
+      .replace(/\/+$/, '');
+
+    let normalizedPath = rawPath.replace(/\\/g, '/');
+    if (!normalizedPath.startsWith('/')) {
+      normalizedPath = `/${normalizedPath}`;
+    }
+
+    if (normalizedPath.startsWith('/uploads/')) {
+      normalizedPath = `/files/${normalizedPath.slice('/uploads/'.length)}`;
+    } else if (!normalizedPath.startsWith('/files/')) {
+      normalizedPath = `/files${normalizedPath}`;
+    }
+
+    return `${apiRoot}${normalizedPath}`;
+  }
+
+  hasContractProof(contract: ContractResponse): boolean {
+    return !!this.toAbsoluteFileUrl(contract.contractDocumentPath);
+  }
+
+  viewContractProof(contract: ContractResponse): void {
+    const fileUrl = this.toAbsoluteFileUrl(contract.contractDocumentPath);
+    if (!fileUrl) {
+      this.errorMessage = 'No contract file available for this contract';
+      return;
+    }
+
+    window.open(fileUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  downloadContractProof(contract: ContractResponse): void {
+    const fileUrl = this.toAbsoluteFileUrl(contract.contractDocumentPath);
+    if (!fileUrl) {
+      this.errorMessage = 'No contract file available for this contract';
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.download = contract.contractDocumentPath?.split('/').pop() || 'contract-document';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   onContractFileChange(event: Event): void {

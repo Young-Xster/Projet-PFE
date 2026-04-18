@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export type ApiResponse<T> = {
@@ -26,11 +26,56 @@ export type NotificationStream = {
   close: () => void;
 };
 
+export type NotificationReadEvent =
+  | { type: 'single'; notificationId: string }
+  | { type: 'all' };
+
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private readonly baseUrl = environment.apiUrl;
+  private readonly unreadCountState = signal(0);
+  readonly unreadCount = this.unreadCountState.asReadonly();
+  private readonly readEventsSubject = new Subject<NotificationReadEvent>();
+  readonly readEvents$ = this.readEventsSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private ngZone: NgZone,
+  ) {}
+
+  setUnreadCount(count: number): void {
+    this.unreadCountState.set(Math.max(0, Number.isFinite(count) ? Math.trunc(count) : 0));
+  }
+
+  incrementUnreadCount(delta = 1): void {
+    const value = Number.isFinite(delta) ? Math.trunc(delta) : 0;
+    if (value <= 0) {
+      return;
+    }
+    this.unreadCountState.update((current) => current + value);
+  }
+
+  refreshUnreadCount(): void {
+    this.getUnreadCount().subscribe({
+      next: (res) => {
+        this.setUnreadCount(res.data?.count ?? 0);
+      },
+      error: () => {
+        this.setUnreadCount(0);
+      },
+    });
+  }
+
+  emitMarkedRead(notificationId: string): void {
+    if (!notificationId) {
+      return;
+    }
+    this.readEventsSubject.next({ type: 'single', notificationId });
+  }
+
+  emitMarkedAllRead(): void {
+    this.readEventsSubject.next({ type: 'all' });
+  }
 
   getMyNotifications(): Observable<ApiResponse<NotificationEntry[]>> {
     return this.http.get<ApiResponse<NotificationEntry[]>>(`${this.baseUrl}/notifications`);
@@ -77,14 +122,18 @@ export class NotificationService {
       source.addEventListener('notification', (event: MessageEvent<string>) => {
         try {
           const parsed = JSON.parse(event.data) as NotificationEntry;
-          onNotification(parsed);
+          this.ngZone.run(() => {
+            onNotification(parsed);
+          });
         } catch {
           // ignore malformed payloads
         }
       });
 
       source.onerror = () => {
-        onError?.();
+        this.ngZone.run(() => {
+          onError?.();
+        });
         source?.close();
         source = null;
         if (!closed) {
