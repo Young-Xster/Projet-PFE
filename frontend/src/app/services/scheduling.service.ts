@@ -80,6 +80,15 @@ export class SchedulingService {
     );
   }
 
+  getScheduledEmployeesForDate(
+    companyId: string,
+    date: string,
+  ): Observable<ApiResponse<string[]>> {
+    return this.http.get<ApiResponse<string[]>>(
+      `${this.scheduleUrl}/company/${companyId}/scheduled-employees?date=${date}`,
+    );
+  }
+
   // --- Shift Assignments ---
 
   createShift(

@@ -8,6 +8,7 @@ import { AddEmployeePage } from './pages/employees/add-employee.page';
 import { EmployeeDetailPage } from './pages/employees/employee-detail.page';
 import { SettingsPage } from "./pages/settings/settings.page";
 import { PlaceholderPageComponent } from './components/placeholderPage';
+import { DashboardPage } from './pages/dashboard/dashboard.page';
 import { DepartmentTablePage } from './pages/departments/department-table.page';
 import { AddDepartmentPage } from './pages/departments/add-department.page';
 import { EditDepartmentPage } from './pages/departments/edit-department.page';
@@ -38,11 +39,10 @@ export const routes: Routes = [
     children: [
       {
         path: 'dashboard',
-        component: PlaceholderPageComponent,
+        component: DashboardPage,
         data: {
           pageTitle: 'Dashboard',
           breadcrumb: 'Dashboard',
-          description: 'Dashboard content will appear here.',
         },
       },
       {

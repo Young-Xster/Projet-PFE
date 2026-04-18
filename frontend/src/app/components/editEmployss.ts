@@ -734,12 +734,17 @@ export class EditEmployeeComponent implements OnInit {
 
   private async uploadPendingDocuments(createdEmployee: Employee): Promise<void> {
     const employeeId = createdEmployee?.employeeId;
+    const listQueryParams = this.route.snapshot.queryParams;
 
     if (!employeeId) {
       this.errorMessage = 'Employee was updated but no employee ID was returned.';
       this.submitting = false;
       this.cdr.detectChanges();
-      this.ngZone.run(() => this.router.navigate(['/employees']));
+      this.ngZone.run(() =>
+        this.router.navigate(['/employees'], {
+          queryParams: listQueryParams,
+        }),
+      );
       return;
     }
 
@@ -763,13 +768,21 @@ export class EditEmployeeComponent implements OnInit {
         );
       }
 
-      this.ngZone.run(() => this.router.navigate(['/employees', employeeId]));
+      this.ngZone.run(() =>
+        this.router.navigate(['/employees'], {
+          queryParams: listQueryParams,
+        }),
+      );
     } catch (error: any) {
       this.errorMessage =
         error?.error?.message ??
         error?.message ??
         'Employee updated but one or more document uploads failed.';
-      this.ngZone.run(() => this.router.navigate(['/employees', employeeId]));
+      this.ngZone.run(() =>
+        this.router.navigate(['/employees'], {
+          queryParams: listQueryParams,
+        }),
+      );
     } finally {
       this.submitting = false;
       this.cdr.detectChanges();
@@ -796,6 +809,10 @@ export class EditEmployeeComponent implements OnInit {
   }
 
   cancel(): void {
-    this.ngZone.run(() => this.router.navigate(['/employees']));
+    this.ngZone.run(() =>
+      this.router.navigate(['/employees'], {
+        queryParams: this.route.snapshot.queryParams,
+      }),
+    );
   }
 }

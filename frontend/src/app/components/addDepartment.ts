@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom, timeout } from 'rxjs';
 import { EmployeeService } from '../services/employee/employee.service';
@@ -174,6 +174,7 @@ export class AddDepartmentComponent implements OnInit {
     private employeeService: EmployeeService,
     private departmentService: DepartmentService,
     private router: Router,
+    private route: ActivatedRoute,
     private breadcrumbService: BreadcrumbService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
@@ -250,7 +251,11 @@ export class AddDepartmentComponent implements OnInit {
       await firstValueFrom(
         this.departmentService.createDepartment(payload).pipe(timeout(30000))
       );
-      this.ngZone.run(() => this.router.navigate(['/departments']));
+      this.ngZone.run(() =>
+        this.router.navigate(['/departments'], {
+          queryParams: this.route.snapshot.queryParams,
+        }),
+      );
     } catch (error: any) {
       this.errorMessage =
         error?.error?.message ??
@@ -262,6 +267,10 @@ export class AddDepartmentComponent implements OnInit {
   }
 
   cancel(): void {
-    this.ngZone.run(() => this.router.navigate(['/departments']));
+    this.ngZone.run(() =>
+      this.router.navigate(['/departments'], {
+        queryParams: this.route.snapshot.queryParams,
+      }),
+    );
   }
 }

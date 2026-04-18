@@ -264,7 +264,11 @@ export class EditDepartmentComponent implements OnInit {
       await firstValueFrom(
         this.departmentService.updateDepartment(this.departmentId, payload).pipe(timeout(30000)),
       );
-      this.ngZone.run(() => this.router.navigate(['/departments']));
+      this.ngZone.run(() =>
+        this.router.navigate(['/departments'], {
+          queryParams: this.route.snapshot.queryParams,
+        }),
+      );
     } catch (error: any) {
       this.errorMessage =
         error?.error?.message ??
@@ -276,6 +280,10 @@ export class EditDepartmentComponent implements OnInit {
   }
 
   cancel(): void {
-    this.ngZone.run(() => this.router.navigate(['/departments']));
+    this.ngZone.run(() =>
+      this.router.navigate(['/departments'], {
+        queryParams: this.route.snapshot.queryParams,
+      }),
+    );
   }
 }

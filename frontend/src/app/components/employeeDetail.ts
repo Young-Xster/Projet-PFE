@@ -630,12 +630,16 @@ export class EmployeeDetailComponent implements OnInit {
 
   editEmployee(): void {
     if (this.employee?.employeeId) {
-      this.router.navigate(['/employees', this.employee.employeeId, 'edit']);
+      this.router.navigate(['/employees', this.employee.employeeId, 'edit'], {
+        queryParams: this.route.snapshot.queryParams,
+      });
     }
   }
 
   goBack(): void {
-    this.router.navigate(['/employees']);
+    this.router.navigate(['/employees'], {
+      queryParams: this.route.snapshot.queryParams,
+    });
   }
 
   getStatusClass(status: string): string {

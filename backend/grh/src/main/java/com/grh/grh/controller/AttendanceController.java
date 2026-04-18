@@ -98,5 +98,15 @@ public class AttendanceController {
         return ApiResponse.success("Attendance deleted successfully", null);
     }
 
+    @GetMapping("/company/{companyId}/on-leave")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'attendance:read')")
+    public ApiResponse<List<UUID>> getEmployeeIdsOnLeaveForDate(
+        @PathVariable UUID companyId,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+        Authentication authentication
+    ) {
+        return ApiResponse.success("Employees on leave retrieved successfully",
+            attendanceService.getEmployeeIdsOnLeaveForDate(companyId, date, authentication));
+    }
 
 }

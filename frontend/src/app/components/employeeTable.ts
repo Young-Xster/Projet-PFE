@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { finalize, timeout } from 'rxjs/operators';
 import { EmployeeService } from '../services/employee/employee.service';
@@ -341,12 +341,28 @@ export class EmployeeTableComponent implements OnInit {
     private http: HttpClient,
     private employeeService: EmployeeService,
     private router: Router,
+    private route: ActivatedRoute,
     private breadcrumbService: BreadcrumbService,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
     this.breadcrumbService.setItems([{ label: 'All Employees', routerLink: '/employees' }]);
+
+    // Read query params for list state
+    this.route.queryParams.subscribe((params) => {
+      const page = parseInt(params['page'] || '1', 10);
+      const pageSize = parseInt(params['pageSize'] || '10', 10);
+      const status = params['status'] || 'active';
+      const search = params['search'] || '';
+
+      if (page >= 1) this.currentPage = page;
+      if ([10, 25, 50].includes(pageSize)) this.pageSize = pageSize;
+      if (['active', 'terminated', 'on_leave', 'all'].includes(status)) {
+        this.statusFilter = status;
+      }
+      this.searchTerm = typeof search === 'string' ? search : '';
+    });
 
     this.http.get<any>(environment.apiUrl + '/auth/me').subscribe({
       next: (res) => {
@@ -395,12 +411,11 @@ export class EmployeeTableComponent implements OnInit {
       )
       .subscribe((data) => {
         this.employees = data;
-        // Trigger filter immediately to apply default 'active' state
-        this.filterEmployees();
+        this.filterEmployees(false);
       });
   }
 
-  filterEmployees(): void {
+  filterEmployees(resetPage = true): void {
     const term = this.searchTerm.toLowerCase().trim();
 
     this.filteredEmployees = this.employees.filter((emp) => {
@@ -421,12 +436,21 @@ export class EmployeeTableComponent implements OnInit {
       return matchesStatus && matchesSearch;
     });
 
-    this.currentPage = 1;
+    if (resetPage) {
+      this.currentPage = 1;
+    }
     this.updatePagination();
+    this.updateQueryParams();
   }
 
   updatePagination(): void {
     this.totalPages = Math.max(1, Math.ceil(this.filteredEmployees.length / this.pageSize));
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages;
+    }
+    if (this.currentPage < 1) {
+      this.currentPage = 1;
+    }
     this.pageNumbers = Array.from({ length: this.totalPages }, (_, i) => i + 1);
     this.paginatedEmployees = this.filteredEmployees.slice(this.startIndex, this.endIndex);
   }
@@ -435,20 +459,39 @@ export class EmployeeTableComponent implements OnInit {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
     this.updatePagination();
+    this.updateQueryParams();
+  }
+
+  private updateQueryParams(): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: this.currentPage > 1 ? this.currentPage : null,
+        pageSize: this.pageSize !== 10 ? this.pageSize : null,
+        status: this.statusFilter !== 'active' ? this.statusFilter : null,
+        search: this.searchTerm.trim() ? this.searchTerm.trim() : null,
+      },
+      queryParamsHandling: 'merge',
+    });
   }
 
   onPageSizeChange(): void {
     this.pageSize = +this.pageSize;
     this.currentPage = 1;
     this.updatePagination();
+    this.updateQueryParams();
   }
 
   navigateToAdd(): void {
-    this.router.navigate(['/employees/add']);
+    this.router.navigate(['/employees/add'], {
+      queryParams: this.route.snapshot.queryParams,
+    });
   }
 
   viewEmployee(emp: Employee): void {
-    this.router.navigate(['/employees', emp.employeeId]);
+    this.router.navigate(['/employees', emp.employeeId], {
+      queryParams: this.route.snapshot.queryParams,
+    });
   }
 
   getStatusClass(status: string): string {
@@ -476,7 +519,9 @@ export class EmployeeTableComponent implements OnInit {
   }
 
   editEmployee(emp: Employee): void {
-    this.router.navigate(['/employees', emp.employeeId, 'edit']);
+    this.router.navigate(['/employees', emp.employeeId, 'edit'], {
+      queryParams: this.route.snapshot.queryParams,
+    });
   }
   deleteEmployee(emp: Employee): void {
     if (confirm(`Are you sure you want to delete ${emp.firstName} ${emp.lastName}?`)) {

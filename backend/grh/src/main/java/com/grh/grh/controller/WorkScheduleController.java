@@ -115,4 +115,15 @@ public class WorkScheduleController {
         return ApiResponse.success("Schedule assignments retrieved",
                 workScheduleService.getEmployeesBySchedule(scheduleId, authentication));
     }
+
+    @GetMapping("/company/{companyId}/scheduled-employees")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'work_schedules:read')")
+    public ApiResponse<List<UUID>> getScheduledEmployeesForDate(
+            @PathVariable UUID companyId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Authentication authentication
+    ) {
+        return ApiResponse.success("Scheduled employees retrieved",
+                workScheduleService.getScheduledEmployeeIdsForDate(companyId, date, authentication));
+    }
 }

@@ -384,6 +384,12 @@ public class WorkScheduleService {
                 .orElse(null);
     }
 
+    @Transactional(readOnly = true)
+    public List<UUID> getScheduledEmployeeIdsForDate(UUID companyId, LocalDate date, Authentication authentication) {
+        validateCompanyAccess(companyId, authentication);
+        return employeeScheduleRepository.findActiveEmployeeIdsByCompanyAndDate(companyId, date);
+    }
+
     //helper methods
 
     private void validateScheduleDetails(List<CreateWorkScheduleRequest.ScheduleDetailRequest> details) {

@@ -316,6 +316,8 @@ export class DepartmentDetailComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/departments']);
+    this.router.navigate(['/departments'], {
+      queryParams: this.route.snapshot.queryParams,
+    });
   }
 }

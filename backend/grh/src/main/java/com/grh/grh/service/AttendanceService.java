@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +33,7 @@ public class AttendanceService {
     private final SubcontractorRepository subcontractorRepository;
     private final KeycloakUserService keycloakUserService;
     private final WorkScheduleService workScheduleService;
+    private final LeaveRequestRepository leaveRequestRepository;
     private final ApplicationEventPublisher eventPublisher;
 
 
@@ -65,6 +65,10 @@ public class AttendanceService {
             Employee employee = employeeRepository.findById(request.getEmployeeId())
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
             builder.employee(employee);
+
+            if (request.getClockInTime() != null && !isScheduledWorkingDay(request.getEmployeeId(), request.getDate())) {
+                throw new IllegalStateException("Employee is not scheduled to work on " + request.getDate());
+            }
 
             // Calculate work duration if both times provided
             if (request.getClockInTime() != null && request.getClockOutTime() != null) {
@@ -174,6 +178,29 @@ public class AttendanceService {
             record.setWorkDurationMinutes(calculateWorkDuration(record.getClockInTime(), record.getClockOutTime()));
         }
 
+        if (record.getEmployee() != null && record.getClockInTime() != null) {
+            Integer recalculatedDelay = calculateDelay(
+                record.getCompany().getId(),
+                record.getEmployee().getEmployeeId(),
+                record.getDate(),
+                record.getClockInTime()
+            );
+
+            if (recalculatedDelay != null) {
+                record.setDelayMinutes(recalculatedDelay);
+                if (recalculatedDelay > 0) {
+                    record.setStatus("late");
+                } else if (!"absent".equals(normalizeStatus(record.getStatus()))) {
+                    record.setStatus("present");
+                }
+            }
+        } else if (record.getClockInTime() == null) {
+            record.setDelayMinutes(null);
+            if ("late".equals(normalizeStatus(record.getStatus()))) {
+                record.setStatus("present");
+            }
+        }
+
         // Calculate early departure / overtime based on the updated finish time
         if (record.getClockOutTime() != null) {
             calculateDepartureStats(record);
@@ -235,6 +262,12 @@ public class AttendanceService {
         return attendanceRepository.findByEmployeeAndDateRange(employeeId, startDate, endDate).stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> getEmployeeIdsOnLeaveForDate(UUID companyId, LocalDate date, Authentication authentication) {
+        validateCompanyAccess(companyId, authentication);
+        return leaveRequestRepository.findEmployeeIdsOnLeaveForDate(companyId, date);
     }
 
     @Transactional
@@ -361,6 +394,15 @@ public class AttendanceService {
         }
 
         return 0;
+    }
+
+    private boolean isScheduledWorkingDay(UUID employeeId, LocalDate date) {
+        ScheduleDetail detail = workScheduleService.getExpectedScheduleForDate(employeeId, date);
+        return detail != null && Boolean.TRUE.equals(detail.getIsWorkingDay());
+    }
+
+    private String normalizeStatus(String status) {
+        return status == null ? "" : status.trim().toLowerCase();
     }
 
     private UUID resolveCompanyId(Authentication authentication, UUID requestCompanyId) {

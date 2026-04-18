@@ -23,4 +23,10 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
         @Param("employeeId") UUID employeeId,
         @Param("date") LocalDate date
     );
+
+    @Query("SELECT DISTINCT es.employee.employeeId FROM EmployeeSchedule es WHERE es.employee IS NOT NULL AND es.employee.company.id = :companyId AND es.effectiveFrom <= :date AND (es.effectiveTo IS NULL OR es.effectiveTo >= :date)")
+    List<UUID> findActiveEmployeeIdsByCompanyAndDate(
+        @Param("companyId") UUID companyId,
+        @Param("date") LocalDate date
+    );
 }

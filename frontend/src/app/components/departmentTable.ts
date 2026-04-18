@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { finalize, timeout } from 'rxjs/operators';
 import { BreadcrumbService } from '../services/breadcrumb/breadcrumb.service';
@@ -322,12 +322,23 @@ export class DepartmentTableComponent implements OnInit {
     private departmentService: DepartmentService,
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private breadcrumbService: BreadcrumbService,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
     this.breadcrumbService.setItems([{ label: 'Departments', routerLink: '/departments' }]);
+
+    this.route.queryParams.subscribe((params) => {
+      const page = parseInt(params['page'] || '1', 10);
+      const pageSize = parseInt(params['pageSize'] || '10', 10);
+      const search = params['search'] || '';
+
+      if (page >= 1) this.currentPage = page;
+      if ([10, 25, 50].includes(pageSize)) this.pageSize = pageSize;
+      this.searchTerm = typeof search === 'string' ? search : '';
+    });
 
     this.http.get<any>(environment.apiUrl + '/auth/me').subscribe({
       next: (res) => {
@@ -375,17 +386,17 @@ export class DepartmentTableComponent implements OnInit {
       .subscribe({
         next: (response) => {
           this.departments = response.data || [];
-          this.filterDepartments();
+          this.filterDepartments(false);
         },
         error: (err) => {
           console.error('Failed to load departments', err);
           this.departments = [];
-          this.filterDepartments();
+          this.filterDepartments(false);
         },
       });
   }
 
-  filterDepartments(): void {
+  filterDepartments(resetPage = true): void {
     const term = this.searchTerm.toLowerCase().trim();
 
     this.filteredDepartments = this.departments.filter((dept) => {
@@ -399,12 +410,21 @@ export class DepartmentTableComponent implements OnInit {
       return matchesSearch;
     });
 
-    this.currentPage = 1;
+    if (resetPage) {
+      this.currentPage = 1;
+    }
     this.updatePagination();
+    this.updateQueryParams();
   }
 
   updatePagination(): void {
     this.totalPages = Math.max(1, Math.ceil(this.filteredDepartments.length / this.pageSize));
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages;
+    }
+    if (this.currentPage < 1) {
+      this.currentPage = 1;
+    }
     this.pageNumbers = Array.from({ length: this.totalPages }, (_, i) => i + 1);
     this.paginatedDepartments = this.filteredDepartments.slice(this.startIndex, this.endIndex);
   }
@@ -413,24 +433,44 @@ export class DepartmentTableComponent implements OnInit {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
     this.updatePagination();
+    this.updateQueryParams();
+  }
+
+  private updateQueryParams(): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: this.currentPage > 1 ? this.currentPage : null,
+        pageSize: this.pageSize !== 10 ? this.pageSize : null,
+        search: this.searchTerm.trim() ? this.searchTerm.trim() : null,
+      },
+      queryParamsHandling: 'merge',
+    });
   }
 
   onPageSizeChange(): void {
     this.pageSize = +this.pageSize;
     this.currentPage = 1;
     this.updatePagination();
+    this.updateQueryParams();
   }
 
   navigateToAdd(): void {
-    this.router.navigate(['/departments/add']);
+    this.router.navigate(['/departments/add'], {
+      queryParams: this.route.snapshot.queryParams,
+    });
   }
 
   viewDepartment(dept: DepartmentResponse): void {
-    this.router.navigate(['/departments', dept.id]);
+    this.router.navigate(['/departments', dept.id], {
+      queryParams: this.route.snapshot.queryParams,
+    });
   }
 
   editDepartment(dept: DepartmentResponse): void {
-    this.router.navigate(['/departments', dept.id, 'edit']);
+    this.router.navigate(['/departments', dept.id, 'edit'], {
+      queryParams: this.route.snapshot.queryParams,
+    });
   }
 
   deleteDepartment(dept: DepartmentResponse): void {

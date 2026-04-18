@@ -8,6 +8,7 @@ import { of, forkJoin } from 'rxjs';
 import { catchError, finalize, timeout } from 'rxjs/operators';
 import { EmployeeService } from '../services/employee/employee.service';
 import { AttendanceService } from '../services/attendance.service';
+import { SchedulingService } from '../services/scheduling.service';
 import { Employee, CompanyInfo } from '../models/employee.model';
 import { AttendanceResponse } from '../models/attendance.model';
 import { BreadcrumbService } from '../services/breadcrumb/breadcrumb.service';
@@ -16,7 +17,8 @@ import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
 interface AttendanceRow {
   employee: Employee;
   attendance?: AttendanceResponse;
-  statusDisplay: 'ON_TIME' | 'LATE' | 'PENDING' | 'ABSENT' | 'LEFT_WORK';
+  statusDisplay: 'ON_TIME' | 'LATE' | 'PENDING' | 'ABSENT' | 'LEFT_WORK' | 'ON_LEAVE';
+  isOnLeave?: boolean;
 }
 
 @Component({
@@ -55,6 +57,19 @@ interface AttendanceRow {
             />
           </div>
           <div class="flex gap-2.5 items-center">
+            <select
+              [(ngModel)]="selectedStatusFilter"
+              (change)="filterRows()"
+              class="py-2.5 px-3 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-100 bg-white dark:bg-gray-800 transition-all duration-150 focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="ON_TIME">On Time</option>
+              <option value="LATE">Late</option>
+              <option value="LEFT_WORK">Left Work</option>
+              <option value="ABSENT">Absent</option>
+              <option value="ON_LEAVE">On Leave</option>
+            </select>
             @if (isSuperAdmin) {
               <select
                 [(ngModel)]="selectedCompanyId"
@@ -213,7 +228,9 @@ interface AttendanceRow {
                     </div>
                   </td>
                   <td class="px-5 py-3.5 whitespace-nowrap">
-                    @if (row.statusDisplay === 'PENDING') {
+                    @if (row.statusDisplay === 'ON_LEAVE') {
+                      <span class="text-sm text-purple-600 font-medium">On Leave</span>
+                    } @else if (row.statusDisplay === 'PENDING') {
                       <div class="flex gap-2">
                         <button
                           (click)="markPresent(row)"
@@ -333,6 +350,7 @@ export class AttendanceTableComponent implements OnInit {
   paginatedRows: AttendanceRow[] = [];
   loading = true;
   searchTerm = '';
+  selectedStatusFilter: 'ALL' | 'ON_TIME' | 'LATE' | 'PENDING' | 'ABSENT' | 'LEFT_WORK' | 'ON_LEAVE' = 'ALL';
 
   actionLoading: { [key: string]: boolean } = {};
 
@@ -354,6 +372,7 @@ export class AttendanceTableComponent implements OnInit {
     private http: HttpClient,
     private employeeService: EmployeeService,
     private attendanceService: AttendanceService,
+    private schedulingService: SchedulingService,
     private router: Router,
     private breadcrumbService: BreadcrumbService,
     private cdr: ChangeDetectorRef,
@@ -396,12 +415,14 @@ export class AttendanceTableComponent implements OnInit {
     }
   }
 
-  loadAttendanceData(): void {
+  loadAttendanceData(preservePage: boolean = true): void {
     if (!this.selectedCompanyId && this.isSuperAdmin) return;
     this.loading = true;
 
-    // YYYY-MM-DD format
-    const today = new Date().toISOString().split('T')[0];
+    // Save current page before reload
+    const savedPage = this.currentPage;
+
+    const today = this.getLocalDateString();
 
     const employees$ = this.employeeService
       .getAllEmployeesByCompany(this.selectedCompanyId)
@@ -411,7 +432,15 @@ export class AttendanceTableComponent implements OnInit {
       .getAttendanceByCompanyAndDate(this.selectedCompanyId, today)
       .pipe(catchError(() => of({ data: [] as AttendanceResponse[] })));
 
-    forkJoin([employees$, attendance$])
+    const scheduledEmployees$ = this.schedulingService
+      .getScheduledEmployeesForDate(this.selectedCompanyId, today)
+      .pipe(catchError(() => of({ data: [] as string[] })));
+
+    const onLeaveEmployees$ = this.http
+      .get<any>(`${environment.apiUrl}/attendance/company/${this.selectedCompanyId}/on-leave?date=${today}`)
+      .pipe(catchError(() => of({ data: [] as string[] })));
+
+    forkJoin([employees$, attendance$, scheduledEmployees$, onLeaveEmployees$])
       .pipe(
         timeout(15000),
         finalize(() => {
@@ -419,24 +448,32 @@ export class AttendanceTableComponent implements OnInit {
           this.cdr.detectChanges();
         }),
       )
-      .subscribe(([employees, attendanceRes]) => {
+      .subscribe(([employees, attendanceRes, scheduledRes, onLeaveRes]) => {
         const attendances = attendanceRes?.data || [];
         const attendanceMap = new Map(attendances.map((a) => [a.employeeId, a]));
+        const scheduledEmployeeIds = new Set(scheduledRes?.data || []);
+        const onLeaveEmployeeIds = new Set(onLeaveRes?.data || []);
 
-        let mappedRows = (employees || []).map((emp) => {
+        // Filter to visible employees: scheduled OR have attendance records
+        const visibleEmployees = (employees || []).filter(
+          (emp) => scheduledEmployeeIds.has(emp.employeeId) || attendanceMap.has(emp.employeeId),
+        );
+
+        let mappedRows = visibleEmployees.map((emp) => {
           const attendance = attendanceMap.get(emp.employeeId);
-          let statusDisplay: 'ON_TIME' | 'LATE' | 'PENDING' | 'ABSENT' | 'LEFT_WORK' = 'PENDING';
+          const isOnLeave = onLeaveEmployeeIds.has(emp.employeeId);
+          let statusDisplay: 'ON_TIME' | 'LATE' | 'PENDING' | 'ABSENT' | 'LEFT_WORK' | 'ON_LEAVE' = 'PENDING';
 
-          if (attendance) {
-            if (attendance.status === 'absent') {
+          if (isOnLeave) {
+            statusDisplay = 'ON_LEAVE';
+          } else if (attendance) {
+            const status = this.normalizeAttendanceStatus(attendance.status);
+            if (status === 'absent') {
               statusDisplay = 'ABSENT';
             } else if (attendance.clockOutTime) {
               statusDisplay = 'LEFT_WORK';
             } else {
-              statusDisplay =
-                attendance.status === 'late' || (attendance.delayMinutes || 0) > 0
-                  ? 'LATE'
-                  : 'ON_TIME';
+              statusDisplay = status === 'late' || (attendance.delayMinutes || 0) > 0 ? 'LATE' : 'ON_TIME';
             }
           }
 
@@ -444,30 +481,64 @@ export class AttendanceTableComponent implements OnInit {
             employee: emp,
             attendance,
             statusDisplay,
+            isOnLeave,
           } as AttendanceRow;
         });
 
-        // Sort priority: ON_TIME, LATE, PENDING, LEFT_WORK, ABSENT
+        // Sort priority: ON_TIME, LATE, PENDING, LEFT_WORK, ABSENT, ON_LEAVE
         const priority = {
           ON_TIME: 1,
           LATE: 2,
           PENDING: 3,
           LEFT_WORK: 4,
           ABSENT: 5,
+          ON_LEAVE: 6,
         };
 
         this.rows = mappedRows.sort(
           (a, b) => priority[a.statusDisplay] - priority[b.statusDisplay],
         );
 
-        this.filterRows();
+        // Apply filters without resetting page
+        this.applyFilters(preservePage);
+
+        // Restore page if preserving and valid
+        if (preservePage && savedPage > 1) {
+          // Use setTimeout to ensure pagination updates after filter is applied
+          setTimeout(() => {
+            if (savedPage <= this.totalPages) {
+              this.currentPage = savedPage;
+            } else {
+              this.currentPage = Math.max(1, this.totalPages);
+            }
+            this.updatePagination();
+          }, 0);
+        }
       });
   }
 
   filterRows(): void {
+    // When user manually filters, reset to page 1
+    this.applyFilters(false);
+  }
+
+  applyFilters(preservePage: boolean = false): void {
     const term = this.searchTerm.toLowerCase().trim();
 
     this.filteredRows = this.rows.filter((row) => {
+      // First apply status filter
+      if (this.selectedStatusFilter === 'ON_LEAVE') {
+        // Only show employees on leave
+        if (!row.isOnLeave) return false;
+      } else if (this.selectedStatusFilter !== 'ALL') {
+        // Show employees matching the selected status (but not on leave)
+        if (row.isOnLeave || row.statusDisplay !== this.selectedStatusFilter) return false;
+      } else {
+        // For 'ALL', exclude employees on leave from the default view
+        if (row.isOnLeave) return false;
+      }
+
+      // Then apply search term filter
       if (!term) return true;
       return (
         row.employee.firstName.toLowerCase().includes(term) ||
@@ -475,7 +546,9 @@ export class AttendanceTableComponent implements OnInit {
       );
     });
 
-    this.currentPage = 1;
+    if (!preservePage) {
+      this.currentPage = 1;
+    }
     this.updatePagination();
   }
 
@@ -509,6 +582,8 @@ export class AttendanceTableComponent implements OnInit {
         return 'bg-blue-100 text-blue-700';
       case 'ABSENT':
         return 'bg-red-100 text-red-700';
+      case 'ON_LEAVE':
+        return 'bg-purple-100 text-purple-700';
       default:
         return 'bg-gray-100 text-gray-600';
     }
@@ -526,7 +601,7 @@ export class AttendanceTableComponent implements OnInit {
   }
 
   markPresent(row: AttendanceRow): void {
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.getLocalDateString();
     this.actionLoading[row.employee.employeeId] = true;
 
     // Using Angular's HTTP client to make the POST call via attendanceService
@@ -555,7 +630,7 @@ export class AttendanceTableComponent implements OnInit {
   }
 
   markAbsent(row: AttendanceRow): void {
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.getLocalDateString();
     if (!confirm(`Are you sure you want to mark ${row.employee.firstName} as absent for today?`))
       return;
 
@@ -607,5 +682,17 @@ export class AttendanceTableComponent implements OnInit {
           alert('Failed to process departure. Please try again.');
         },
       });
+  }
+
+  private getLocalDateString(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private normalizeAttendanceStatus(status: string | null | undefined): string {
+    return (status || '').trim().toLowerCase();
   }
 }
