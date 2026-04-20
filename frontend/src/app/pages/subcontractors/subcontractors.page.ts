@@ -1,8 +1,9 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { environment } from '../../../environments/environment';
 import { AdminService, Company } from '../../services/admin/admin.service';
+import { NotificationService, NotificationStream } from '../../services/notification/notification.service';
 import {
   ContractResponse,
   CreateSubcontractorRequest,
@@ -76,6 +77,8 @@ import {
                 <th class="py-2 pr-3">Display Name</th>
                 <th class="py-2 pr-3">Type</th>
                 <th class="py-2 pr-3">Email</th>
+                <th class="py-2 pr-3">Phone</th>
+                <th class="py-2 pr-3">City</th>
                 <th class="py-2 pr-3">Specialization</th>
                 <th class="py-2 pr-3">Status</th>
                 <th class="py-2 pr-3">Actions</th>
@@ -87,6 +90,8 @@ import {
                   <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ sub.displayName }}</td>
                   <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ sub.type }}</td>
                   <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ sub.contactEmail || '-' }}</td>
+                  <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ sub.contactPhone || '-' }}</td>
+                  <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ sub.city || '-' }}</td>
                   <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ sub.specialization || '-' }}</td>
                   <td class="py-2 pr-3">
                     <span
@@ -119,7 +124,7 @@ import {
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="6" class="py-6 text-center text-gray-400">{{ subcontractorEmptyMessage() }}</td>
+                  <td colspan="8" class="py-6 text-center text-gray-400">{{ subcontractorEmptyMessage() }}</td>
                 </tr>
               }
             </tbody>
@@ -221,6 +226,14 @@ import {
           <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
             <span class="text-xs text-gray-500">Email</span>
             <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.contactEmail || '-' }}</p>
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+            <span class="text-xs text-gray-500">Phone</span>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.contactPhone || '-' }}</p>
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+            <span class="text-xs text-gray-500">City</span>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.city || '-' }}</p>
           </div>
         </div>
 
@@ -396,7 +409,8 @@ import {
     }
   `,
 })
-export class SubcontractorsPage implements OnInit {
+export class SubcontractorsPage implements OnInit, OnDestroy {
+  private readonly subcontractorsSignal = signal<SubcontractorResponse[]>([]);
   subcontractors: SubcontractorResponse[] = [];
   contracts: ContractResponse[] = [];
   invoices: InvoiceResponse[] = [];
@@ -421,6 +435,9 @@ export class SubcontractorsPage implements OnInit {
   };
   contractDocumentFile: File | null = null;
   paymentProofFiles: { [invoiceId: string]: File } = {};
+  private notificationStream: NotificationStream | null = null;
+  private scheduledRefreshHandle: ReturnType<typeof setTimeout> | null = null;
+  private pendingRefreshTargetId: string | null = null;
 
   subcontractorForm: CreateSubcontractorRequest = {
     type: 'INDIVIDUAL',
@@ -436,11 +453,22 @@ export class SubcontractorsPage implements OnInit {
   constructor(
     private subcontractorService: SubcontractorService,
     private adminService: AdminService,
+    private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.loadCompaniesAndSubcontractors();
+    this.subscribeToSubcontractorUpdates();
+  }
+
+  ngOnDestroy(): void {
+    this.notificationStream?.close();
+    this.notificationStream = null;
+    if (this.scheduledRefreshHandle) {
+      clearTimeout(this.scheduledRefreshHandle);
+      this.scheduledRefreshHandle = null;
+    }
   }
 
   private loadCompaniesAndSubcontractors(): void {
@@ -480,7 +508,15 @@ export class SubcontractorsPage implements OnInit {
     this.errorMessage = '';
     this.subcontractorService.getMyCompanySubcontractors(this.selectedCompanyId || undefined).subscribe({
       next: (res) => {
-        this.subcontractors = res.data ?? [];
+        const newData = res.data ?? [];
+        this.subcontractors = newData;
+        this.subcontractorsSignal.set([...newData]);
+        if (this.selectedSubcontractor) {
+          const updatedSelected = this.subcontractors.find((sub) => sub.id === this.selectedSubcontractor?.id);
+          if (updatedSelected) {
+            this.selectedSubcontractor = updatedSelected;
+          }
+        }
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -602,11 +638,12 @@ export class SubcontractorsPage implements OnInit {
   }
 
   filteredSubcontractors(): SubcontractorResponse[] {
+    const data = this.subcontractorsSignal();
     if (this.subcontractorStatusFilter === 'ALL') {
-      return this.subcontractors;
+      return data;
     }
 
-    return this.subcontractors.filter(
+    return data.filter(
       (sub) => (sub.status || '').toUpperCase() === this.subcontractorStatusFilter,
     );
   }
@@ -770,6 +807,34 @@ export class SubcontractorsPage implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       }
+    });
+  }
+
+  private subscribeToSubcontractorUpdates(): void {
+    this.notificationStream?.close();
+    this.notificationStream = this.notificationService.connectStream((entry) => {
+      if ((entry.targetModule || '').toUpperCase() !== 'SUBCONTRACTOR') {
+        return;
+      }
+
+      if (entry.targetId) {
+        this.pendingRefreshTargetId = entry.targetId;
+      }
+
+      if (this.scheduledRefreshHandle) {
+        return;
+      }
+
+      this.scheduledRefreshHandle = setTimeout(() => {
+        this.scheduledRefreshHandle = null;
+        const targetId = this.pendingRefreshTargetId;
+        this.pendingRefreshTargetId = null;
+
+        this.loadSubcontractors();
+        if (targetId && this.selectedSubcontractor?.id === targetId) {
+          this.inspect(this.selectedSubcontractor);
+        }
+      }, 300);
     });
   }
 }

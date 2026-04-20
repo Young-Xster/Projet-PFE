@@ -5,10 +5,12 @@ import com.grh.grh.dto.request.subcontractor.PortalCreateInvoiceRequest;
 import com.grh.grh.dto.request.subcontractor.PortalRequestAccessRequest;
 import com.grh.grh.dto.response.subcontractor.*;
 import com.grh.grh.entity.*;
+import com.grh.grh.event.NotificationEvent;
 import com.grh.grh.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.format.DateTimeFormatter;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -35,6 +38,7 @@ public class SubcontractorPortalService {
     private static final String LOGIN_TOKEN_TYPE = "LOGIN";
     private static final String SESSION_TOKEN_TYPE = "SESSION";
     private static final String ACTIVE_STATUS = "ACTIVE";
+    private static final DateTimeFormatter CONTRACT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final SubcontractorRepository subcontractorRepository;
     private final SubcontractorContractRepository contractRepository;
@@ -44,6 +48,7 @@ public class SubcontractorPortalService {
     private final FileStorageService fileStorageService;
     private final EmailService emailService;
     private final TurnstileService turnstileService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.frontend.subcontractor-base-url:http://localhost:44491}")
     private String subcontractorPortalBaseUrl;
@@ -150,13 +155,16 @@ public class SubcontractorPortalService {
 
     @Transactional(readOnly = true)
     public PortalProfileResponse getMyProfile(String sessionTokenRaw) {
-        SessionContext context = requireValidSession(sessionTokenRaw);
+        SessionContext context = requireValidSession(sessionTokenRaw, true);
         Subcontractor subcontractor = context.subcontractor();
 
         return PortalProfileResponse.builder()
             .subcontractorId(subcontractor.getId())
             .companyId(context.company().getId())
             .companyName(context.company().getName())
+            .subcontractorCompanyName(subcontractor.getCompanyName())
+            .contactFirstName(subcontractor.getContactFirstName())
+            .contactLastName(subcontractor.getContactLastName())
             .displayName(resolveDisplayName(subcontractor))
             .type(subcontractor.getType())
             .contactEmail(subcontractor.getContactEmail())
@@ -253,8 +261,18 @@ public class SubcontractorPortalService {
 
     @Transactional
     public PortalProfileResponse updateMyContactInfo(String sessionTokenRaw, PortalContactUpdateRequest request) {
-        SessionContext context = requireValidSession(sessionTokenRaw);
+        SessionContext context = requireValidSession(sessionTokenRaw, true);
         Subcontractor subcontractor = context.subcontractor();
+
+        if (request.getCompanyName() != null) {
+            subcontractor.setCompanyName(trimToNull(request.getCompanyName()));
+        }
+        if (request.getContactFirstName() != null) {
+            subcontractor.setContactFirstName(trimToNull(request.getContactFirstName()));
+        }
+        if (request.getContactLastName() != null) {
+            subcontractor.setContactLastName(trimToNull(request.getContactLastName()));
+        }
 
         if (request.getContactEmail() != null && !request.getContactEmail().isBlank()) {
             subcontractor.setContactEmail(request.getContactEmail().trim());
@@ -273,6 +291,17 @@ public class SubcontractorPortalService {
         }
 
         subcontractorRepository.save(subcontractor);
+
+        eventPublisher.publishEvent(NotificationEvent.builder()
+            .companyId(context.company().getId())
+            .type("SUBCONTRACTOR_PORTAL_PROFILE_UPDATED")
+            .title("Subcontractor Profile Updated")
+            .message(resolveDisplayName(subcontractor) + " updated profile information from portal")
+            .targetModule("SUBCONTRACTOR")
+            .targetId(subcontractor.getId())
+            .importance("LOW")
+            .build());
+
         return getMyProfile(sessionTokenRaw);
     }
 
@@ -341,6 +370,10 @@ public class SubcontractorPortalService {
     }
 
     private SessionContext requireValidSession(String rawSessionToken) {
+        return requireValidSession(rawSessionToken, false);
+    }
+
+    private SessionContext requireValidSession(String rawSessionToken, boolean allowTerminated) {
         SubcontractorPortalToken token = getTokenByRawValue(rawSessionToken, SESSION_TOKEN_TYPE);
 
         if (isRevoked(token) || isExpired(token)) {
@@ -350,8 +383,12 @@ public class SubcontractorPortalService {
         token.setLastUsedAt(OffsetDateTime.now());
         portalTokenRepository.save(token);
 
-        if (!ACTIVE_STATUS.equalsIgnoreCase(token.getSubcontractor().getStatus())) {
-            throw new SecurityException("Subcontractor is not active");
+        String subcontractorStatus = token.getSubcontractor().getStatus();
+        if (!ACTIVE_STATUS.equalsIgnoreCase(subcontractorStatus)) {
+            boolean isTerminated = "TERMINATED".equalsIgnoreCase(subcontractorStatus);
+            if (!allowTerminated || !isTerminated) {
+                throw new SecurityException("Subcontractor is not active");
+            }
         }
 
         return new SessionContext(token.getSubcontractor(), token.getCompany(), token);
@@ -429,12 +466,21 @@ public class SubcontractorPortalService {
     }
 
     private String resolveDisplayName(Subcontractor subcontractor) {
-        if ("COMPANY".equalsIgnoreCase(subcontractor.getType()) && subcontractor.getCompanyName() != null) {
-            return subcontractor.getCompanyName();
+        String companyName = trimToNull(subcontractor.getCompanyName());
+        if (companyName != null) {
+            return companyName;
         }
-        String first = subcontractor.getContactFirstName() != null ? subcontractor.getContactFirstName() : "";
-        String last = subcontractor.getContactLastName() != null ? subcontractor.getContactLastName() : "";
-        return (first + " " + last).trim();
+        String first = trimToNull(subcontractor.getContactFirstName());
+        String last = trimToNull(subcontractor.getContactLastName());
+        return ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String generateRandomToken() {
@@ -477,6 +523,7 @@ public class SubcontractorPortalService {
 
         return PortalContractResponse.builder()
             .id(contract.getId())
+            .displayName(buildContractDisplayName(contract))
             .startDate(contract.getStartDate())
             .endDate(contract.getEndDate())
             .paymentType(contract.getPaymentType())
@@ -487,6 +534,18 @@ public class SubcontractorPortalService {
             .createdAt(contract.getCreatedAt())
             .updatedAt(contract.getUpdatedAt())
             .build();
+    }
+
+    private String buildContractDisplayName(SubcontractorContract contract) {
+        String start = contract.getStartDate() != null
+            ? contract.getStartDate().format(CONTRACT_DATE_FORMATTER)
+            : "?";
+        String end = contract.getEndDate() != null
+            ? contract.getEndDate().format(CONTRACT_DATE_FORMATTER)
+            : "?";
+        String paymentType = contract.getPaymentType() != null ? contract.getPaymentType() : "CONTRACT";
+        String status = contract.getStatus() != null ? contract.getStatus() : "UNKNOWN";
+        return start + " → " + end + " · " + paymentType + " · " + status;
     }
 
     private PortalInvoiceResponse mapInvoice(SubcontractorInvoice invoice) {

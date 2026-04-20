@@ -16,6 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class PortalContractResponse {
     private UUID id;
+    private String displayName;
     private LocalDate startDate;
     private LocalDate endDate;
     private String paymentType;

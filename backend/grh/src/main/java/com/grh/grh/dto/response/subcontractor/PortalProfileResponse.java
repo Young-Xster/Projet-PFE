@@ -15,6 +15,9 @@ public class PortalProfileResponse {
     private UUID subcontractorId;
     private UUID companyId;
     private String companyName;
+    private String subcontractorCompanyName;
+    private String contactFirstName;
+    private String contactLastName;
     private String displayName;
     private String type;
     private String contactEmail;

@@ -69,6 +69,7 @@ public class NotificationService {
         String importance
     ) {
         if (targetId != null &&
+            !"SUBCONTRACTOR_PORTAL_PROFILE_UPDATED".equalsIgnoreCase(type) &&
             notificationRepository.existsByCompanyIdAndTypeAndTargetId(companyId, type, targetId)) {
             return;
         }

@@ -76,7 +76,7 @@
           Contract
           <select [ngModel]="invoiceContractId()" (ngModelChange)="invoiceContractId.set($event)">
             <option value="">Select contract</option>
-            <option *ngFor="let contract of contracts()" [value]="contract.id">{{ contract.id }} ({{ contract.status }})</option>
+            <option *ngFor="let contract of contracts()" [value]="contract.id">{{ getContractDisplayLabel(contract) }}</option>
           </select>
         </label>
         <label>
@@ -138,6 +138,18 @@
       <article class="card">
         <h2>Update contact info</h2>
         <p class="info-text">Update your contact information. These changes will be visible to your company administrators.</p>
+        <label>
+          Subcontractor company name
+          <input [ngModel]="subcontractorCompanyName()" (ngModelChange)="subcontractorCompanyName.set($event)" />
+        </label>
+        <label>
+          Contact first name
+          <input [ngModel]="contactFirstName()" (ngModelChange)="contactFirstName.set($event)" />
+        </label>
+        <label>
+          Contact last name
+          <input [ngModel]="contactLastName()" (ngModelChange)="contactLastName.set($event)" />
+        </label>
         <label>
           Email
           <input [ngModel]="contactEmail()" (ngModelChange)="contactEmail.set($event)" type="email" />

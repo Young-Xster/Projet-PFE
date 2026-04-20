@@ -12,6 +12,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PortalContactUpdateRequest {
 
+    private String companyName;
+    private String contactFirstName;
+    private String contactLastName;
+
     @Email(message = "Invalid email format")
     private String contactEmail;
 

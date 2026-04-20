@@ -615,10 +615,12 @@ public class SubcontractorService {
     }
 
     private String resolveDisplayName(Subcontractor s) {
-        if ("COMPANY".equalsIgnoreCase(s.getType()) && s.getCompanyName() != null)
-            return s.getCompanyName();
-        String f = s.getContactFirstName() != null ? s.getContactFirstName() : "";
-        String l = s.getContactLastName() != null ? s.getContactLastName() : "";
+        String companyName = s.getCompanyName() != null ? s.getCompanyName().trim() : "";
+        if (!companyName.isEmpty()) {
+            return companyName;
+        }
+        String f = s.getContactFirstName() != null ? s.getContactFirstName().trim() : "";
+        String l = s.getContactLastName() != null ? s.getContactLastName().trim() : "";
         return (f + " " + l).trim();
     }
 

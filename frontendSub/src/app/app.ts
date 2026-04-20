@@ -21,6 +21,9 @@ interface PortalProfile {
   subcontractorId: string;
   companyId: string;
   companyName: string;
+  subcontractorCompanyName: string;
+  contactFirstName: string;
+  contactLastName: string;
   displayName: string;
   type: string;
   contactEmail: string;
@@ -33,6 +36,7 @@ interface PortalProfile {
 
 interface PortalContract {
   id: string;
+  displayName?: string;
   startDate: string;
   endDate: string;
   paymentType: string;
@@ -89,6 +93,9 @@ export class App {
   private invoiceDocumentFile: File | null = null;
 
   readonly contactEmail = signal('');
+  readonly subcontractorCompanyName = signal('');
+  readonly contactFirstName = signal('');
+  readonly contactLastName = signal('');
   readonly contactPhone = signal('');
   readonly address = signal('');
   readonly city = signal('');
@@ -240,6 +247,9 @@ export class App {
     this.successMessage.set('');
 
     const payload = {
+      companyName: this.subcontractorCompanyName(),
+      contactFirstName: this.contactFirstName(),
+      contactLastName: this.contactLastName(),
       contactEmail: this.contactEmail(),
       contactPhone: this.contactPhone(),
       address: this.address(),
@@ -294,6 +304,13 @@ export class App {
       });
   }
 
+  getContractDisplayLabel(contract: PortalContract): string {
+    if (contract.displayName && contract.displayName.trim().length > 0) {
+      return contract.displayName;
+    }
+    return `${contract.startDate} → ${contract.endDate} · ${contract.paymentType} · ${contract.status}`;
+  }
+
   private exchangeMagicLink(rawToken: string): void {
     this.loading.set(true);
     this.errorMessage.set('');
@@ -324,7 +341,12 @@ export class App {
   }
 
   private portalHeaders(): HttpHeaders {
-    return new HttpHeaders({ 'X-Portal-Session': this.sessionToken() });
+    return new HttpHeaders({
+      'X-Portal-Session': this.sessionToken(),
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
   }
 
   private handlePortalError(err: unknown): void {
@@ -340,6 +362,9 @@ export class App {
   }
 
   private syncContactFields(profile: PortalProfile): void {
+    this.subcontractorCompanyName.set(profile.subcontractorCompanyName || '');
+    this.contactFirstName.set(profile.contactFirstName || '');
+    this.contactLastName.set(profile.contactLastName || '');
     this.contactEmail.set(profile.contactEmail || '');
     this.contactPhone.set(profile.contactPhone || '');
     this.address.set(profile.address || '');
@@ -358,6 +383,14 @@ export class App {
     this.profile.set(null);
     this.contracts.set([]);
     this.invoices.set([]);
+    this.subcontractorCompanyName.set('');
+    this.contactFirstName.set('');
+    this.contactLastName.set('');
+    this.contactEmail.set('');
+    this.contactPhone.set('');
+    this.address.set('');
+    this.city.set('');
+    this.specialization.set('');
     this.activeTab.set('dashboard');
     this.successMessage.set('Session closed.');
     this.loading.set(false);
