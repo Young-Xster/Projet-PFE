@@ -36,6 +36,15 @@ import {
                 }
               </select>
             }
+            <select
+              [(ngModel)]="subcontractorStatusFilter"
+              name="subcontractorStatusFilter"
+              class="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="TERMINATED">Terminated</option>
+              <option value="ALL">All</option>
+            </select>
             <button
               type="button"
               (click)="loadSubcontractors()"
@@ -73,7 +82,7 @@ import {
               </tr>
             </thead>
             <tbody>
-              @for (sub of subcontractors; track sub.id) {
+              @for (sub of filteredSubcontractors(); track sub.id) {
                 <tr class="border-b border-gray-100 dark:border-gray-700">
                   <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ sub.displayName }}</td>
                   <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ sub.type }}</td>
@@ -84,8 +93,6 @@ import {
                       class="text-xs px-2 py-1 rounded-full"
                       [class.bg-green-100]="sub.status === 'ACTIVE'"
                       [class.text-green-700]="sub.status === 'ACTIVE'"
-                      [class.bg-yellow-100]="sub.status === 'INACTIVE'"
-                      [class.text-yellow-700]="sub.status === 'INACTIVE'"
                       [class.bg-red-100]="sub.status === 'TERMINATED'"
                       [class.text-red-700]="sub.status === 'TERMINATED'"
                     >
@@ -112,7 +119,7 @@ import {
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="6" class="py-6 text-center text-gray-400">No subcontractors found.</td>
+                  <td colspan="6" class="py-6 text-center text-gray-400">{{ subcontractorEmptyMessage() }}</td>
                 </tr>
               }
             </tbody>
@@ -397,6 +404,7 @@ export class SubcontractorsPage implements OnInit {
   selectedSubcontractor: SubcontractorResponse | null = null;
   companies: Company[] = [];
   selectedCompanyId = '';
+  subcontractorStatusFilter: 'ACTIVE' | 'TERMINATED' | 'ALL' = 'ACTIVE';
   isSuperAdmin = false;
 
   loading = false;
@@ -591,6 +599,22 @@ export class SubcontractorsPage implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  filteredSubcontractors(): SubcontractorResponse[] {
+    if (this.subcontractorStatusFilter === 'ALL') {
+      return this.subcontractors;
+    }
+
+    return this.subcontractors.filter(
+      (sub) => (sub.status || '').toUpperCase() === this.subcontractorStatusFilter,
+    );
+  }
+
+  subcontractorEmptyMessage(): string {
+    return this.subcontractorStatusFilter === 'ALL'
+      ? 'No subcontractors found.'
+      : `No ${this.subcontractorStatusFilter.toLowerCase()} subcontractors found.`;
   }
 
   private extractError(err: unknown, fallback: string): string {

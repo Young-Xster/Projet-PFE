@@ -20,13 +20,24 @@ import {
       >
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Companies</h2>
-          <button
-            type="button"
-            (click)="reloadCompanies()"
-            class="px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
-            Refresh
-          </button>
+          <div class="flex items-center gap-2">
+            <select
+              [(ngModel)]="companyStatusFilter"
+              name="companyStatusFilter"
+              class="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="ALL">All</option>
+            </select>
+            <button
+              type="button"
+              (click)="reloadCompanies()"
+              class="px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
         @if (errorMessage) {
@@ -55,7 +66,7 @@ import {
               </tr>
             </thead>
             <tbody>
-              @for (company of companies; track company.id) {
+              @for (company of filteredCompanies(); track company.id) {
                 <tr class="border-b border-gray-100 dark:border-gray-700">
                   <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ company.name }}</td>
                   <td class="py-2 pr-3 text-gray-700 dark:text-gray-200">{{ company.code }}</td>
@@ -90,7 +101,7 @@ import {
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="4" class="py-6 text-center text-gray-400">No companies found.</td>
+                  <td colspan="4" class="py-6 text-center text-gray-400">{{ companyEmptyMessage() }}</td>
                 </tr>
               }
             </tbody>
@@ -221,6 +232,7 @@ import {
 })
 export class CompanyAdminPage implements OnInit {
   companies: Company[] = [];
+  companyStatusFilter: 'ACTIVE' | 'INACTIVE' | 'ALL' = 'ACTIVE';
   selectedCompany: Company | null = null;
   loading = false;
   successMessage = '';
@@ -356,6 +368,26 @@ export class CompanyAdminPage implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  filteredCompanies(): Company[] {
+    if (this.companyStatusFilter === 'ALL') {
+      return this.companies;
+    }
+
+    return this.companies.filter((company) =>
+      this.companyStatusFilter === 'ACTIVE' ? company.isActive : !company.isActive,
+    );
+  }
+
+  companyEmptyMessage(): string {
+    if (this.companyStatusFilter === 'ALL') {
+      return 'No companies found.';
+    }
+
+    return this.companyStatusFilter === 'ACTIVE'
+      ? 'No active companies found.'
+      : 'No inactive companies found.';
   }
 
   private clearMessages(): void {

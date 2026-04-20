@@ -5,7 +5,7 @@ import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { of, forkJoin } from 'rxjs';
-import { catchError, finalize, timeout } from 'rxjs/operators';
+import { catchError, finalize, map, timeout } from 'rxjs/operators';
 import { EmployeeService } from '../services/employee/employee.service';
 import { AttendanceService } from '../services/attendance.service';
 import { SchedulingService } from '../services/scheduling.service';
@@ -434,7 +434,10 @@ export class AttendanceTableComponent implements OnInit {
 
     const scheduledEmployees$ = this.schedulingService
       .getScheduledEmployeesForDate(this.selectedCompanyId, today)
-      .pipe(catchError(() => of({ data: [] as string[] })));
+      .pipe(
+        map((res) => ({ ids: res?.data || [], failed: false })),
+        catchError(() => of({ ids: [] as string[], failed: true })),
+      );
 
     const onLeaveEmployees$ = this.http
       .get<any>(`${environment.apiUrl}/attendance/company/${this.selectedCompanyId}/on-leave?date=${today}`)
@@ -448,16 +451,31 @@ export class AttendanceTableComponent implements OnInit {
           this.cdr.detectChanges();
         }),
       )
-      .subscribe(([employees, attendanceRes, scheduledRes, onLeaveRes]) => {
+      .subscribe(([employees, attendanceRes, scheduledState, onLeaveRes]) => {
         const attendances = attendanceRes?.data || [];
         const attendanceMap = new Map(attendances.map((a) => [a.employeeId, a]));
-        const scheduledEmployeeIds = new Set(scheduledRes?.data || []);
+        const scheduledEmployeeIds = new Set(scheduledState?.ids || []);
         const onLeaveEmployeeIds = new Set(onLeaveRes?.data || []);
+        const hasScheduleAssignments = !scheduledState?.failed && scheduledEmployeeIds.size > 0;
 
-        // Filter to visible employees: scheduled OR have attendance records
-        const visibleEmployees = (employees || []).filter(
-          (emp) => scheduledEmployeeIds.has(emp.employeeId) || attendanceMap.has(emp.employeeId),
-        );
+        // Filter to visible employees:
+        // - if schedules are available, keep scheduled + existing attendance/on-leave
+        // - fallback: keep active employees + existing attendance/on-leave
+        const visibleEmployees = (employees || []).filter((emp) => {
+          if (hasScheduleAssignments) {
+            return (
+              scheduledEmployeeIds.has(emp.employeeId) ||
+              attendanceMap.has(emp.employeeId) ||
+              onLeaveEmployeeIds.has(emp.employeeId)
+            );
+          }
+
+          return (
+            this.isEmployeeActive(emp) ||
+            attendanceMap.has(emp.employeeId) ||
+            onLeaveEmployeeIds.has(emp.employeeId)
+          );
+        });
 
         let mappedRows = visibleEmployees.map((emp) => {
           const attendance = attendanceMap.get(emp.employeeId);
@@ -690,6 +708,10 @@ export class AttendanceTableComponent implements OnInit {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private isEmployeeActive(employee: Employee): boolean {
+    return (employee?.status || '').trim().toLowerCase() === 'active';
   }
 
   private normalizeAttendanceStatus(status: string | null | undefined): string {
