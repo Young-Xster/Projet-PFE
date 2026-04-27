@@ -91,6 +91,11 @@ import { environment } from '@/environments/environment';
                 <th
                   class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 uppercase tracking-wider whitespace-nowrap"
                 >
+                  Deadline
+                </th>
+                <th
+                  class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 uppercase tracking-wider whitespace-nowrap"
+                >
                   Status
                 </th>
                 <th
@@ -123,6 +128,9 @@ import { environment } from '@/environments/environment';
                     <div class="text-xs text-gray-500" *ngIf="row.salaryMin && row.salaryMax">
                       \${{ row.salaryMin }} - \${{ row.salaryMax }}
                     </div>
+                  </td>
+                  <td class="px-5 py-4 text-sm text-gray-700 dark:text-gray-200 whitespace-nowrap">
+                    {{ row.deadline ? (row.deadline | date: 'mediumDate') : '-' }}
                   </td>
                   <td class="px-5 py-4 text-sm whitespace-nowrap">
                     <span
@@ -174,7 +182,7 @@ import { environment } from '@/environments/environment';
               } @empty {
                 <tr>
                   <td
-                    colspan="6"
+                    colspan="7"
                     class="text-center py-12 px-5 text-gray-400 dark:text-gray-300 text-sm"
                   >
                     No job listings found.

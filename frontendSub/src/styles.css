@@ -1,3 +1,33 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import "tailwindcss";
+
+:root {
+	--sip-bg: #f5f1e8;
+	--sip-surface: #ffffff;
+	--sip-surface-alt: #efe7d8;
+	--sip-border: #d8c7aa;
+	--sip-text: #201a14;
+	--sip-text-soft: #5a4a3a;
+	--sip-accent: #8a6a45;
+	--sip-accent-strong: #6a4f34;
+	--sip-accent-soft: #e6d8c2;
+}
+
+.app-dark {
+	--sip-bg: #12100d;
+	--sip-surface: #1e1914;
+	--sip-surface-alt: #2a221a;
+	--sip-border: #4a3b2d;
+	--sip-text: #f3ece0;
+	--sip-text-soft: #d8c9b1;
+	--sip-accent: #b79264;
+	--sip-accent-strong: #d7b78a;
+	--sip-accent-soft: #3a2f24;
+}
+
+html,
+body {
+	background-color: var(--sip-bg);
+	color: var(--sip-text);
+}

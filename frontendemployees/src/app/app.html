@@ -1,11 +1,11 @@
 <div
-  class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8"
+  class="min-h-screen bg-gradient-to-br from-[#f5f1e8] via-white to-[#e6d8c2] flex flex-col justify-center py-12 sm:px-6 lg:px-8"
 >
   <div class="sm:mx-auto sm:w-full sm:max-w-md">
     <div class="flex justify-center mb-6">
       <!-- Option Logo here if any -->
       <div
-        class="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl shadow-lg flex items-center justify-center"
+        class="w-12 h-12 bg-gradient-to-br from-[#8a6a45] to-[#6a4f34] rounded-xl shadow-lg flex items-center justify-center"
       >
         <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
@@ -27,7 +27,7 @@
 
   <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
     <div
-      class="bg-white/80 backdrop-blur-md py-8 px-6 shadow-xl shadow-purple-100/50 sm:rounded-2xl sm:px-10 border border-gray-100"
+      class="bg-white/80 backdrop-blur-md py-8 px-6 shadow-xl shadow-[#8a6a45]/10 sm:rounded-2xl sm:px-10 border border-[#d8c7aa]"
     >
       <!-- Error Message -->
       <div
@@ -65,7 +65,7 @@
               required
               [ngModel]="email()"
               (ngModelChange)="email.set($event)"
-              class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 sm:text-sm bg-gray-50 focus:bg-white"
+              class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8a6a45] focus:border-transparent transition-all duration-200 sm:text-sm bg-gray-50 focus:bg-white"
               placeholder="you@company.com"
             />
           </div>
@@ -81,7 +81,7 @@
               required
               [ngModel]="nationalId()"
               (ngModelChange)="nationalId.set($event)"
-              class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 sm:text-sm bg-gray-50 focus:bg-white"
+              class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8a6a45] focus:border-transparent transition-all duration-200 sm:text-sm bg-gray-50 focus:bg-white"
               placeholder="Enter your ID number"
             />
           </div>
@@ -90,7 +90,7 @@
             <button
               type="submit"
               [disabled]="loading()"
-              class="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+              class="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-gradient-to-r from-[#8a6a45] to-[#6a4f34] hover:from-[#6a4f34] hover:to-[#4a3a28] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#8a6a45] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
             >
               <span *ngIf="!loading()" class="flex items-center gap-2">
                 Verify Identity
@@ -120,7 +120,7 @@
           <div>
             <h3 class="text-xl font-bold text-gray-800">New Leave Request</h3>
             <p
-              class="text-sm font-medium text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md inline-block mt-2"
+              class="text-sm font-medium text-[#8a6a45] bg-[#f5f1e8] px-2.5 py-1 rounded-md inline-block mt-2"
             >
               Welcome back, {{ firstName() }}!
             </p>
@@ -142,6 +142,22 @@
           </button>
         </div>
 
+        <!-- Available Leave Balances display -->
+        <div *ngIf="balances().length > 0" class="mb-5 bg-gradient-to-br from-[#8a6a45] to-[#6a4f34] rounded-xl border border-[#d8c7aa] p-4 shadow-md">
+          <h4 class="text-sm font-semibold text-white mb-3 border-b border-[#b79264] pb-2 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Your Leave Balances
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div *ngFor="let bal of balances()" class="flex justify-between items-center py-2.5 px-3 bg-white/95 rounded-lg border border-[#d8c7aa]">
+              <span class="font-medium text-gray-800">{{ bal.leaveTypeName }}</span>
+              <span class="font-bold text-[#8a6a45]">{{ bal.remainingDays }} / {{ bal.totalDays }} Days</span>
+            </div>
+          </div>
+        </div>
+
         <form (ngSubmit)="submitLeaveRequest()" class="space-y-5">
           <div>
             <label for="leaveType" class="block text-sm font-semibold text-gray-700 mb-1.5"
@@ -151,16 +167,57 @@
               id="leaveType"
               name="leaveType"
               required
-              [ngModel]="leaveTypeId()"
-              (ngModelChange)="leaveTypeId.set($event)"
-              class="block w-full px-4 py-3 text-base border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:text-sm rounded-xl border bg-gray-50 focus:bg-white transition-all duration-200"
+              [ngModel]="isCustomLeaveType() ? '__custom__' : (leaveTypeId() || null)"
+              (ngModelChange)="onLeaveTypeSelect($event)"
+              class="block w-full px-4 py-3 text-base border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8a6a45] focus:border-transparent sm:text-sm rounded-xl border bg-gray-50 focus:bg-white transition-all duration-200"
             >
               <option [ngValue]="null" disabled>Select a type...</option>
+              <!--
+                DOCUMENTATION:
+                
+                This template line renders a dropdown option for each leave type available in the system.
+                
+                SOURCE OF DATA:
+                - The 'leaveTypes()' is a signal/method that comes from the component TypeScript file
+                  (typically: /home/young-xster/PFE/Projet-PFE/frontendemployees/src/app/app.component.ts)
+                - It should be defined as either:
+                  * A signal: leaveTypes = signal<LeaveType[]>([])
+                  * A method: leaveTypes(): LeaveType[] { ... }
+                  * A getter: get leaveTypes(): LeaveType[] { ... }
+                
+                BINDING EXPLANATION:
+                - *ngFor: Angular structural directive that iterates over the array returned by leaveTypes()
+                - [value]="type.id": Sets the option's value attribute to the leave type's ID
+                - {{ type.name }}: Displays the leave type's name as the visible text in the dropdown
+                
+                DEPENDENCIES:
+                - Requires LeaveType model/interface definition in your services
+                - Typically fetched from a LeaveService or similar backend service
+                - Data should be loaded in the component's ngOnInit() or initialization phase
+              -->
               <option *ngFor="let type of leaveTypes()" [value]="type.id">{{ type.name }}</option>
+              <option value="__custom__">Write your answer...</option>
             </select>
-            <p *ngIf="!hasLeaveTypes()" class="mt-2 text-sm text-red-600">
-              No leave types are configured for your company yet. Please contact HR.
+            <p *ngIf="!hasLeaveTypes() && !isCustomLeaveType()" class="mt-2 text-sm text-red-600">
+              No leave types are configured for your company yet. Please contact HR or use "Write your answer".
             </p>
+          </div>
+
+          <!-- Custom Leave Type Field -->
+          <div *ngIf="isCustomLeaveType()" class="animate-in fade-in slide-in-from-top-2 duration-300">
+            <label for="customLeaveType" class="block text-sm font-semibold text-gray-700 mb-1.5"
+              >Custom Leave Type</label
+            >
+            <input
+              id="customLeaveType"
+              name="customLeaveType"
+              type="text"
+              required
+              [ngModel]="customLeaveType()"
+              (ngModelChange)="customLeaveType.set($event)"
+              class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8a6a45] focus:border-transparent transition-all duration-200 sm:text-sm bg-gray-50 focus:bg-white"
+              placeholder="Enter the leave type you need..."
+            />
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -175,7 +232,7 @@
                 required
                 [ngModel]="startDate()"
                 (ngModelChange)="onStartDateChange($event)"
-                class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:text-sm bg-gray-50 focus:bg-white transition-all duration-200"
+                class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8a6a45] focus:border-transparent sm:text-sm bg-gray-50 focus:bg-white transition-all duration-200"
               />
             </div>
             <div>
@@ -189,7 +246,7 @@
                 required
                 [ngModel]="endDate()"
                 (ngModelChange)="onEndDateChange($event)"
-                class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:text-sm bg-gray-50 focus:bg-white transition-all duration-200"
+                class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8a6a45] focus:border-transparent sm:text-sm bg-gray-50 focus:bg-white transition-all duration-200"
               />
             </div>
           </div>
@@ -206,7 +263,7 @@
               [ngModel]="totalDays()"
               readonly
               min="1"
-              class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:text-sm bg-gray-50 focus:bg-white transition-all duration-200"
+              class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8a6a45] focus:border-transparent sm:text-sm bg-gray-50 focus:bg-white transition-all duration-200"
             />
           </div>
 
@@ -221,9 +278,23 @@
               required
               [ngModel]="reason()"
               (ngModelChange)="reason.set($event)"
-              class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:text-sm bg-gray-50 focus:bg-white transition-all duration-200 resize-none"
+              class="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8a6a45] focus:border-transparent sm:text-sm bg-gray-50 focus:bg-white transition-all duration-200 resize-none"
               placeholder="Provide a brief reason for your leave..."
             ></textarea>
+          </div>
+
+          <div class="flex items-center mt-4">
+            <input
+              id="isEmergencyRequest"
+              name="isEmergencyRequest"
+              type="checkbox"
+              [ngModel]="isEmergencyRequest()"
+              (ngModelChange)="isEmergencyRequest.set($event)"
+              class="h-4 w-4 text-[var(--sip-accent)] focus:ring-[var(--sip-accent)] border-gray-300 rounded cursor-pointer"
+            />
+            <label for="isEmergencyRequest" class="ml-2 block text-sm font-medium text-gray-800 cursor-pointer">
+              This is an emergency request (use only for urgent, unforeseen situations)
+            </label>
           </div>
 
           <div class="pt-2">
@@ -285,11 +356,13 @@
               nationalId.set('');
               reason.set('');
               leaveTypeId.set(null);
+              customLeaveType.set('');
+              isCustomLeaveType.set(false);
               startDate.set('');
               endDate.set('');
               totalDays.set(0)
             "
-            class="inline-flex justify-center items-center py-3 px-6 text-sm font-semibold text-purple-700 bg-purple-50 border border-purple-100 rounded-xl hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200"
+            class="inline-flex justify-center items-center py-3 px-6 text-sm font-semibold text-[#8a6a45] bg-[#f5f1e8] border border-[#d8c7aa] hover:bg-[#e6d8c2] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#8a6a45] transition-all duration-200"
           >
             Submit Another Request
           </button>

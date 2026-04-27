@@ -18,6 +18,10 @@ public interface JobListingRepository extends JpaRepository<JobListing, UUID> {
 
     List<JobListing> findByCompanyId(UUID companyId);
 
+    // Eagerly fetch company to avoid lazy loading issues
+    @Query("SELECT j FROM JobListing j LEFT JOIN FETCH j.company WHERE j.company.id = :companyId")
+    List<JobListing> findByCompanyIdWithCompany(@Param("companyId") UUID companyId);
+
     // Public: all open listings across all companies
     List<JobListing> findByStatus(String status);
 

@@ -35,7 +35,6 @@ public class LeaveRequestService {
     private final UserRepository userRepository;
     private final KeycloakUserService keycloakUserService;
     private final EmailService emailService;
-    private final ActivityLogService activityLogService;
     private final ApplicationEventPublisher eventPublisher;
 
     // ─── PUBLIC FLOW ──────────────────────────────────────────────────────────
@@ -56,8 +55,15 @@ public class LeaveRequestService {
 
         Company company = employee.getCompany();
 
-        LeaveType leaveType = leaveTypeRepository.findById(request.getLeaveTypeId())
-            .orElseThrow(() -> new IllegalArgumentException("Leave type not found"));
+        // Handle custom leave type or standard leave type
+        LeaveType leaveType = null;
+        boolean isCustomLeaveType = "custom".equals(request.getLeaveTypeId().toString()) ||
+            (request.getCustomLeaveTypeName() != null && !request.getCustomLeaveTypeName().isBlank());
+
+        if (!isCustomLeaveType) {
+            leaveType = leaveTypeRepository.findById(request.getLeaveTypeId())
+                .orElseThrow(() -> new IllegalArgumentException("Leave type not found"));
+        }
 
         // Validate dates
         if (request.getEndDate().isBefore(request.getStartDate())) {
@@ -84,8 +90,9 @@ public class LeaveRequestService {
             throw new IllegalStateException("You already have a leave request overlapping these dates");
         }
 
-        // Check leave balance if limit exists
-        if (leaveType.getMaxDaysPerYear() != null) {
+        // Check leave balance if limit exists (skip for emergency requests and custom leave types)
+        boolean insufficientBalance = false;
+        if (!isCustomLeaveType && leaveType.getMaxDaysPerYear() != null && !request.getIsEmergencyRequest()) {
             int year = request.getStartDate().getYear();
             leaveBalanceRepository
                 .findByEmployeeEmployeeIdAndLeaveTypeIdAndYear(
@@ -97,19 +104,34 @@ public class LeaveRequestService {
                         );
                     }
                 });
+        } else if (!isCustomLeaveType && leaveType.getMaxDaysPerYear() != null && request.getIsEmergencyRequest()) {
+            // For emergency requests, check if balance is insufficient and flag it
+            int year = request.getStartDate().getYear();
+            insufficientBalance = leaveBalanceRepository
+                .findByEmployeeEmployeeIdAndLeaveTypeIdAndYear(
+                    employee.getEmployeeId(), leaveType.getId(), year)
+                .map(balance -> request.getTotalDays().compareTo(BigDecimal.valueOf(balance.getRemainingDays())) > 0)
+                .orElse(false);
         }
 
         // Build and save
-        LeaveRequest leaveRequest = LeaveRequest.builder()
+        LeaveRequest.LeaveRequestBuilder builder = LeaveRequest.builder()
             .company(company)
             .employee(employee)
             .leaveType(leaveType)
+            .customLeaveTypeName(isCustomLeaveType ? request.getCustomLeaveTypeName() : null)
             .startDate(request.getStartDate())
             .endDate(request.getEndDate())
             .totalDays(request.getTotalDays().intValue())
             .reason(request.getReason())
             .status("pending")
-            .build();
+            .isEmergencyRequest(request.getIsEmergencyRequest());
+
+        if (insufficientBalance) {
+            builder.reviewNotes("EMERGENCY REQUEST: Exceeds available balance. Requires special approval.");
+        }
+
+        LeaveRequest leaveRequest = builder.build();
 
         leaveRequest = leaveRequestRepository.save(leaveRequest);
 
@@ -155,6 +177,16 @@ public class LeaveRequestService {
         return mapToResponse(leaveRequest);
     }
 
+    @Transactional(readOnly = true)
+    public List<LeaveBalanceResponse> getPublicLeaveBalances(String email, String nationalId) {
+        Employee employee = employeeRepository.findByNationalIdAndEmail(nationalId, email)
+            .orElseThrow(() -> new IllegalArgumentException("Employee not found with provided credentials"));
+        
+        return leaveBalanceRepository.findByEmployeeEmployeeId(employee.getEmployeeId()).stream()
+            .map(this::mapToBalanceResponse)
+            .collect(Collectors.toList());
+    }
+
     // ─── HR FLOW ──────────────────────────────────────────────────────────────
 
     @Transactional
@@ -185,8 +217,8 @@ public class LeaveRequestService {
         leaveRequest.setReviewedAt(OffsetDateTime.now());
         leaveRequest.setReviewNotes(request.getComments());
 
-        // If approved → deduct balance
-        if ("approved".equals(request.getStatus())) {
+        // If approved → deduct balance (skip if emergency to avoid dipping balance below 0)
+        if ("approved".equals(request.getStatus()) && !leaveRequest.getIsEmergencyRequest()) {
             deductLeaveBalance(
                 leaveRequest.getEmployee().getEmployeeId(),
                 leaveRequest.getLeaveType().getId(),
@@ -258,8 +290,8 @@ public class LeaveRequestService {
             throw new IllegalStateException("Already cancelled");
         }
 
-        // If was approved, restore balance
-        if ("approved".equals(leaveRequest.getStatus())) {
+        // If was approved, restore balance (don't restore if emergency since it wasn't deducted)
+        if ("approved".equals(leaveRequest.getStatus()) && !leaveRequest.getIsEmergencyRequest()) {
             restoreLeaveBalance(
                 leaveRequest.getEmployee().getEmployeeId(),
                 leaveRequest.getLeaveType().getId(),
@@ -373,13 +405,15 @@ public class LeaveRequestService {
             .employeeId(lr.getEmployee().getEmployeeId())
             .employeeName(lr.getEmployee().getFirstName() + " " + lr.getEmployee().getLastName())
             .leaveTypeId(lr.getLeaveType() != null ? lr.getLeaveType().getId() : null)
-            .leaveTypeName(lr.getLeaveType() != null ? lr.getLeaveType().getName() : null)
+            .leaveTypeName(lr.getLeaveType() != null ? lr.getLeaveType().getName() : (lr.getCustomLeaveTypeName() != null ? "Custom" : null))
+            .customLeaveTypeName(lr.getCustomLeaveTypeName())
             .startDate(lr.getStartDate())
             .endDate(lr.getEndDate())
             .totalDays(BigDecimal.valueOf(lr.getTotalDays()))
             .status(lr.getStatus())
             .reason(lr.getReason())
             .createdAt(lr.getCreatedAt())
+            .isEmergencyRequest(lr.getIsEmergencyRequest())
             .build();
     }
 
@@ -402,6 +436,8 @@ public class LeaveRequestService {
                 .build();
         }
 
+        String customLeaveTypeName = lr.getCustomLeaveTypeName();
+
         LeaveRequestDetailResponse.ApprovalInfo approvalInfo = null;
         if (lr.getReviewedBy() != null) {
             approvalInfo = LeaveRequestDetailResponse.ApprovalInfo.builder()
@@ -411,16 +447,29 @@ public class LeaveRequestService {
                 .build();
         }
 
+        LeaveRequestDetailResponse.EmergencyApprovalInfo emergencyApprovalInfo = null;
+        if (lr.getEmergencyApprovedBy() != null) {
+            emergencyApprovalInfo = LeaveRequestDetailResponse.EmergencyApprovalInfo.builder()
+                .approvedByName("Emergency Approved")
+                .approvalDate(lr.getEmergencyApprovedAt())
+                .comments(lr.getEmergencyApprovalNotes())
+                .balanceExceeded(true)
+                .build();
+        }
+
         return LeaveRequestDetailResponse.builder()
             .id(lr.getId())
             .employee(employeeInfo)
             .leaveType(leaveTypeInfo)
+            .customLeaveTypeName(customLeaveTypeName)
             .startDate(lr.getStartDate())
             .endDate(lr.getEndDate())
             .totalDays(BigDecimal.valueOf(lr.getTotalDays()))
             .status(lr.getStatus())
             .reason(lr.getReason())
             .approval(approvalInfo)
+            .emergencyApproval(emergencyApprovalInfo)
+            .isEmergencyRequest(lr.getIsEmergencyRequest())
             .createdAt(lr.getCreatedAt())
             .updatedAt(lr.getUpdatedAt())
             .build();

@@ -18,6 +18,7 @@ public class LeaveRequestDetailResponse {
     private UUID id;
     private EmployeeInfo employee;
     private LeaveTypeInfo leaveType;
+    private String customLeaveTypeName;
     private LocalDate startDate;
     private LocalDate endDate;
     private BigDecimal totalDays;
@@ -26,6 +27,8 @@ public class LeaveRequestDetailResponse {
     private ApprovalInfo approval;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private Boolean isEmergencyRequest;
+    private EmergencyApprovalInfo emergencyApproval;
     
     @Data
     @Builder
@@ -57,5 +60,16 @@ public class LeaveRequestDetailResponse {
         private String approvedByName;
         private OffsetDateTime approvalDate;
         private String comments;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EmergencyApprovalInfo {
+        private String approvedByName;
+        private OffsetDateTime approvalDate;
+        private String comments;
+        private Boolean balanceExceeded;
     }
 }

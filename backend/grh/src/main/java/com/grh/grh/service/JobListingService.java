@@ -15,7 +15,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,9 +29,10 @@ public class JobListingService {
     private final DepartmentRepository departmentRepository;
     private final KeycloakUserService keycloakUserService;
     private final ApplicationEventPublisher eventPublisher;
+    private final CompanyTimezoneService companyTimezoneService;
 
     //public (for candidates portal)
-    @Transactional(readOnly = true)
+    @Transactional
     public List<JobListingResponse> getPublicListings(UUID companyId, UUID departmentId) {
         List<JobListing> listings;
 
@@ -48,14 +48,34 @@ public class JobListingService {
             listings = jobListingRepository.findByStatus("open");
         }
 
-        return listings.stream().map(this::mapToResponse).collect(Collectors.toList());
+        List<JobListing> expiredOpenListings = listings.stream()
+            .filter(listing -> "open".equalsIgnoreCase(listing.getStatus()))
+            .filter(listing -> companyTimezoneService.isDeadlineOver(listing.getDeadline(), listing.getCompany()))
+            .peek(listing -> listing.setStatus("closed"))
+            .collect(Collectors.toList());
+
+        if (!expiredOpenListings.isEmpty()) {
+            jobListingRepository.saveAll(expiredOpenListings);
+        }
+
+        return listings.stream()
+            .filter(this::isPubliclyOpenNow)
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public JobListingResponse getPublicListingById(UUID listingId) {
         JobListing listing = jobListingRepository.findById(listingId)
             .orElseThrow(() -> new IllegalArgumentException("Job listing not found"));
-        if (!"open".equals(listing.getStatus())) {
+
+        if ("open".equalsIgnoreCase(listing.getStatus())
+            && companyTimezoneService.isDeadlineOver(listing.getDeadline(), listing.getCompany())) {
+            listing.setStatus("closed");
+            jobListingRepository.save(listing);
+        }
+
+        if (!isPubliclyOpenNow(listing)) {
             throw new IllegalStateException("This job listing is no longer accepting applications");
         }
         return mapToResponse(listing);
@@ -207,38 +227,107 @@ public class JobListingService {
         return mapToResponse(listing);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<JobListingResponse> getMyCompanyListings(Authentication authentication) {
         UUID companyId = keycloakUserService.getCurrentUserCompanyId(authentication);
+        List<JobListing> listings;
         if (companyId == null && keycloakUserService.isSuperAdmin(authentication)) {
             // Super admin with no company sees all listings
-            return jobListingRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-        }
-        if (companyId == null) {
+            listings = jobListingRepository.findAll();
+        } else if (companyId == null) {
             throw new IllegalStateException("User is not associated with any company");
+        } else {
+            listings = jobListingRepository.findByCompanyIdWithCompany(companyId);
         }
-        return jobListingRepository.findByCompanyId(companyId).stream()
+
+        // Auto-close expired listings before returning
+        List<JobListing> expiredListings = listings.stream()
+            .filter(listing -> "open".equalsIgnoreCase(listing.getStatus()))
+            .filter(listing -> {
+                if (listing.getDeadline() == null) {
+                    return false;
+                }
+                // Ensure company is loaded
+                Company company = listing.getCompany();
+                if (company == null) {
+                    log.warn("Job listing '{}' (ID: {}) has null company, skipping auto-close",
+                        listing.getTitle(), listing.getId());
+                    return false;
+                }
+                boolean isOver = companyTimezoneService.isDeadlineOver(listing.getDeadline(), company);
+                if (isOver) {
+                    log.info("Auto-closing job listing '{}' (ID: {}) - deadline {} has passed",
+                        listing.getTitle(), listing.getId(), listing.getDeadline());
+                }
+                return isOver;
+            })
+            .peek(listing -> listing.setStatus("closed"))
+            .collect(Collectors.toList());
+
+        if (!expiredListings.isEmpty()) {
+            jobListingRepository.saveAll(expiredListings);
+            log.info("Auto-closed {} expired job listings in getMyCompanyListings", expiredListings.size());
+        }
+
+        return listings.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<JobListingResponse> getListingsByCompany(
         UUID companyId, Authentication authentication
     ) {
         validateCompanyAccess(companyId, authentication);
-        return jobListingRepository.findByCompanyId(companyId).stream()
+        List<JobListing> listings = jobListingRepository.findByCompanyId(companyId);
+
+        // Auto-close expired listings before returning
+        List<JobListing> expiredListings = listings.stream()
+            .filter(listing -> "open".equalsIgnoreCase(listing.getStatus()))
+            .filter(listing -> {
+                if (listing.getDeadline() == null) {
+                    return false;
+                }
+                // Ensure company is loaded
+                Company company = listing.getCompany();
+                if (company == null) {
+                    log.warn("Job listing '{}' (ID: {}) has null company, skipping auto-close",
+                        listing.getTitle(), listing.getId());
+                    return false;
+                }
+                boolean isOver = companyTimezoneService.isDeadlineOver(listing.getDeadline(), company);
+                if (isOver) {
+                    log.info("Auto-closing job listing '{}' (ID: {}) - deadline {} has passed",
+                        listing.getTitle(), listing.getId(), listing.getDeadline());
+                }
+                return isOver;
+            })
+            .peek(listing -> listing.setStatus("closed"))
+            .collect(Collectors.toList());
+
+        if (!expiredListings.isEmpty()) {
+            jobListingRepository.saveAll(expiredListings);
+            log.info("Auto-closed {} expired job listings in getListingsByCompany", expiredListings.size());
+        }
+
+        return listings.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public JobListingResponse getListingById(UUID listingId, Authentication authentication) {
         JobListing listing = jobListingRepository.findById(listingId)
             .orElseThrow(() -> new IllegalArgumentException("Job listing not found"));
         validateCompanyAccess(listing.getCompany().getId(), authentication);
+
+        // Auto-close if deadline has passed
+        if ("open".equalsIgnoreCase(listing.getStatus())
+            && companyTimezoneService.isDeadlineOver(listing.getDeadline(), listing.getCompany())) {
+            listing.setStatus("closed");
+            listing = jobListingRepository.save(listing);
+        }
+
         return mapToResponse(listing);
     }
 
@@ -250,7 +339,6 @@ public class JobListingService {
 
         UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
         UUID companyId = listing.getCompany().getId();
-        String listingTitle = listing.getTitle();
 
         jobListingRepository.delete(listing);
 
@@ -267,10 +355,20 @@ public class JobListingService {
     }
 
     //auto close listing when expired
-    @Scheduled(cron = "0 0 0 * * *") // midnight every day
+    @Scheduled(cron = "0 0 * * * *") // every hour
     @Transactional
     public void autoCloseExpiredListings() {
-        int closed = jobListingRepository.closeExpiredListings(LocalDate.now());
+        List<JobListing> openListings = jobListingRepository.findByStatus("open");
+        List<JobListing> expiredListings = openListings.stream()
+            .filter(listing -> companyTimezoneService.isDeadlineOver(listing.getDeadline(), listing.getCompany()))
+            .peek(listing -> listing.setStatus("closed"))
+            .collect(Collectors.toList());
+
+        if (!expiredListings.isEmpty()) {
+            jobListingRepository.saveAll(expiredListings);
+        }
+
+        int closed = expiredListings.size();
         if (closed > 0) {
             log.info("Auto-closed {} expired job listings", closed);
             // Note: Scheduler doesn't publish activity logs - no user context
@@ -293,6 +391,13 @@ public class JobListingService {
         if (userCompanyId == null || !userCompanyId.equals(companyId)) {
             throw new SecurityException("Access denied");
         }
+    }
+
+    private boolean isPubliclyOpenNow(JobListing listing) {
+        if (!"open".equalsIgnoreCase(listing.getStatus())) {
+            return false;
+        }
+        return !companyTimezoneService.isDeadlineOver(listing.getDeadline(), listing.getCompany());
     }
 
     private JobListingResponse mapToResponse(JobListing listing) {

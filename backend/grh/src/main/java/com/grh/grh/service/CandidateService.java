@@ -45,6 +45,7 @@ public class CandidateService {
     private final PublicApplicationAttemptRepository publicApplicationAttemptRepository;
     private final TurnstileService turnstileService;
     private final ApplicationEventPublisher eventPublisher;
+    private final CompanyTimezoneService companyTimezoneService;
 
     // public 
 
@@ -69,7 +70,7 @@ public class CandidateService {
             throw new IllegalStateException("This job listing is no longer accepting applications");
         }
 
-        if (listing.getDeadline() != null && listing.getDeadline().isBefore(java.time.LocalDate.now())) {
+        if (companyTimezoneService.isDeadlineOver(listing.getDeadline(), listing.getCompany())) {
             logPublicAttempt(listing, normalizedEmail, ipAddress, userAgent, "REJECTED", "DEADLINE_PASSED");
             throw new IllegalStateException("The application deadline has passed");
         }

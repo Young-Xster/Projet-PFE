@@ -32,13 +32,17 @@ export class App {
   // Step 2 Leave Types Data
   leaveTypes = signal<any[]>([]);
   hasLeaveTypes = signal<boolean>(true);
+  balances = signal<any[]>([]);
 
   // Step 2 Request Form Data
   leaveTypeId = signal<string | null>(null);
+  customLeaveType = signal<string>('');
+  isCustomLeaveType = signal<boolean>(false);
   startDate = signal<string>('');
   endDate = signal<string>('');
   totalDays = signal<number>(0);
   reason = signal<string>('');
+  isEmergencyRequest = signal<boolean>(false);
 
   private recalculateTotalDays() {
     const start = this.startDate();
@@ -95,6 +99,7 @@ export class App {
         this.companyId.set(verifiedData.companyId);
         this.firstName.set(verifiedData.firstName || '');
         this.fetchLeaveTypes(verifiedData.companyId);
+        this.fetchLeaveBalances(email, nationalId);
       },
       error: (err) => {
         this.loading.set(false);
@@ -129,18 +134,34 @@ export class App {
     });
   }
 
+  fetchLeaveBalances(email: string, nationalId: string) {
+    this.http.post<any>(`${this.apiBaseUrl}/leave-requests/public/balances`, { email, nationalId }).subscribe({
+      next: (res) => {
+        this.balances.set(res?.data || []);
+      },
+      error: (err) => {
+        console.error('Failed to load leave balances', err);
+      }
+    });
+  }
+
   submitLeaveRequest() {
     this.recalculateTotalDays();
 
-    if (!this.hasLeaveTypes()) {
+    if (!this.hasLeaveTypes() && !this.isCustomLeaveType()) {
       this.errorMessage.set(
         'No leave types are configured for your company yet. Please contact HR.',
       );
       return;
     }
 
+    // Validate leave type (either selected or custom)
+    if (!this.leaveTypeId() && !this.customLeaveType().trim()) {
+      this.errorMessage.set('Please select or enter a leave type.');
+      return;
+    }
+
     if (
-      !this.leaveTypeId() ||
       !this.startDate() ||
       !this.endDate() ||
       !this.totalDays() ||
@@ -157,11 +178,13 @@ export class App {
       nationalId: this.nationalId().trim(),
       email: this.email().trim().toLowerCase(),
       companyId: this.companyId(),
-      leaveTypeId: this.leaveTypeId(),
+      leaveTypeId: this.leaveTypeId() || 'custom',
+      customLeaveTypeName: this.customLeaveType().trim() || null,
       startDate: this.startDate(),
       endDate: this.endDate(),
       totalDays: Number(this.totalDays()),
       reason: this.reason(),
+      isEmergencyRequest: this.isEmergencyRequest()
     };
 
     this.http.post<any>(`${this.apiBaseUrl}/leave-requests/public/submit`, payload).subscribe({
@@ -187,5 +210,17 @@ export class App {
     this.endDate.set(value);
     this.errorMessage.set('');
     this.recalculateTotalDays();
+  }
+
+  onLeaveTypeSelect(value: string) {
+    if (value === '__custom__') {
+      this.isCustomLeaveType.set(true);
+      this.leaveTypeId.set(null);
+    } else {
+      this.isCustomLeaveType.set(false);
+      this.leaveTypeId.set(value);
+      this.customLeaveType.set('');
+    }
+    this.errorMessage.set('');
   }
 }

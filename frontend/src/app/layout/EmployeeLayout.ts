@@ -11,7 +11,7 @@ import { AppBreadcrumb } from '../components/breadCrumb';
   standalone: true,
   imports: [CommonModule, RouterOutlet, SideBarNavigation, TopPanelComponent, AppBreadcrumb],
   template: `
-    <div class="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <div class="flex h-screen overflow-hidden" style="background-color: var(--sip-bg);">
       <!-- Sidebar -->
       <side-bar-navigation />
 
@@ -22,9 +22,10 @@ import { AppBreadcrumb } from '../components/breadCrumb';
 
         <!-- Page Header (title + breadcrumb) -->
         <div
-          class="px-6 pt-4 pb-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700"
+          class="px-6 pt-4 pb-3"
+          style="background-color: var(--sip-surface); border-bottom: 1px solid var(--sip-border);"
         >
-          <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ pageTitle }}</h1>
+          <h1 class="text-2xl font-bold" style="color: var(--sip-text);">{{ pageTitle }}</h1>
           <app-breadcrumb />
         </div>
 

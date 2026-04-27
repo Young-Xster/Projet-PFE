@@ -4,20 +4,109 @@
 
 @custom-variant dark (&:where(.app-dark, .app-dark *));
 
+:root {
+  --sip-bg: #f5f1e8;
+  --sip-surface: #ffffff;
+  --sip-surface-alt: #efe7d8;
+  --sip-border: #d8c7aa;
+  --sip-text: #201a14;
+  --sip-text-soft: #5a4a3a;
+  --sip-accent: #8a6a45;
+  --sip-accent-strong: #6a4f34;
+  --sip-accent-soft: #e6d8c2;
+}
+
+.app-dark {
+  --sip-bg: #12100d;
+  --sip-surface: #1e1914;
+  --sip-surface-alt: #2a221a;
+  --sip-border: #4a3b2d;
+  --sip-text: #f3ece0;
+  --sip-text-soft: #d8c9b1;
+  --sip-accent: #b79264;
+  --sip-accent-strong: #d7b78a;
+  --sip-accent-soft: #3a2f24;
+}
+
 @layer base {
   html,
   body {
-    @apply bg-gray-50 text-gray-900;
+    background-color: var(--sip-bg);
+    color: var(--sip-text);
   }
 
   .app-dark body {
-    @apply bg-gray-900 text-gray-100;
+    background-color: var(--sip-bg);
+    color: var(--sip-text);
   }
 }
 
 .app-dark .p-breadcrumb .p-breadcrumb-item-link {
-  color: #d1d5db;
+  color: var(--sip-text-soft);
 }
 .app-dark .p-breadcrumb .p-breadcrumb-item-link:hover {
-  color: #ffffff;
+  color: var(--sip-text);
+}
+
+:root {
+  --p-primary-color: var(--sip-accent);
+  --p-primary-contrast-color: #ffffff;
+  --p-primary-hover-color: var(--sip-accent-strong);
+  --p-primary-active-color: var(--sip-accent-strong);
+}
+
+.app-dark {
+  --p-primary-color: var(--sip-accent);
+  --p-primary-contrast-color: #201a14;
+  --p-primary-hover-color: var(--sip-accent-strong);
+  --p-primary-active-color: var(--sip-accent-strong);
+}
+
+.bg-purple-500,
+.bg-purple-600,
+.bg-purple-700,
+.bg-indigo-500,
+.bg-indigo-600,
+.bg-indigo-700,
+.\!bg-purple-100,
+.\!bg-purple-600 {
+  background-color: var(--sip-accent) !important;
+}
+
+.hover\:bg-purple-500:hover,
+.hover\:bg-purple-600:hover,
+.hover\:bg-purple-700:hover,
+.hover\:bg-indigo-500:hover,
+.hover\:bg-indigo-600:hover,
+.hover\:bg-indigo-700:hover {
+  background-color: var(--sip-accent-strong) !important;
+}
+
+.text-purple-500,
+.text-purple-600,
+.text-purple-700,
+.text-indigo-500,
+.text-indigo-600,
+.text-indigo-700,
+.\!text-purple-600 {
+  color: var(--sip-accent-strong) !important;
+}
+
+.border-purple-100,
+.border-purple-200,
+.border-purple-300,
+.border-indigo-100,
+.border-indigo-200,
+.border-indigo-300 {
+  border-color: var(--sip-border) !important;
+}
+
+.ring-purple-300,
+.ring-purple-400,
+.focus\:ring-purple-300:focus,
+.focus\:ring-purple-400:focus,
+.focus\:border-purple-400:focus,
+.focus\:border-purple-500:focus {
+  --tw-ring-color: color-mix(in srgb, var(--sip-accent) 35%, transparent) !important;
+  border-color: var(--sip-accent) !important;
 }

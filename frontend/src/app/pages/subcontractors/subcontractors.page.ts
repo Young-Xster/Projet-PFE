@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { environment } from '../../../environments/environment';
 import { AdminService, Company } from '../../services/admin/admin.service';
@@ -644,7 +644,7 @@ export class SubcontractorsPage implements OnInit, OnDestroy {
     }
 
     return data.filter(
-      (sub) => (sub.status || '').toUpperCase() === this.subcontractorStatusFilter,
+      (sub: SubcontractorResponse) => (sub.status || '').toUpperCase() === this.subcontractorStatusFilter,
     );
   }
 

@@ -20,10 +20,12 @@ public class LeaveRequestResponse {
     private String employeeName;
     private UUID leaveTypeId;
     private String leaveTypeName;
+    private String customLeaveTypeName;
     private LocalDate startDate;
     private LocalDate endDate;
     private BigDecimal totalDays;
     private String status;
     private String reason;
     private OffsetDateTime createdAt;
+    private Boolean isEmergencyRequest;
 }

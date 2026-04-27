@@ -6,6 +6,18 @@ import { environment } from '../../../environments/environment';
 import { Employee, ApiResponse, CreateEmployeeRequest } from '../../models/employee.model';
 import { EmployeePerformanceRating } from '../../models/performance.model';
 
+export interface LeaveBalance {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  leaveTypeId: string;
+  leaveTypeName: string;
+  year: number;
+  totalDays: number;
+  usedDays: number;
+  remainingDays: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })

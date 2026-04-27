@@ -31,6 +31,14 @@ public class LeaveRequestController {
         return ApiResponse.success("Leave request submitted successfully. You will be notified by email.", response);
     }
 
+    @PostMapping("/public/balances")
+    public ApiResponse<List<LeaveBalanceResponse>> getPublicLeaveBalances(
+        @RequestBody java.util.Map<String, String> request
+    ) {
+        return ApiResponse.success("Leave balances retrieved successfully",
+            leaveRequestService.getPublicLeaveBalances(request.get("email"), request.get("nationalId")));
+    }
+
     @PostMapping("/{leaveRequestId}/review")
     @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'leave_requests:approve')")
     public ApiResponse<LeaveRequestDetailResponse> reviewLeaveRequest(

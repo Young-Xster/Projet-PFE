@@ -10,35 +10,19 @@ import { AuthService } from '../core/auth/auth.service';
   imports: [CommonModule, RouterLink, RouterLinkActive],
   template: `
     <aside
-      class="w-[250px] bg-white dark:bg-gray-800 flex flex-col border-r border-gray-200 dark:border-gray-700 h-full shrink-0"
+      class="w-[250px] flex flex-col h-full shrink-0"
+      style="background-color: var(--sip-surface); border-right: 1px solid var(--sip-border);"
     >
       <!-- Logo/Brand -->
-      <div class="flex items-center gap-3 py-6 px-5 border-b border-gray-100 dark:border-gray-700">
-        <div
-          class="w-9 h-9 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white"
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M8 12h8M12 8v8" />
-          </svg>
-        </div>
-        <span class="text-xl font-bold text-gray-800 dark:text-gray-100 tracking-tight"
-          >SIP GRH</span
-        >
+      <div class="flex items-center py-6 px-5" style="border-bottom: 1px solid var(--sip-border);">
+        <img src="/images/SIP_firma_horizontal_mac.webp" alt="SIP" class="h-9 w-auto object-contain" />
       </div>
 
       <!-- Navigation -->
       <nav class="flex flex-col py-4 px-3 flex-1 gap-1 overflow-y-auto">
         <a
           routerLink="/dashboard"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,7 +38,7 @@ import { AuthService } from '../core/auth/auth.service';
 
         <a
           routerLink="/employees"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: false }"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
@@ -71,7 +55,7 @@ import { AuthService } from '../core/auth/auth.service';
 
         <a
           routerLink="/performance"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: false }"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
@@ -83,7 +67,7 @@ import { AuthService } from '../core/auth/auth.service';
 
         <a
           routerLink="/departments"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +83,7 @@ import { AuthService } from '../core/auth/auth.service';
 
         <a
           routerLink="/attendance"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,7 +99,7 @@ import { AuthService } from '../core/auth/auth.service';
 
         <a
           routerLink="/jobs"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: false }"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
@@ -132,7 +116,7 @@ import { AuthService } from '../core/auth/auth.service';
 
         <a
           routerLink="/schedules"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +132,7 @@ import { AuthService } from '../core/auth/auth.service';
 
         <a
           routerLink="/leaves"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +148,7 @@ import { AuthService } from '../core/auth/auth.service';
 
         <a
           routerLink="/notifications"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,7 +164,7 @@ import { AuthService } from '../core/auth/auth.service';
 
         <a
           routerLink="/subcontractors"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
         >
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +181,7 @@ import { AuthService } from '../core/auth/auth.service';
         @if (isSuperAdmin) {
           <a
             routerLink="/admin/companies"
-            routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+            routerLinkActive="active"
             class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
           >
             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,7 +197,7 @@ import { AuthService } from '../core/auth/auth.service';
 
           <a
             routerLink="/admin/users-roles"
-            routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+            routerLinkActive="active"
             class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
           >
             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,7 +213,7 @@ import { AuthService } from '../core/auth/auth.service';
 
           <a
             routerLink="/admin/activity-logs"
-            routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+            routerLinkActive="active"
             class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100"
           >
             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,7 +231,7 @@ import { AuthService } from '../core/auth/auth.service';
         <!-- Settings at bottom -->
         <a
           routerLink="/settings"
-          routerLinkActive="!font-semibold !text-purple-600 !bg-purple-100"
+          routerLinkActive="active"
           class="flex items-center gap-3 py-2.5 px-4 rounded-lg text-gray-500 dark:text-gray-300 text-sm font-medium transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-100 mt-auto"
         >
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,15 +269,16 @@ import { AuthService } from '../core/auth/auth.service';
       </nav>
 
       <!-- Theme Toggle -->
-      <div class="flex gap-1 py-3 px-4 pb-5 mx-3 border-t border-gray-100 dark:border-gray-700">
+      <div class="flex gap-1 py-3 px-4 pb-5 mx-3" style="border-top: 1px solid var(--sip-border);">
         <button
           (click)="theme.setTheme('light')"
           [ngClass]="
             theme.mode() === 'light'
-              ? 'bg-purple-600 text-white'
+              ? 'text-white'
               : 'text-gray-500 dark:text-gray-300 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
           "
           class="flex-1 flex items-center justify-center gap-1.5 p-2 rounded-lg border-none text-xs font-medium transition-all duration-150"
+          [style.backgroundColor]="theme.mode() === 'light' ? 'var(--sip-accent-strong)' : 'transparent'"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -310,10 +295,11 @@ import { AuthService } from '../core/auth/auth.service';
           (click)="theme.setTheme('dark')"
           [ngClass]="
             theme.mode() === 'dark'
-              ? 'bg-purple-600 text-white'
+              ? 'text-white'
               : 'text-gray-500 dark:text-gray-300 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
           "
           class="flex-1 flex items-center justify-center gap-1.5 p-2 rounded-lg border-none text-xs font-medium transition-all duration-150"
+          [style.backgroundColor]="theme.mode() === 'dark' ? 'var(--sip-accent-strong)' : 'transparent'"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -332,10 +318,19 @@ import { AuthService } from '../core/auth/auth.service';
     class: 'block shrink-0 w-[250px] h-full',
   },
   styles: `
+    aside nav :is(a, button) {
+      color: var(--sip-text-soft) !important;
+    }
+
+    aside nav :is(a, button):hover {
+      background-color: var(--sip-surface-alt) !important;
+      color: var(--sip-text) !important;
+    }
+
     .active {
-      font-weight: 600;
-      color: #6366f1;
-      background-color: #f3f4ff;
+      font-weight: 600 !important;
+      color: var(--sip-accent-strong) !important;
+      background-color: var(--sip-accent-soft) !important;
     }
   `,
 })

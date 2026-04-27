@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "leave_requests")
@@ -27,6 +28,9 @@ public class LeaveRequest extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "leave_type_id")
     private LeaveType leaveType;
+
+    @Column(name = "custom_leave_type_name", length = 255)
+    private String customLeaveTypeName;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
@@ -57,4 +61,17 @@ public class LeaveRequest extends BaseEntity {
 
     @Column(name = "review_notes", columnDefinition = "TEXT")
     private String reviewNotes;
+
+    @Column(name = "is_emergency_request")
+    @Builder.Default
+    private Boolean isEmergencyRequest = false;
+
+    @Column(name = "emergency_approved_by")
+    private UUID emergencyApprovedBy;
+
+    @Column(name = "emergency_approved_at")
+    private OffsetDateTime emergencyApprovedAt;
+
+    @Column(name = "emergency_approval_notes", columnDefinition = "TEXT")
+    private String emergencyApprovalNotes;
 }

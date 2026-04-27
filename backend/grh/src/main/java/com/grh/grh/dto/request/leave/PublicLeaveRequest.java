@@ -27,6 +27,8 @@ public class PublicLeaveRequest {
     @NotNull(message = "Leave type ID is required")
     private UUID leaveTypeId;
 
+    private String customLeaveTypeName;
+
     @NotNull(message = "Start date is required")
     private LocalDate startDate;
 
@@ -38,4 +40,7 @@ public class PublicLeaveRequest {
     private BigDecimal totalDays;
 
     private String reason;
+
+    @Builder.Default
+    private Boolean isEmergencyRequest = false;
 }
