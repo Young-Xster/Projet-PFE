@@ -14,10 +14,13 @@ class CandidateMatcher:
     cvBase64: str
     cvContent: str
     cvFilePath: str
+    recommendationBase64: str
+    certificatesBase64: list
+    additionalContent: str
     score: float
     reasoning: str
 
-    def __init__(self, candidateId: UUID, firstName: str, lastName: str, skills: str, experienceYears: int, educationLevel: str, cvBase64: str, cvContent: str, cvFilePath: str):
+    def __init__(self, candidateId: UUID, firstName: str, lastName: str, skills: str, experienceYears: int, educationLevel: str, cvBase64: str, cvContent: str, cvFilePath: str, recommendationBase64: str = "", certificatesBase64: list = None):
         self.candidateId = candidateId
         self.firstName = firstName
         self.lastName = lastName
@@ -27,13 +30,16 @@ class CandidateMatcher:
         self.cvBase64 = cvBase64
         self.cvContent = cvContent
         self.cvFilePath = cvFilePath
+        self.recommendationBase64 = recommendationBase64
+        self.certificatesBase64 = certificatesBase64 if certificatesBase64 is not None else []
+        self.additionalContent = ""
         self.score = 0.0
         self.reasoning = ""
 
     def compute_score(self, jobDescription: str):
         client = Client()
-        systemPrompt = "You are an HR specialist evaluating a candidate's suitability for a job based on their skills, experience, education, and their cv comparing them to the job description. The score is from 1 to 100 and it's float with 100 being the best score and 1 being the worst score . Your output should exactly be under this format : 'SCORE: x.xx | REASON: your reason here(keep it short and concise)'"
-        prompt = f"Job Description: {jobDescription}\n\nCandidate Skills: {self.skills}\nExperience: {self.experienceYears} years\nEducation: {self.educationLevel}\nCV Content: {self.cvContent}\n\nRate the candidate's suitability for the job on a scale of 1 to 100, where 1 means not suitable at all and 100 means perfectly suitable."
+        systemPrompt = "You are an expert HR specialist evaluating a candidate's suitability for a job based on their skills, experience, education, their cv, recommendation letters, and certificates compared to the job description. The score must be from 0 to 100 (float). Your output should exactly be under this format : 'SCORE: x.xx | REASON: Detailed and professional reasoning clearly linking their specific skills or experience to the job requirements.'"
+        prompt = f"Job Description: {jobDescription}\n\nCandidate Skills: {self.skills}\nExperience: {self.experienceYears} years\nEducation: {self.educationLevel}\nCV Content: {self.cvContent}\nAdditional Documents (Recommendations/Certificates): {self.additionalContent}\n\nRate the candidate's suitability for the job on a scale of 1 to 100, where 1 means not suitable at all and 100 means perfectly suitable."
         
         try:
             response = client.chat.completions.create(
@@ -66,7 +72,7 @@ class CandidateMatcher:
                 qualifier = "Strong candidate."
             else:
                 qualifier = "Needs review."
-            self.reasoning = f"(Fallback AI) {qualifier} Candidate possesses {exp_years} years of documented experience with an attached resume."
+            self.reasoning = f"Based on strict formula calculation due to AI timeout: {qualifier} Candidate possesses {exp_years} years of documented experience with an attached resume."
 
     def get_cv_content(self):
         """Decode base64 CV and extract plain text using pypdf.
@@ -88,6 +94,34 @@ class CandidateMatcher:
             self.cvContent = "\n".join(pages_text)
         except Exception as e:
             self.cvContent = f"[Could not extract CV text: {e}]"
+
+    def get_additional_documents_content(self):
+        """Decode base64 for recommendation letters and certificates and extract text."""
+        texts = []
+        
+        # Recommendation
+        if self.recommendationBase64:
+            try:
+                pdf_bytes = base64.b64decode(self.recommendationBase64)
+                reader = PdfReader(io.BytesIO(pdf_bytes))
+                rec_text = " ".join([page.extract_text() for page in reader.pages if page.extract_text()])
+                if rec_text:
+                    texts.append("RECOMMENDATION LETTER:\n" + rec_text)
+            except Exception as e:
+                texts.append(f"[Could not extract Recommendation Letter: {e}]")
+                
+        # Certificates
+        for idx, cert_b64 in enumerate(self.certificatesBase64):
+            try:
+                pdf_bytes = base64.b64decode(cert_b64)
+                reader = PdfReader(io.BytesIO(pdf_bytes))
+                cert_text = " ".join([page.extract_text() for page in reader.pages if page.extract_text()])
+                if cert_text:
+                    texts.append(f"CERTIFICATE {idx+1}:\n" + cert_text)
+            except Exception as e:
+                texts.append(f"[Could not extract Certificate {idx+1}: {e}]")
+                
+        self.additionalContent = "\n\n".join(texts)
 
 
 

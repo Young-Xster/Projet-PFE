@@ -19,11 +19,21 @@ import java.util.UUID;
 public class ActivityLogController {
     private final ActivityLogService activityLogService;
 
-        @GetMapping
-        @PreAuthorize("hasRole('SUPER_ADMIN')")
-        public ApiResponse<List<Map<String, Object>>> getAll(Authentication authentication) {
-                return ApiResponse.success("Activity logs retrieved", activityLogService.getAll(authentication));
-        }
+    @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ApiResponse<List<Map<String, Object>>> getAll(Authentication authentication) {
+        return ApiResponse.success("Activity logs retrieved", activityLogService.getAll(authentication));
+    }
+
+    @GetMapping("/range")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ApiResponse<List<Map<String, Object>>> getAllByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            Authentication authentication) {
+        return ApiResponse.success("Activity logs retrieved",
+                activityLogService.getAllByDateRange(startDate, endDate, authentication));
+    }
 
 
     @GetMapping("/company/{companyId}")

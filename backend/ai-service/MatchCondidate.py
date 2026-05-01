@@ -23,10 +23,13 @@ def match_candidate():
             educationLevel=c.get("educationLevel", ""),
             cvBase64=c.get("cvBase64", ""),
             cvContent=c.get("cvContent", ""),
-            cvFilePath=c.get("cvFilePath", "")
+            cvFilePath=c.get("cvFilePath", ""),
+            recommendationBase64=c.get("recommendationBase64", ""),
+            certificatesBase64=c.get("certificatesBase64", [])
         )
 
         matcher.get_cv_content()
+        matcher.get_additional_documents_content()
         matcher.compute_score(job_description)
 
         results.append({

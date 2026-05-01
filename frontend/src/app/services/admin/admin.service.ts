@@ -236,6 +236,13 @@ export class AdminService {
     endDate?: string,
   ): Observable<ApiResponse<ActivityLogEntry[]>> {
     if (companyId === '__all__') {
+      if (startDate && endDate) {
+        const params = new HttpParams().set('startDate', startDate).set('endDate', endDate);
+        return this.http.get<ApiResponse<ActivityLogEntry[]>>(
+          `${this.baseUrl}/activity-logs/range`,
+          { params },
+        );
+      }
       return this.http.get<ApiResponse<ActivityLogEntry[]>>(`${this.baseUrl}/activity-logs`);
     }
 

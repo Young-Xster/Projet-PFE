@@ -83,6 +83,19 @@ public class ActivityLogService {
     }
 
     @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAllByDateRange(LocalDate startDate, LocalDate endDate, Authentication auth) {
+        if (!keycloakUserService.isSuperAdmin(auth)) {
+            throw new SecurityException("Access denied");
+        }
+        OffsetDateTime start = startDate.atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime end = endDate.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+        return activityLogRepository.findByCreatedAtBetween(start, end).stream()
+                .sorted(Comparator.comparing(ActivityLog::getCreatedAt).reversed())
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> getByCompany(UUID companyId, Authentication auth) {
         validateCompanyAccess(companyId, auth);
         return activityLogRepository.findByCompanyId(companyId).stream()

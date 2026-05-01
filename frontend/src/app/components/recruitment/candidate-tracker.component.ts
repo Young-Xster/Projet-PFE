@@ -422,7 +422,7 @@ import { environment } from '../../../environments/environment';
                 <div class="flex flex-col gap-2">
                   @if (selectedCandidate.recommendationLetterUrl) {
                     <a
-                      [href]="selectedCandidate.recommendationLetterUrl"
+                      [href]="getFileUrl(selectedCandidate.recommendationLetterUrl)"
                       target="_blank"
                       rel="noopener noreferrer"
                       class="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
@@ -440,7 +440,7 @@ import { environment } from '../../../environments/environment';
                   }
                   @for (cert of selectedCandidate.certificateUrls; track cert; let i = $index) {
                     <a
-                      [href]="cert"
+                      [href]="getFileUrl(cert)"
                       target="_blank"
                       rel="noopener noreferrer"
                       class="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"

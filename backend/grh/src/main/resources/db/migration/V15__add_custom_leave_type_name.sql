@@ -1,0 +1,1 @@
+ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS custom_leave_type_name VARCHAR(255);

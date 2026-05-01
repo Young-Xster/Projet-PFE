@@ -20,4 +20,6 @@ public class AiCandidatePayload {
     private String educationLevel;
     private String cvBase64;
     private String cvFileName;
+    private String recommendationBase64;
+    private java.util.List<String> certificatesBase64;
 }

@@ -126,15 +126,17 @@ def rate_performance():
             f"  Absences: {m.get('absencesCount', 0)} days\n"
             f"  Early Departures: {m.get('earlyDeparturesCount', 0)} times ({m.get('totalEarlyDepartureMinutes', 0)} min)\n"
             f"  Overtime: {m.get('overtimeMinutes', 0)} min\n"
-            f"  Sick Leave: {m.get('sickLeaveDays', 0)} days | Total Leave: {m.get('totalLeaveDays', 0)} days\n\n"
+            f"  Sick Leave: {m.get('sickLeaveDays', 0)} days | Total Leave: {m.get('totalLeaveDays', 0)} days\n"
+            f"  Historical Comparison: Previous Month Attendance Rate was {m.get('previousAttendanceRate', 0)}% vs Current {m.get('attendanceRate', 0)}%\n\n"
         )
 
     system_prompt = (
-        "You are an HR performance evaluator. Rate each employee from 1-100 (float, 2 decimals) "
-        "based on their attendance metrics. Higher is better. Consider: punctuality, absences, "
-        "early departures, overtime, and sick leave. "
-        "Respond ONLY with a JSON array in this exact format:\n"
-        '[{"index": 1, "score": 85.50, "reasoning": "short reason"}, {"index": 2, "score": 72.30, "reasoning": "..."}]'
+        "You are an HR performance evaluator. Rate each employee from 0-100 (float, 2 decimals) "
+        "based on their attendance metrics over the stated period. Higher is better. "
+        "CRITICAL RULE: If an employee has 0 'Working Days', they cannot be rated 100 since there is no data to prove they were excellent. Instead, rate them 0.00 since there's no data. "
+        "Consider: punctuality, absences, early departures, overtime, and sick leave. "
+        "Respond ONLY with a JSON array reflecting the evaluation matching this exact format:\n"
+        '[{"index": 1, "score": 85.50, "reasoning": "Detailed professional reasoning reflecting their punctuality, overtime or absences. Discuss improvement if historical data is provided."}, {"index": 2, "score": 0.00, "reasoning": "Not enough data for evaluation."}]'
     )
 
     user_prompt = f"Evaluate these {len(metrics_list)} employees:\n\n{employees_data}\nReturn JSON array only."
@@ -178,44 +180,63 @@ def rate_performance():
         for m in metrics_list:
             emp_id = str(m.get("employeeId", ""))
             if emp_id not in rated_indices:
-                late = int(m.get("lateArrivalsCount", 0) or 0)
-                late_min = int(m.get("totalLateMinutes", 0) or 0)
-                absences = int(m.get("absencesCount", 0) or 0)
-                early_dep = int(m.get("earlyDeparturesCount", 0) or 0)
-                overtime = int(m.get("overtimeMinutes", 0) or 0)
-                sick = int(m.get("sickLeaveDays", 0) or 0)
+                if m.get("totalWorkingDays", 0) == 0:
+                    score = 0.0
+                    reason = "Employee has 0 working days recorded for this period. No data to evaluate."
+                else:
+                    late = int(m.get("lateArrivalsCount", 0) or 0)
+                    late_min = int(m.get("totalLateMinutes", 0) or 0)
+                    absences = int(m.get("absencesCount", 0) or 0)
+                    early_dep = int(m.get("earlyDeparturesCount", 0) or 0)
+                    overtime = int(m.get("overtimeMinutes", 0) or 0)
+                    sick = int(m.get("sickLeaveDays", 0) or 0)
 
-                score = 100.0 - (late * 2.5) - (late_min / 60.0 * 1.5) - (absences * 10.0) - (early_dep * 2.0) - (sick * 1.5) + min(8.0, overtime / 60.0)
-                score = max(1.0, min(100.0, score))
+                    score = 100.0 - (late * 2.5) - (late_min / 60.0 * 1.5) - (absences * 10.0) - (early_dep * 2.0) - (sick * 1.5) + min(8.0, overtime / 60.0)
+                    score = max(1.0, min(100.0, score))
+                    
+                    prev_rate = float(m.get("previousAttendanceRate", 0.0))
+                    curr_rate = float(m.get("attendanceRate", 0.0))
+                    trend = "improved" if curr_rate > prev_rate else ("declined" if curr_rate < prev_rate else "remained stable")
+                    if prev_rate == 0.0: trend = "was established"
+                    reason = f"Based on strict formula calculation due to AI timeout: Score reflects recorded punctuality and attendance behavior. Their attendance {trend} compared to the previous month."
                 
                 results.append({
                     "employeeId": emp_id,
                     "firstName": m.get("firstName", ""),
                     "lastName": m.get("lastName", ""),
                     "score": round(score, 2),
-                    "reasoning": "Fallback score used (AI did not rate this employee)."
+                    "reasoning": reason
                 })
     except Exception as ex:
         print(f"AI rating failed: {str(ex)}, using fallback scoring")
         # Fallback: compute scores for ALL employees
         for m in metrics_list:
-            late = int(m.get("lateArrivalsCount", 0) or 0)
-            late_min = int(m.get("totalLateMinutes", 0) or 0)
-            absences = int(m.get("absencesCount", 0) or 0)
-            early_dep = int(m.get("earlyDeparturesCount", 0) or 0)
-            early_dep_min = int(m.get("totalEarlyDepartureMinutes", 0) or 0)
-            overtime = int(m.get("overtimeMinutes", 0) or 0)
-            sick = int(m.get("sickLeaveDays", 0) or 0)
+            if m.get("totalWorkingDays", 0) == 0:
+                score = 0.0
+                reason = "Employee has 0 working days recorded for this period. No data to evaluate."
+            else:
+                late = int(m.get("lateArrivalsCount", 0) or 0)
+                late_min = int(m.get("totalLateMinutes", 0) or 0)
+                absences = int(m.get("absencesCount", 0) or 0)
+                early_dep = int(m.get("earlyDeparturesCount", 0) or 0)
+                early_dep_min = int(m.get("totalEarlyDepartureMinutes", 0) or 0)
+                overtime = int(m.get("overtimeMinutes", 0) or 0)
+                sick = int(m.get("sickLeaveDays", 0) or 0)
 
-            score = 100.0 - (late * 2.5) - (late_min / 60.0 * 1.5) - (absences * 10.0) - (early_dep * 2.0) - (sick * 1.5) + min(8.0, overtime / 60.0)
-            score = max(1.0, min(100.0, score))
+                score = 100.0 - (late * 2.5) - (late_min / 60.0 * 1.5) - (absences * 10.0) - (early_dep * 2.0) - (sick * 1.5) + min(8.0, overtime / 60.0)
+                score = max(1.0, min(100.0, score))
+                prev_rate = float(m.get("previousAttendanceRate", 0.0))
+                curr_rate = float(m.get("attendanceRate", 0.0))
+                trend = "improved" if curr_rate > prev_rate else ("declined" if curr_rate < prev_rate else "remained stable")
+                if prev_rate == 0.0: trend = "was established"
+                reason = f"Based on strict formula calculation due to AI timeout: Score reflects recorded punctuality and attendance behavior. Their attendance {trend} compared to the previous month."
             
             results.append({
                 "employeeId": str(m.get("employeeId", "")),
                 "firstName": m.get("firstName", ""),
                 "lastName": m.get("lastName", ""),
                 "score": round(score, 2),
-                "reasoning": "Fallback score used (AI unavailable)."
+                "reasoning": reason
             })
 
     results.sort(key=lambda x: x["score"], reverse=True)

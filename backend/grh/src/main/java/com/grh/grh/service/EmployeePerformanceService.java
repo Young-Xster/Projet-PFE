@@ -58,6 +58,7 @@ public class EmployeePerformanceService {
         private int otherLeaveDays;
         private int totalLeaveDays;
         private double attendanceRate;
+        private double previousAttendanceRate;
         private String periodLabel;
     }
 
@@ -95,13 +96,14 @@ public class EmployeePerformanceService {
 
         LocalDate endDate = LocalDate.now(java.time.ZoneOffset.UTC);
         LocalDate startDate = endDate.minusDays(30);
+        LocalDate previousStartDate = startDate.minusDays(30);
 
         List<EmployeeMetric> metricsList = new ArrayList<>();
         int skippedCount = 0;
 
         for (Employee emp : allEmployees) {
             try {
-                EmployeeMetric metric = computeEmployeeMetric(emp, startDate, endDate);
+                EmployeeMetric metric = computeEmployeeMetric(emp, startDate, endDate, previousStartDate);
                 metricsList.add(metric);
                 log.debug("Computed metrics for: {} {} (status: {})", emp.getFirstName(), emp.getLastName(), emp.getStatus());
             } catch (Exception ex) {
@@ -128,9 +130,21 @@ public class EmployeePerformanceService {
         return results;
     }
 
-    private EmployeeMetric computeEmployeeMetric(Employee emp, LocalDate startDate, LocalDate endDate) {
+    private EmployeeMetric computeEmployeeMetric(Employee emp, LocalDate startDate, LocalDate endDate, LocalDate previousStartDate) {
         List<AttendanceRecord> attendances = attendanceRepository.findByEmployeeAndDateRange(
             emp.getEmployeeId(), startDate, endDate);
+            
+        List<AttendanceRecord> previousAttendances = attendanceRepository.findByEmployeeAndDateRange(
+            emp.getEmployeeId(), previousStartDate, startDate.minusDays(1));
+
+        int previousTotalWorkingDays = previousAttendances.size();
+        int previousPresentDays = (int) previousAttendances.stream().filter(a -> {
+            String status = a.getStatus() != null ? a.getStatus().toLowerCase() : "";
+            return "present".equals(status) || "late".equals(status) || "left_work".equals(status) || a.getClockInTime() != null;
+        }).count();
+        double previousAttendanceRate = previousTotalWorkingDays > 0 
+            ? Math.round((double) previousPresentDays / previousTotalWorkingDays * 10000.0) / 100.0 
+            : 0.0;
 
         int totalWorkingDays = attendances.size();
         int presentDays = 0;
@@ -221,6 +235,7 @@ public class EmployeePerformanceService {
             .otherLeaveDays(otherLeaveDays)
             .totalLeaveDays(totalLeaveDays)
             .attendanceRate(attendanceRate)
+            .previousAttendanceRate(previousAttendanceRate)
             .periodLabel("Last 30 Days")
             .build();
     }

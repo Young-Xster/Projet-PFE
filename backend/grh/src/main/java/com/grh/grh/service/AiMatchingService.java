@@ -62,6 +62,31 @@ public class AiMatchingService {
                     log.warn("Could not load CV for candidate {}: {}", c.getId(), e.getMessage());
                 }
             }
+            
+            if (c.getRecommendationLetterPath() != null) {
+                try {
+                    byte[] recBytes = fileStorageService.loadFile(c.getRecommendationLetterPath());
+                    builder.recommendationBase64(Base64.getEncoder().encodeToString(recBytes));
+                } catch (Exception e) {
+                    log.warn("Could not load recommendation letter for candidate {}: {}", c.getId(), e.getMessage());
+                }
+            }
+            
+            if (c.getCertificatesPaths() != null && !c.getCertificatesPaths().isBlank()) {
+                java.util.List<String> certsBase64 = new java.util.ArrayList<>();
+                for (String certPath : c.getCertificatesPaths().split(",")) {
+                    if (!certPath.trim().isEmpty()) {
+                        try {
+                            byte[] certBytes = fileStorageService.loadFile(certPath.trim());
+                            certsBase64.add(Base64.getEncoder().encodeToString(certBytes));
+                        } catch (Exception e) {
+                            log.warn("Could not load certificate {} for candidate {}: {}", certPath, c.getId(), e.getMessage());
+                        }
+                    }
+                }
+                builder.certificatesBase64(certsBase64);
+            }
+            
             return builder.build();
         }).collect(Collectors.toList());
 
