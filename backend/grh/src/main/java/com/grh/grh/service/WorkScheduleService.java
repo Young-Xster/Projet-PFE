@@ -397,10 +397,13 @@ public class WorkScheduleService {
         com.grh.grh.entity.Employee employee = employeeRepository.findByNationalIdAndEmail(normalizedNationalId, normalizedEmail)
             .orElseThrow(() -> new IllegalArgumentException("No active employee found with this National ID and Email"));
         
-        com.grh.grh.entity.EmployeeSchedule assignment = employeeScheduleRepository.findActiveScheduleForEmployee(employee.getEmployeeId(), LocalDate.now())
-            .orElseThrow(() -> new IllegalArgumentException("No active schedule found for this employee today"));
+        java.util.Optional<com.grh.grh.entity.EmployeeSchedule> assignmentOpt = employeeScheduleRepository.findActiveScheduleForEmployee(employee.getEmployeeId(), LocalDate.now());
         
-        return mapToDetailResponse(assignment.getSchedule());
+        if (assignmentOpt.isEmpty()) {
+            return null;
+        }
+        
+        return mapToDetailResponse(assignmentOpt.get().getSchedule());
     }
 
     //helper methods
