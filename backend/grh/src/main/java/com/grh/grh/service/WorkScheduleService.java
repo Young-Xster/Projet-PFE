@@ -389,6 +389,19 @@ public class WorkScheduleService {
         validateCompanyAccess(companyId, authentication);
         return employeeScheduleRepository.findActiveEmployeeIdsByCompanyAndDate(companyId, date);
     }
+    
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public com.grh.grh.dto.response.schedule.WorkScheduleResponse getPublicActiveSchedule(String email, String nationalId) {
+        String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
+        String normalizedNationalId = nationalId == null ? "" : nationalId.trim();
+        com.grh.grh.entity.Employee employee = employeeRepository.findByNationalIdAndEmail(normalizedNationalId, normalizedEmail)
+            .orElseThrow(() -> new IllegalArgumentException("No active employee found with this National ID and Email"));
+        
+        com.grh.grh.entity.EmployeeSchedule assignment = employeeScheduleRepository.findActiveScheduleForEmployee(employee.getEmployeeId(), LocalDate.now())
+            .orElseThrow(() -> new IllegalArgumentException("No active schedule found for this employee today"));
+        
+        return mapToDetailResponse(assignment.getSchedule());
+    }
 
     //helper methods
 

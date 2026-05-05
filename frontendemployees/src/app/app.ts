@@ -44,6 +44,13 @@ export class App {
   reason = signal<string>('');
   isEmergencyRequest = signal<boolean>(false);
 
+  currentTab = signal<'leave' | 'schedule'>('leave');
+  
+  // Schedule Data
+  scheduleLoading = signal<boolean>(false);
+  scheduleErrorMessage = signal<string>('');
+  workSchedule = signal<any>(null);
+
   private recalculateTotalDays() {
     const start = this.startDate();
     const end = this.endDate();
@@ -100,6 +107,7 @@ export class App {
         this.firstName.set(verifiedData.firstName || '');
         this.fetchLeaveTypes(verifiedData.companyId);
         this.fetchLeaveBalances(email, nationalId);
+        this.fetchSchedule(email, nationalId);
       },
       error: (err) => {
         this.loading.set(false);
@@ -141,6 +149,23 @@ export class App {
       },
       error: (err) => {
         console.error('Failed to load leave balances', err);
+      }
+    });
+  }
+
+  fetchSchedule(email: string, nationalId: string) {
+    this.scheduleLoading.set(true);
+    this.scheduleErrorMessage.set('');
+
+    this.http.post<any>(`${this.apiBaseUrl}/work-schedules/public/active`, { email, nationalId }).subscribe({
+      next: (res) => {
+        this.workSchedule.set(res?.data || null);
+        this.scheduleLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load work schedule', err);
+        this.scheduleErrorMessage.set(err.error?.message || 'Could not fetch your active work schedule.');
+        this.scheduleLoading.set(false);
       }
     });
   }
