@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { RecruitmentService } from '../../services/recruitment/recruitment.service';
 import { CandidateResponse, JobListingResponse } from '../../models/recruitment.model';
@@ -11,7 +11,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-candidate-tracker',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, EmployeeSkeletonLoader],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, EmployeeSkeletonLoader],
   providers: [DecimalPipe],
   template: `
     <div class="flex flex-col gap-6">
@@ -207,6 +207,12 @@ import { environment } from '../../../environments/environment';
                         >
                           Inspect
                         </button>
+                        <button
+                          (click)="openInterviewModal(candidate)"
+                          class="px-3 py-1.5 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-md font-medium transition-colors"
+                        >
+                          Interview
+                        </button>
                         @if (candidate.status !== 'rejected' && candidate.status !== 'accepted' && candidate.status !== 'hired') {
                           @if ((candidate.currentStage || 1) < 2) {
                             <button
@@ -292,7 +298,28 @@ import { environment } from '../../../environments/environment';
               </button>
             </div>
 
-            <div class="p-6">
+            <div class="p-6 overflow-y-auto max-h-[75vh]">
+              @if (selectedCandidate.aiMatchScore) {
+                <div class="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800">
+                  <h4 class="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    AI Evaluation ({{ selectedCandidate.aiMatchScore | number: '1.0-1' }}/100)
+                  </h4>
+                  <p class="text-sm text-purple-800 dark:text-purple-400 whitespace-pre-wrap">{{ selectedCandidate.aiMatchRationale }}</p>
+                </div>
+              }
+
+              @if (selectedCandidate.interviewDate) {
+                <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+                  <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">Interview Details</h4>
+                  <div class="space-y-2">
+                    <p class="text-sm text-blue-800 dark:text-blue-400"><b>Date:</b> {{ selectedCandidate.interviewDate | date:'medium' }}</p>
+                    <p class="text-sm text-blue-800 dark:text-blue-400" *ngIf="selectedCandidate.hrInterviewScore != null"><b>HR Score:</b> {{ selectedCandidate.hrInterviewScore | number: '1.0-1' }}/100</p>
+                    <p class="text-sm text-blue-800 dark:text-blue-400 whitespace-pre-wrap" *ngIf="selectedCandidate.hrInterviewNotes"><b>Notes:</b><br/>{{ selectedCandidate.hrInterviewNotes }}</p>
+                  </div>
+                </div>
+              }
+
               <div class="flex items-center gap-4 mb-6">
                 <div
                   class="w-14 h-14 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xl"
@@ -480,6 +507,46 @@ import { environment } from '../../../environments/environment';
           </div>
         </div>
       }
+
+      <!-- Interview Scheduling Modal -->
+      @if (interviewCandidate) {
+        <div class="fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-gray-700 animate-fade-in-up">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+              <h3 class="text-lg font-bold text-gray-900 dark:text-white">Interview Details</h3>
+              <button (click)="closeInterviewModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div class="px-6 py-4 space-y-4">
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Scheduling interview for: <span class="text-indigo-600 dark:text-indigo-400">{{ interviewCandidate.firstName }} {{ interviewCandidate.lastName }}</span>
+              </p>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Interview Date & Time</label>
+                <input type="datetime-local" [(ngModel)]="interviewForm.interviewDate" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                <p class="mt-1 text-xs text-gray-500">Updating this will email the candidate an invitation with the scheduled date.</p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HR Interview Score (0-100)</label>
+                <input type="number" min="0" max="100" [(ngModel)]="interviewForm.hrInterviewScore" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Interview Notes</label>
+                <textarea rows="3" [(ngModel)]="interviewForm.hrInterviewNotes" placeholder="Provide feedback and notes for this interview" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"></textarea>
+              </div>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex justify-end gap-3 rounded-b-2xl">
+              <button (click)="closeInterviewModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 transition-colors">Cancel</button>
+              <button (click)="saveInterview()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer">Save Details</button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
 })
@@ -488,6 +555,12 @@ export class CandidateTrackerComponent implements OnInit {
   job: JobListingResponse | null = null;
   candidates: CandidateResponse[] = [];
   selectedCandidate: CandidateResponse | null = null;
+  interviewCandidate: CandidateResponse | null = null;
+  interviewForm = {
+    interviewDate: '',
+    hrInterviewScore: null as number | null,
+    hrInterviewNotes: ''
+  };
 
   loading = true;
   aiLoading = false;
@@ -520,6 +593,48 @@ export class CandidateTrackerComponent implements OnInit {
   closeInspectModal() {
     this.selectedCandidate = null;
     this.cdr.detectChanges();
+  }
+
+  openInterviewModal(candidate: CandidateResponse) {
+    this.interviewCandidate = candidate;
+    this.interviewForm = {
+      interviewDate: candidate.interviewDate ? new Date(candidate.interviewDate).toISOString().slice(0, 16) : '',
+      hrInterviewScore: candidate.hrInterviewScore ?? null,
+      hrInterviewNotes: candidate.hrInterviewNotes || ''
+    };
+    this.cdr.detectChanges();
+  }
+
+  closeInterviewModal() {
+    this.interviewCandidate = null;
+    this.cdr.detectChanges();
+  }
+
+  saveInterview() {
+    if (!this.interviewCandidate) return;
+    
+    const dDate = this.interviewForm.interviewDate ? new Date(this.interviewForm.interviewDate).toISOString() : undefined;
+    
+    this.recruitmentService.updateInterview(this.interviewCandidate.id, {
+      interviewDate: dDate,
+      hrInterviewScore: this.interviewForm.hrInterviewScore ?? undefined,
+      hrInterviewNotes: this.interviewForm.hrInterviewNotes
+    }).subscribe({
+      next: () => {
+        this.loadCandidates();
+        
+        // auto advance to stage 2 if interview gets scheduled and it's still at 1
+        if (dDate && (this.interviewCandidate?.currentStage || 1) < 2 && this.interviewCandidate?.status !== 'rejected') {
+          this.recruitmentService.advanceCandidate(this.interviewCandidate!.id).subscribe(() => this.loadCandidates());
+        }
+
+        this.closeInterviewModal();
+      },
+      error: (err) => {
+        console.error('Error updating interview', err);
+        alert('Failed to update interview details');
+      }
+    });
   }
 
   loadJobDetails() {

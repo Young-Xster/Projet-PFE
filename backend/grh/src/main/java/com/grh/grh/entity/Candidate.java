@@ -109,6 +109,16 @@ public class Candidate {
     @Column(name = "ai_match_reasoning", columnDefinition = "TEXT")
     private String aiMatchRationale;
 
+    // ─── Interview tracking ────────────────────────────────────────────────
+    @Column(name = "interview_date")
+    private OffsetDateTime interviewDate;
+
+    @Column(name = "hr_interview_score")
+    private BigDecimal hrInterviewScore;
+
+    @Column(name = "hr_interview_notes", columnDefinition = "TEXT")
+    private String hrInterviewNotes;
+
     // ─── Timestamps ────────────────────────────────────────────────────────
     @Column(name = "applied_at")
     @Builder.Default

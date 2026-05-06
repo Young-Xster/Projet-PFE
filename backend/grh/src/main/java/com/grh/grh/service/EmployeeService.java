@@ -27,6 +27,7 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final CompanyRepository companyRepository;
     private final DepartmentRepository departmentRepository;
+    private final PositionRepository positionRepository;
     private final LeaveTypeRepository leaveTypeRepository;
     private final LeaveBalanceRepository leaveBalanceRepository;
     private final KeycloakUserService keycloakUserService;
@@ -96,6 +97,12 @@ public class EmployeeService {
 
         if (request.getFingerprintId() != null) {
             employeeBuilder.fingerprintId(request.getFingerprintId());
+        }
+
+        if (request.getPositionId() != null) {
+            Position position = positionRepository.findById(request.getPositionId())
+                .orElseThrow(() -> new IllegalArgumentException("Position not found"));
+            employeeBuilder.position(position);
         }
 
         Employee employee = employeeBuilder.build();
@@ -206,6 +213,11 @@ public class EmployeeService {
             Employee manager = employeeRepository.findById(request.getManagerId())
                 .orElseThrow(() -> new IllegalArgumentException("Manager not found"));
             employee.setManager(manager);
+        }
+        if (request.getPositionId() != null) {
+            Position position = positionRepository.findById(request.getPositionId())
+                .orElseThrow(() -> new IllegalArgumentException("Position not found"));
+            employee.setPosition(position);
         }
         if (request.getSalary() != null) {
             employee.setSalary(request.getSalary());
@@ -495,13 +507,18 @@ public class EmployeeService {
                 .code(employee.getDepartment().getCode())
                 .build());
         }
-    if (employee.getManager() != null) {
+        if (employee.getManager() != null) {
             builder.manager(EmployeeResponse.ManagerInfo.builder()
                 .id(employee.getManager().getEmployeeId())
                 .fullName(employee.getManager().getFirstName() + " " + employee.getManager().getLastName())
                 .email(employee.getManager().getEmail())
                 .build());
-    }
+        }
+
+        if (employee.getPosition() != null) {
+            builder.positionId(employee.getPosition().getId());
+            builder.positionName(employee.getPosition().getTitle());
+        }
         
         return builder.build();
     }

@@ -25,6 +25,28 @@ public class EmailService {
     private String appName;
 
     @Async
+    public void sendInterviewInvitation(
+        String toEmail,
+        String candidateName,
+        String jobTitle,
+        String interviewDate
+    ) {
+        String subject = appName + " - Interview Invitation";
+        String body = String.format("""
+            <html><body>
+            <h2>Interview Invitation</h2>
+            <p>Dear %s,</p>
+            <p>We are pleased to invite you to an interview for the <b>%s</b> position.</p>
+            <p><b>Interview Date & Time:</b> %s</p>
+            <p>Please let us know if you have any questions or require rescheduling.</p>
+            <p>Regards,<br>%s Team</p>
+            </body></html>
+            """, candidateName, jobTitle, interviewDate, appName);
+            
+        sendHtmlEmail(toEmail, subject, body);
+    }
+
+    @Async
     public void sendLeaveRequestConfirmation(
         String toEmail,
         String employeeName,

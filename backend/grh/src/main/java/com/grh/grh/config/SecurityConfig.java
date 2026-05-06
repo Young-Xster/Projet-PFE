@@ -60,6 +60,7 @@ public class SecurityConfig {
                     "/api/v1/employees/public/**",
                     "/api/v1/leave-requests/public/**",
                     "/api/v1/leave-types/public/**",
+                    "/api/v1/work-schedules/public/**",
                     "/api/v1/job-listings/public/**",
                     "/api/v1/candidates/public/**",
                     "/api/v1/subcontractors/portal/**",

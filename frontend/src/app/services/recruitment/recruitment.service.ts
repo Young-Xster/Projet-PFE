@@ -41,6 +41,17 @@ export class RecruitmentService {
     return this.http.post<ApiResponse<CandidateResponse>>(`${this.candidatesUrl}/${candidateId}/advance`, {});
   }
 
+  updateInterview(candidateId: string, payload: {
+    interviewDate?: string,
+    hrInterviewScore?: number,
+    hrInterviewNotes?: string
+  }): Observable<ApiResponse<CandidateResponse>> {
+    return this.http.put<ApiResponse<CandidateResponse>>(
+      `${this.candidatesUrl}/${candidateId}/interview`,
+      payload
+    );
+  }
+
   acceptCandidate(candidateId: string): Observable<ApiResponse<CandidateResponse>> {
     return this.http.post<ApiResponse<CandidateResponse>>(`${this.candidatesUrl}/${candidateId}/accept`, {});
   }

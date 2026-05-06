@@ -29,3 +29,13 @@ export interface AttendanceResponse {
   employeeName: string;
   employeeDepartment: string | null;
 }
+
+export interface OvertimeSummaryResponse {
+  employeeId: string;
+  employeeName: string;
+  employeeDepartment: string | null;
+  month: number;
+  year: number;
+  totalOvertimeMinutes: number;
+  totalOvertimeHours: number;
+}

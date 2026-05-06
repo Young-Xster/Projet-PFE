@@ -51,4 +51,17 @@ public interface AttendanceRepository extends JpaRepository<AttendanceRecord, UU
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate
     );
+
+    @Query("SELECT a.employee.employeeId, " +
+           "SUM(COALESCE(a.overtimeMinutes, 0)) " +
+           "FROM AttendanceRecord a " +
+           "WHERE a.company.id = :companyId " +
+           "AND a.date BETWEEN :startDate AND :endDate " +
+           "AND a.overtimeMinutes IS NOT NULL AND a.overtimeMinutes > 0 " +
+           "GROUP BY a.employee.employeeId")
+    List<Object[]> sumOvertimeByEmployee(
+        @Param("companyId") UUID companyId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
 }

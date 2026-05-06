@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
@@ -139,6 +139,7 @@ export class TopPanelComponent implements OnInit, OnDestroy {
     public notificationService: NotificationService,
     private router: Router,
     private authService: AuthService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -162,6 +163,7 @@ export class TopPanelComponent implements OnInit, OnDestroy {
         this.subLabel = u.isSuperAdmin
           ? 'Super Admin'
           : u.companyContext?.companyName || 'HR Manager';
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Failed to fetch user context:', err);

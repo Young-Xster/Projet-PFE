@@ -6,6 +6,7 @@ import {
   AttendanceResponse,
   CreateAttendanceRequest,
   UpdateAttendanceRequest,
+  OvertimeSummaryResponse,
 } from '../models/attendance.model';
 import { ApiResponse } from '../models/employee.model';
 
@@ -35,5 +36,16 @@ export class AttendanceService {
     data: UpdateAttendanceRequest,
   ): Observable<ApiResponse<AttendanceResponse>> {
     return this.http.put<ApiResponse<AttendanceResponse>>(`${this.apiUrl}/${recordId}`, data);
+  }
+
+  getMonthlyOvertimeSummary(
+    companyId: string,
+    year: number,
+    month: number,
+  ): Observable<ApiResponse<OvertimeSummaryResponse[]>> {
+    return this.http.get<ApiResponse<OvertimeSummaryResponse[]>>(
+      `${this.apiUrl}/company/${companyId}/overtime-summary`,
+      { params: { year: String(year), month: String(month) } },
+    );
   }
 }

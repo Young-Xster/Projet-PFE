@@ -107,6 +107,17 @@ public class CandidateController {
             candidateService.advanceCandidate(candidateId, authentication));
     }
 
+    @PutMapping("/{candidateId}/interview")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:update')")
+    public ApiResponse<CandidateResponse> updateInterview(
+        @PathVariable UUID candidateId,
+        @RequestBody com.grh.grh.dto.request.candidate.UpdateInterviewRequest request,
+        Authentication authentication
+    ) {
+        return ApiResponse.success("Interview details updated",
+            candidateService.updateInterview(candidateId, request, authentication));
+    }
+
     @PostMapping("/{candidateId}/accept")
     @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'candidates:update')")
     public ApiResponse<CandidateResponse> acceptCandidate(

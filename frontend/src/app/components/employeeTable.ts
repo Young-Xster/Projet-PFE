@@ -159,7 +159,7 @@ import { EmployeeSkeletonLoader } from '../loaders/employeeSkeletonLoader';
                   <td
                     class="px-5 py-3.5 text-sm text-gray-700 dark:text-gray-200 whitespace-nowrap"
                   >
-                    {{ emp.jobTitle }}
+                    {{ emp.positionName ?? emp.jobTitle }}
                   </td>
                   <td
                     class="px-5 py-3.5 text-sm text-gray-700 dark:text-gray-200 whitespace-nowrap"

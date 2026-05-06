@@ -30,6 +30,8 @@ export interface Employee {
   country?: string;
   nationalId?: string;
   jobTitle: string;
+  positionId?: string;
+  positionName?: string;
   employmentType: string;
   status: string;
   hireDate: string;
@@ -64,6 +66,7 @@ export interface CreateEmployeeRequest {
   jobTitle: string;
   departmentId?: string;
   managerId?: string;
+  positionId?: string;
   salary: number;
   userId?: string;
   fingerprintId?: string;

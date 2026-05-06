@@ -29,6 +29,8 @@ public class EmployeeResponse {
     private String country;
     private String nationalId;
     private String jobTitle;
+    private UUID positionId;
+    private String positionName;
     private String employmentType;
     private String status;
     private LocalDate hireDate;

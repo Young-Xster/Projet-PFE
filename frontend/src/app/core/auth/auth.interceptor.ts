@@ -37,6 +37,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         }
 
         return from(keycloak.updateToken(0)).pipe(
+          catchError((refreshErr) => {
+            localStorage.removeItem('jwt_token');
+            keycloak.login({ redirectUri: window.location.href });
+            return throwError(() => refreshErr);
+          }),
           switchMap(() => {
             const retryRequest = request.clone({
               setHeaders: { 'x-auth-retried': '1' },
@@ -45,12 +50,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               localStorage.setItem('jwt_token', keycloak.token);
             }
             return next(withToken(retryRequest));
-          }),
-          catchError(() => {
-            localStorage.removeItem('jwt_token');
-            keycloak.login({ redirectUri: window.location.href });
-            return throwError(() => error);
-          }),
+          })
         );
       }),
     );

@@ -11,7 +11,8 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { RecruitmentService } from '../../services/recruitment/recruitment.service';
 import { EmployeeService } from '../../services/employee/employee.service';
-import { PositionService, PositionResponse } from '../../services/position/position.service';
+import { PositionService } from '../../services/position/position.service';
+import { PositionResponse } from '../../models/position.model';
 import { DepartmentService } from '../../services/department.service';
 import { DepartmentResponse } from '../../models/department.model';
 import { environment } from '../../../environments/environment';
@@ -98,7 +99,7 @@ interface CompanyInfo {
             >
               <option value="">Select Position (Optional)</option>
               @for (pos of positions; track pos.id) {
-                <option [value]="pos.id">{{ pos.title }}</option>
+                <option [value]="pos.id">{{ pos.name }}</option>
               }
             </select>
           </div>

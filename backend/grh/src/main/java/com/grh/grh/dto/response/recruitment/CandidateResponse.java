@@ -57,6 +57,10 @@ public class CandidateResponse {
     private BigDecimal aiMatchScore;
     private String aiMatchRationale;
 
+    private OffsetDateTime interviewDate;
+    private BigDecimal hrInterviewScore;
+    private String hrInterviewNotes;
+
     private OffsetDateTime appliedAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;

@@ -17,6 +17,8 @@ import { EmployeeDocumentType } from '../models/document.model';
 import { DocumentService } from '../services/document/document.service';
 import { DepartmentService } from '../services/department.service';
 import { DepartmentResponse } from '../models/department.model';
+import { PositionService } from '../services/position/position.service';
+import { PositionResponse } from '../models/position.model';
 
 @Component({
   selector: 'app-add-employee',
@@ -342,6 +344,21 @@ import { DepartmentResponse } from '../models/department.model';
             </div>
             <div class="flex flex-col gap-1.5">
               <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Position</label
+              >
+              <select
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800"
+                [(ngModel)]="employee.positionId"
+                name="positionId"
+              >
+                <option value="" disabled>Select Position</option>
+                @for (pos of positions; track pos.id) {
+                  <option [value]="pos.id">{{ pos.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
                 >Manager</label
               >
               <select
@@ -521,6 +538,7 @@ export class AddEmployeeComponent implements OnInit {
   isSuperAdmin = false;
   companies: CompanyInfo[] = [];
   departments: DepartmentResponse[] = [];
+  positions: PositionResponse[] = [];
   managers: Employee[] = [];
   errorMessage = '';
 
@@ -565,6 +583,7 @@ export class AddEmployeeComponent implements OnInit {
   constructor(
     private employeeService: EmployeeService,
     private departmentService: DepartmentService,
+    private positionService: PositionService,
     private router: Router,
     private route: ActivatedRoute,
     private breadcrumbService: BreadcrumbService,
@@ -588,6 +607,11 @@ export class AddEmployeeComponent implements OnInit {
           this.http.get<any>(`${environment.apiUrl}/companies`).subscribe({
             next: (companiesRes) => {
               this.companies = companiesRes?.data || [];
+              const storedCompanyId = localStorage.getItem('company_id');
+              if (storedCompanyId && this.companies.some((c) => c.id === storedCompanyId)) {
+                this.employee.companyId = storedCompanyId;
+                this.fetchOptions(storedCompanyId);
+              }
               this.cdr.detectChanges();
             },
           });
@@ -608,6 +632,7 @@ export class AddEmployeeComponent implements OnInit {
     } else {
       this.managers = [];
       this.departments = [];
+      this.positions = [];
     }
   }
 
@@ -625,6 +650,13 @@ export class AddEmployeeComponent implements OnInit {
         this.cdr.detectChanges();
       },
     });
+
+    this.positionService.getPositionsByCompany(companyId).subscribe({
+      next: (resp) => {
+        this.positions = resp?.data || [];
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   async onSubmit(): Promise<void> {
@@ -639,6 +671,7 @@ export class AddEmployeeComponent implements OnInit {
     const payload = { ...this.employee };
     if (!payload.departmentId) delete payload.departmentId;
     if (!payload.managerId) delete payload.managerId;
+    if (!payload.positionId) delete payload.positionId;
 
     try {
       const createdEmployee = await firstValueFrom(

@@ -3,7 +3,9 @@ DECLARE
     comp_id UUID;
 BEGIN
     FOR comp_id IN SELECT id FROM companies LOOP
-        -- Optional: delete old confusing leave types (Careful, might violate FK on leave_requests)
+        -- Delete all existing customized or duplicate leave types for the company seamlessly
+        DELETE FROM leave_types WHERE company_id = comp_id;
+
         -- Keep existing or insert new ones:
         INSERT INTO leave_types (company_id, name, code, is_paid, max_days_per_year, description) VALUES
         (comp_id, 'Annual Leave', 'ANNUAL_LEAVE_' || comp_id, true, 25, 'Standard annual leave balance'),

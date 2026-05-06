@@ -49,6 +49,9 @@ export interface CandidateResponse {
   hiredEmployeeId: string;
   aiMatchScore: number;
   aiMatchRationale?: string;
+  interviewDate?: string;
+  hrInterviewScore?: number;
+  hrInterviewNotes?: string;
   appliedAt: string;
   createdAt: string;
   updatedAt: string;

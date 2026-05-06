@@ -1,9 +1,53 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { lastValueFrom } from 'rxjs';
 import { keycloak } from './keycloak';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private http = inject(HttpClient);
+  
+  private permissions: string[] = [];
+  public userContextLoaded = false;
+  
+  private readonly defaultRedirects = [
+    { permission: 'employees:read', path: '/employees' },
+    { permission: 'departments:read', path: '/departments' },
+    { permission: 'attendance:read', path: '/attendance' },
+    { permission: 'performance:read', path: '/performance' },
+    { permission: 'positions:read', path: '/positions' },
+    { permission: 'payroll:read', path: '/payroll' },
+    { permission: 'recruitment_requests:read', path: '/jobs' },
+    { permission: 'work_schedules:read', path: '/schedules' },
+    { permission: 'leave_requests:read', path: '/leaves' },
+  ];
+
+  async loadUserContext(): Promise<void> {
+    if (!this.isAuthenticated() || this.userContextLoaded) return;
+    try {
+      const res = await lastValueFrom(this.http.get<any>(`${environment.apiUrl}/auth/me`));
+      if (res?.data?.companyContext?.permissions) {
+         this.permissions = res.data.companyContext.permissions;
+      }
+      this.userContextLoaded = true;
+    } catch (e) {
+      console.warn('Failed to load user permissions context', e);
+    }
+  }
+
+  hasPermission(perm: string): boolean {
+    if (this.isSuperAdmin()) return true;
+    return this.permissions.includes(perm);
+  }
+
+  getDefaultRoute(): string {
+     for (const r of this.defaultRedirects) {
+        if (this.hasPermission(r.permission)) return r.path;
+     }
+     return '/dashboard'; // Fallback
+  }
+
   private readonly companyIdStorageKey = 'company_id';
   private readonly postLoginRedirectStorageKey = 'post_login_redirect';
   private readonly forceReauthStorageKey = 'force_reauth_after_logout';

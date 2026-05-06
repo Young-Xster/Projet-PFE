@@ -4,6 +4,7 @@ import com.grh.grh.dto.common.ApiResponse;
 import com.grh.grh.dto.request.attendance.CreateAttendanceRequest;
 import com.grh.grh.dto.request.attendance.UpdateAttendanceRequest;
 import com.grh.grh.dto.response.attendance.AttendanceResponse;
+import com.grh.grh.dto.response.attendance.OvertimeSummaryResponse;
 import com.grh.grh.service.AttendanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -107,6 +108,18 @@ public class AttendanceController {
     ) {
         return ApiResponse.success("Employees on leave retrieved successfully",
             attendanceService.getEmployeeIdsOnLeaveForDate(companyId, date, authentication));
+    }
+
+    @GetMapping("/company/{companyId}/overtime-summary")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or @keycloakUserService.hasPermission(authentication, 'attendance:read')")
+    public ApiResponse<List<OvertimeSummaryResponse>> getMonthlyOvertimeSummary(
+        @PathVariable UUID companyId,
+        @RequestParam int year,
+        @RequestParam int month,
+        Authentication authentication
+    ) {
+        return ApiResponse.success("Monthly overtime summary retrieved successfully",
+            attendanceService.getMonthlyOvertimeSummary(companyId, year, month, authentication));
     }
 
 }

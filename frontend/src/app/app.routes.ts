@@ -15,6 +15,10 @@ import { EditDepartmentPage } from './pages/departments/edit-department.page';
 import { DepartmentDetailPage } from './pages/departments/department-detail.page';
 import { AttendanceTablePage } from './pages/attendance/attendance-table.page';
 import { PerformancePage } from './pages/performance/performance.page';
+import { PayrollPageComponent } from './pages/payroll/payroll.page';
+import { PositionTablePage } from './pages/positions/position-table.page';
+import { AddPositionPage } from './pages/positions/add-position.page';
+import { EditPositionPage } from './pages/positions/edit-position.page';
 
 import { JobListingTablePage } from './pages/recruitment/jobs/job-listing-table.page';
 import { CandidateTrackerPage } from './pages/recruitment/candidates/candidate-tracker.page';
@@ -101,12 +105,25 @@ export const routes: Routes = [
       },
       {
         path: 'payroll',
-        component: PlaceholderPageComponent,
-        data: {
-          pageTitle: 'Payroll',
-          breadcrumb: 'Payroll',
-          description: 'Payroll content will appear here.',
-        },
+        component: PayrollPageComponent,
+        data: { pageTitle: 'Payroll', breadcrumb: 'Payroll' },
+      },
+      {
+        path: 'positions',
+        data: { pageTitle: 'Positions', breadcrumb: 'Positions' },
+        children: [
+          { path: '', component: PositionTablePage },
+          {
+            path: 'new',
+            component: AddPositionPage,
+            data: { pageTitle: 'Create Position', breadcrumb: 'New Position' },
+          },
+          {
+            path: ':id/edit',
+            component: EditPositionPage,
+            data: { pageTitle: 'Edit Position', breadcrumb: 'Edit Position' },
+          },
+        ],
       },
       {
         path: 'jobs',

@@ -68,6 +68,7 @@ public class CreateEmployeeRequest {
     
     private UUID departmentId;
     private UUID managerId;
+    private UUID positionId;
     
     @DecimalMin(value = "0.0", inclusive = false, message = "Salary must be greater than 0")
     private BigDecimal salary;

@@ -1,0 +1,3 @@
+ALTER TABLE candidates ADD COLUMN IF NOT EXISTS interview_date TIMESTAMP WITH TIME ZONE;
+ALTER TABLE candidates ADD COLUMN IF NOT EXISTS hr_interview_score NUMERIC(5, 2);
+ALTER TABLE candidates ADD COLUMN IF NOT EXISTS hr_interview_notes TEXT;

@@ -301,6 +301,59 @@ public class CandidateService {
         return mapToResponse(candidate);
     }
 
+    @Transactional
+    public CandidateResponse updateInterview(UUID candidateId, com.grh.grh.dto.request.candidate.UpdateInterviewRequest request, Authentication authentication) {
+        Candidate candidate = candidateRepository.findById(candidateId)
+            .orElseThrow(() -> new IllegalArgumentException("Candidate not found"));
+
+        validateCompanyAccess(candidate.getCompany().getId(), authentication);
+
+        // update the fields
+        if (request.getInterviewDate() != null) {
+            candidate.setInterviewDate(request.getInterviewDate());
+            // Send email to candidate
+            emailService.sendInterviewInvitation(
+                candidate.getEmail(),
+                candidate.getFirstName() + " " + candidate.getLastName(),
+                candidate.getJobListing().getTitle(),
+                candidate.getInterviewDate().toString()
+            );
+        }
+        if (request.getHrInterviewScore() != null) {
+            candidate.setHrInterviewScore(request.getHrInterviewScore());
+        }
+        if (request.getHrInterviewNotes() != null) {
+            candidate.setHrInterviewNotes(request.getHrInterviewNotes());
+        }
+        
+        candidate = candidateRepository.save(candidate);
+        UUID currentUserId = keycloakUserService.getCurrentUserId(authentication);
+
+        if (request.getInterviewDate() != null) {
+            // notification to HR
+            eventPublisher.publishEvent(NotificationEvent.builder()
+                .companyId(candidate.getCompany().getId())
+                .type("INTERVIEW_SCHEDULED")
+                .title("Interview Scheduled")
+                .message("Interview for " + candidate.getFirstName() + " " + candidate.getLastName() + " on " + candidate.getInterviewDate())
+                .targetModule("RECRUITMENT")
+                .targetId(candidate.getId())
+                .importance("MEDIUM")
+                .build());
+        }
+
+        // Publish activity log event
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+            .companyId(candidate.getCompany().getId())
+            .userId(currentUserId)
+            .action("INTERVIEW_DETAILS_UPDATED")
+            .entityType("CANDIDATE")
+            .entityId(candidate.getId())
+            .build());
+
+        return mapToResponse(candidate);
+    }
+
     // accept candidate
 
     @Transactional
@@ -624,6 +677,9 @@ public class CandidateService {
             .hiredEmployeeId(candidate.getHiredEmployeeId())
             .aiMatchScore(candidate.getAiMatchScore())
             .aiMatchRationale(candidate.getAiMatchRationale())
+            .interviewDate(candidate.getInterviewDate())
+            .hrInterviewScore(candidate.getHrInterviewScore())
+            .hrInterviewNotes(candidate.getHrInterviewNotes())
             .appliedAt(candidate.getAppliedAt())
             .createdAt(candidate.getCreatedAt())
             .updatedAt(candidate.getUpdatedAt())

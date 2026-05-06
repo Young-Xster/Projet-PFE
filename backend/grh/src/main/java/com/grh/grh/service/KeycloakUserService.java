@@ -138,10 +138,37 @@ public class KeycloakUserService {
 
     /**
      * Check if user has a specific permission (e.g., "employees:create")
+     * Permissions are derived ONLY from the user's roles, not from direct JWT claims.
      */
     public boolean hasPermission(Authentication authentication, String permission) {
-        List<String> permissions = extractPermissions(authentication);
-        return permissions.contains(permission);
+        if (!(authentication.getPrincipal() instanceof Jwt jwt)) {
+            throw new IllegalStateException("Invalid authentication type");
+        }
+
+        // Super admins bypass all permission checks
+        if (hasRole(jwt, "SUPER_ADMIN")) {
+            return true;
+        }
+
+        // Check roles from JWT first (fast path)
+        Collection<String> roles = extractRoles(jwt);
+        for (String roleName : roles) {
+            try {
+                var roleRepresentation = keycloakAdminService.getRoleWithPermissions(roleName);
+                Map<String, List<String>> attributes = roleRepresentation.getAttributes();
+                
+                if (attributes != null && attributes.containsKey("permissions")) {
+                    List<String> perms = attributes.get("permissions");
+                    if (perms.contains(permission)) {
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch permissions for role: {}", roleName, e);
+            }
+        }
+
+        return false;
     }
 
     private UUID extractCompanyId(Jwt jwt) {

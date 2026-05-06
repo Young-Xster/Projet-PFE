@@ -3,6 +3,7 @@ package com.grh.grh.service;
 import com.grh.grh.dto.request.attendance.CreateAttendanceRequest;
 import com.grh.grh.dto.request.attendance.UpdateAttendanceRequest;
 import com.grh.grh.dto.response.attendance.AttendanceResponse;
+import com.grh.grh.dto.response.attendance.OvertimeSummaryResponse;
 import com.grh.grh.entity.*;
 import com.grh.grh.event.ActivityLogEvent;
 import com.grh.grh.event.NotificationEvent;
@@ -15,8 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -268,6 +272,45 @@ public class AttendanceService {
     public List<UUID> getEmployeeIdsOnLeaveForDate(UUID companyId, LocalDate date, Authentication authentication) {
         validateCompanyAccess(companyId, authentication);
         return leaveRequestRepository.findEmployeeIdsOnLeaveForDate(companyId, date);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OvertimeSummaryResponse> getMonthlyOvertimeSummary(
+        UUID companyId, int year, int month, Authentication authentication
+    ) {
+        validateCompanyAccess(companyId, authentication);
+
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.atEndOfMonth();
+
+        List<Object[]> results = attendanceRepository.sumOvertimeByEmployee(companyId, startDate, endDate);
+
+        List<UUID> employeeIds = results.stream()
+            .map(row -> (UUID) row[0])
+            .toList();
+
+        Map<UUID, Employee> employeeMap = employeeRepository.findAllById(employeeIds).stream()
+            .collect(Collectors.toMap(Employee::getEmployeeId, e -> e));
+
+        List<OvertimeSummaryResponse> summaries = new ArrayList<>();
+        for (Object[] row : results) {
+            UUID employeeId = (UUID) row[0];
+            long totalMinutes = ((Number) row[1]).longValue();
+            Employee employee = employeeMap.get(employeeId);
+
+            summaries.add(OvertimeSummaryResponse.builder()
+                .employeeId(employeeId)
+                .employeeName(employee != null ? employee.getFirstName() + " " + employee.getLastName() : "Unknown")
+                .employeeDepartment(employee != null && employee.getDepartment() != null ? employee.getDepartment().getName() : null)
+                .month(month)
+                .year(year)
+                .totalOvertimeMinutes(totalMinutes)
+                .totalOvertimeHours(Math.round(totalMinutes / 60.0 * 100.0) / 100.0)
+                .build());
+        }
+
+        return summaries;
     }
 
     @Transactional

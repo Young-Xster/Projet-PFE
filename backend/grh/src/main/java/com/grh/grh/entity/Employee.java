@@ -19,8 +19,8 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = {"company", "user", "department", "manager", "subordinates", "attendanceRecords", "leaveRequests", "documents"})
-@ToString(exclude = {"company", "user", "department", "manager", "subordinates", "attendanceRecords", "leaveRequests", "documents"})
+@EqualsAndHashCode(exclude = {"company", "user", "department", "manager", "position", "subordinates", "attendanceRecords", "leaveRequests", "documents"})
+@ToString(exclude = {"company", "user", "department", "manager", "position", "subordinates", "attendanceRecords", "leaveRequests", "documents"})
 public class Employee {
 
     @Id
@@ -86,6 +86,10 @@ public class Employee {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "position_id")
+    private Position position;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")

@@ -5,6 +5,7 @@ import { filter, Subscription } from 'rxjs';
 import { SideBarNavigation } from '../components/sideNavigation';
 import { TopPanelComponent } from '../components/topPanel';
 import { AppBreadcrumb } from '../components/breadCrumb';
+import { AuthService } from '../core/auth/auth.service';
 
 @Component({
   selector: 'app-employee-layout',
@@ -44,13 +45,27 @@ export class EmployeeLayout implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private activatedRoute: ActivatedRoute,
+    private auth: AuthService
   ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.updateTitle();
     this.sub = this.router.events
       .pipe(filter((e) => e instanceof NavigationEnd))
       .subscribe(() => this.updateTitle());
+      
+    if (this.auth.isAuthenticated()) {
+      await this.auth.loadUserContext();
+      
+      let target = this.auth.consumePostLoginRedirect();
+      if (!target || target === '/dashboard') {
+        target = this.auth.getDefaultRoute();
+      }
+
+      if (target && target !== this.router.url && this.router.url === '/dashboard') {
+        this.router.navigateByUrl(target);
+      }
+    }
   }
 
   ngOnDestroy(): void {

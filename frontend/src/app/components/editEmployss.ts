@@ -18,6 +18,8 @@ import { EmployeeDocumentType } from '../models/document.model';
 import { DocumentService } from '../services/document/document.service';
 import { DepartmentService } from '../services/department.service';
 import { DepartmentResponse } from '../models/department.model';
+import { PositionService } from '../services/position/position.service';
+import { PositionResponse } from '../models/position.model';
 
 @Component({
   selector: 'app-edit-employee',
@@ -350,6 +352,21 @@ import { DepartmentResponse } from '../models/department.model';
             </div>
             <div class="flex flex-col gap-1.5">
               <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
+                >Position</label
+              >
+              <select
+                class="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 transition-all focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-400/15 focus:bg-white dark:focus:bg-gray-800"
+                [(ngModel)]="employee.positionId"
+                name="positionId"
+              >
+                <option value="" disabled>Select Position</option>
+                @for (pos of positions; track pos.id) {
+                  <option [value]="pos.id">{{ pos.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[0.85rem] font-semibold text-gray-700 dark:text-gray-200"
                 >Manager</label
               >
               <select
@@ -530,6 +547,7 @@ export class EditEmployeeComponent implements OnInit {
   isSuperAdmin = false;
   companies: CompanyInfo[] = [];
   departments: DepartmentResponse[] = [];
+  positions: PositionResponse[] = [];
   managers: Employee[] = [];
   errorMessage = '';
 
@@ -574,6 +592,7 @@ export class EditEmployeeComponent implements OnInit {
   constructor(
     private employeeService: EmployeeService,
     private departmentService: DepartmentService,
+    private positionService: PositionService,
     private router: Router,
     private route: ActivatedRoute,
     private breadcrumbService: BreadcrumbService,
@@ -602,6 +621,7 @@ export class EditEmployeeComponent implements OnInit {
             companyId: emp.company?.id || '',
             departmentId: emp.department?.id || '',
             managerId: emp.manager?.id || '',
+            positionId: (emp as any).positionId || '',
           } as any;
           if (this.employee.companyId) {
             this.fetchOptions(this.employee.companyId);
@@ -637,6 +657,7 @@ export class EditEmployeeComponent implements OnInit {
     } else {
       this.managers = [];
       this.departments = [];
+      this.positions = [];
     }
   }
 
@@ -654,6 +675,13 @@ export class EditEmployeeComponent implements OnInit {
         this.cdr.detectChanges();
       },
     });
+
+    this.positionService.getPositionsByCompany(companyId).subscribe({
+      next: (resp) => {
+        this.positions = resp?.data || [];
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   async onSubmit(): Promise<void> {
@@ -668,6 +696,7 @@ export class EditEmployeeComponent implements OnInit {
     const payload: Partial<CreateEmployeeRequest> = { ...this.employee };
     if (!payload.departmentId) delete payload.departmentId;
     if (!payload.managerId) delete payload.managerId;
+    if (!payload.positionId) delete payload.positionId;
 
     try {
       const updatedEmployee = await firstValueFrom(
