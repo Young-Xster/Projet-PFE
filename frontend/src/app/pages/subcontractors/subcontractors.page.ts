@@ -220,6 +220,14 @@ import {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-5">
           <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+            <span class="text-xs text-gray-500">Display Name</span>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.displayName }}</p>
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+            <span class="text-xs text-gray-500">Company Name</span>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.subcontractorCompanyName || '-' }}</p>
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
             <span class="text-xs text-gray-500">Type</span>
             <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.type }}</p>
           </div>
@@ -228,12 +236,24 @@ import {
             <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.contactEmail || '-' }}</p>
           </div>
           <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+            <span class="text-xs text-gray-500">Contact First Name</span>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.contactFirstName || '-' }}</p>
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+            <span class="text-xs text-gray-500">Contact Last Name</span>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.contactLastName || '-' }}</p>
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
             <span class="text-xs text-gray-500">Phone</span>
             <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.contactPhone || '-' }}</p>
           </div>
           <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
             <span class="text-xs text-gray-500">City</span>
             <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.city || '-' }}</p>
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 md:col-span-2">
+            <span class="text-xs text-gray-500">Address</span>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ selectedSubcontractor.address || '-' }}</p>
           </div>
         </div>
 
